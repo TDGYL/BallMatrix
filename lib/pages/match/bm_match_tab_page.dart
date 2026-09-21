@@ -97,40 +97,83 @@ class _BMMatchTabPageState extends BMBasePageState<BMMatchTabPage> {
   }
 
   /// 获取当前 sport 选中快捷日期的时间戳 (秒级, 日期0点)
+  /// 说明: 依赖当前 tab 动态计算日期范围, tab=0/1(全部/进行中)默认使用今天
   int _currentTimestamp() {
-    final idx = _selectedDateIndices[_currentSport] ?? 1;
+    final tab = _currentTabs[_currentSport] ?? 0;
+    final idx = _selectedDateIndices[_currentSport] ?? 0;
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
-    final targetDay = today.add(Duration(days: idx - 1));
+    final offset = _dateOffsetForIndex(tab, idx);
+    final targetDay = today.add(Duration(days: offset));
     return targetDay.millisecondsSinceEpoch ~/ 1000;
   }
 
-  /// 生成快捷日期数据 (7天, 从-2前天至+4大后天, 动态真实月日)
-  List<(String, String)> _dateList() {
+  /// 根据 tab 和 index 返回相对今天的 day 偏移量
+  /// tab=2(即将开赛): idx 0..5 -> offset 0..5 (今天..T+5)
+  /// tab=3(完场复盘): idx 0..5 -> offset -5..0 (T-5..今天)
+  /// tab=0/1(全部/进行中): 永远 0(今天)
+  int _dateOffsetForIndex(int tab, int idx) {
+    if (tab == 2) return idx.clamp(0, 5);
+    if (tab == 3) return (idx.clamp(0, 5)) - 5;
+    return 0;
+  }
+
+  /// 生成指定 sport+tab 对应的快捷日期项
+  /// tab=0(全部)/tab=1(进行中): 返回空列表 (UI隐藏)
+  /// tab=2(即将开赛): 今天 + 后5天(共6天)
+  /// tab=3(完场复盘): 前5天 + 今天(共6天), 选中最后一天=今天
+  List<(String, String, int)> _dateListForTab(int tab) {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
-    final List<(String, String)> out = [];
-    for (int i = -2; i < 5; i++) {
-      final d = today.add(Duration(days: i));
-      String day;
-      if (i == 0) {
-        day = '今天';
-      } else if (i == -1) {
-        day = '昨天';
-      } else if (i == 1) {
-        day = '明天';
-      } else if (i == -2) {
-        day = '前天';
-      } else {
-        final wd = d.weekday;
-        const wk = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
-        day = wk[wd - 1];
+    final List<(String, String, int)> out = [];
+    if (tab == 2) {
+      for (int i = 0; i < 6; i++) {
+        final d = today.add(Duration(days: i));
+        String day;
+        if (i == 0) {
+          day = '今天';
+        } else if (i == 1) {
+          day = '明天';
+        } else {
+          final wd = d.weekday;
+          const wk = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
+          day = wk[wd - 1];
+        }
+        final date =
+            '${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+        out.add((day, date, i));
       }
-      final date =
-          '${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
-      out.add((day, date));
+      return out;
+    }
+    if (tab == 3) {
+      for (int i = -5; i <= 0; i++) {
+        final d = today.add(Duration(days: i));
+        String day;
+        if (i == 0) {
+          day = '今天';
+        } else if (i == -1) {
+          day = '昨天';
+        } else if (i == -2) {
+          day = '前天';
+        } else {
+          final wd = d.weekday;
+          const wk = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
+          day = wk[wd - 1];
+        }
+        final date =
+            '${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+        // 相对索引: 0..5 (0=T-5, 5=今天)
+        out.add((day, date, i + 5));
+      }
+      return out;
     }
     return out;
+  }
+
+  /// 生成快捷日期数据 (兼容历史接口: 始终返回 tab=2 的格式方便UI通用)
+  List<(String, String)> _dateList() {
+    final tab = _currentTabs[_currentSport] ?? 0;
+    return _dateListForTab(tab).map((e) => (e.$1, e.$2)).toList();
   }
 
   @override
@@ -175,16 +218,31 @@ class _BMMatchTabPageState extends BMBasePageState<BMMatchTabPage> {
   }
 
   /// 切换状态过滤器 (全部/进行中/即将开赛/完场复盘)
-  /// 说明: 切换后如果对应缓存没加载过则自动加载
+  /// 说明: 切换 tab 时按规则重置默认日期, 并强制刷新(切换日期一定会触发刷新)
   void _switchTab(int tab) {
     if ((_currentTabs[_currentSport] ?? 0) == tab) return;
+    int defaultDateIdx = 0;
+    if (tab == 2) {
+      // 即将开赛: 选中第一天(今天, idx=0)
+      defaultDateIdx = 0;
+    } else if (tab == 3) {
+      // 完场复盘: 选中最后一天(今天, 在T-5..今天共6天中最后1个, idx=5)
+      defaultDateIdx = 5;
+    } else {
+      // 全部/进行中: 内部记录 idx=0 (不影响 timestamp 默认今天)
+      defaultDateIdx = 0;
+    }
     setState(() {
       _currentTabs[_currentSport] = tab;
+      _selectedDateIndices[_currentSport] = defaultDateIdx;
     });
+    // 切换 tab 按需求规则重置并强制刷新
     final s = _currentState();
-    if (s.list.isEmpty && s.isRefreshing && !s.isFetching) {
-      _fetchCurrent(isRefresh: true);
-    }
+    s.list = [];
+    s.page = 1;
+    s.hasNoMore = false;
+    s.serverTotal = null;
+    _fetchCurrent(isRefresh: true);
   }
 
   /// 切换快捷日期
@@ -412,6 +470,20 @@ class _BMMatchTabPageState extends BMBasePageState<BMMatchTabPage> {
     );
   }
 
+  /// 按OC语法累加篮球各节比分 (split逗号遍历求和)
+  /// OC: NSArray *a=[str componentsSeparatedByString:@","]; for(NSString*s in a) count+=[s integerValue];
+  int _sumBasketballScores(String? scoresStr) {
+    if (scoresStr == null || scoresStr.isEmpty) return 0;
+    final arr = scoresStr.split(',');
+    int count = 0;
+    for (final sub in arr) {
+      final trimmed = sub.trim();
+      if (trimmed.isEmpty) continue;
+      count += int.tryParse(trimmed) ?? 0;
+    }
+    return count;
+  }
+
   /// 单条 BMBasketballMatchItem -> BMMatchModel (对齐 BMMatchApiService._convertBasketballMatch)
   BMMatchModel _apiServiceConvertBasketball(BMBasketballMatchItem item) {
     int? safeInt(dynamic v) {
@@ -449,8 +521,9 @@ class _BMMatchTabPageState extends BMBasePageState<BMMatchTabPage> {
       default:
         status = BMMatchStatus.tbd;
     }
-    final int? homeScore = int.tryParse(item.homeScores ?? '');
-    final int? awayScore = int.tryParse(item.awayScores ?? '');
+    // 按OC语法: 逗号分隔各节比分累加
+    final int homeScore = _sumBasketballScores(item.homeScores);
+    final int awayScore = _sumBasketballScores(item.awayScores);
     final String timeStr = _formatMatchTime(item.matchTime);
     return BMMatchModel(
       matchId: item.id?.toString() ?? '',
@@ -516,11 +589,13 @@ class _BMMatchTabPageState extends BMBasePageState<BMMatchTabPage> {
 
   @override
   Widget buildBody(BuildContext context) {
+    final tab = _currentTabs[_currentSport] ?? 0;
+    final showDatePicker = tab == 2 || tab == 3;
     return Column(
       children: [
         _buildTopBar(),
         _buildStatusFilter(),
-        _buildDatePicker(),
+        if (showDatePicker) _buildDatePicker(),
         Expanded(child: _buildMatchList()),
       ],
     );
@@ -854,18 +929,14 @@ class _BMMatchTabPageState extends BMBasePageState<BMMatchTabPage> {
     );
   }
 
-  /// 构建单行比赛卡片 (复用原UI结构)
+  /// 构建单行比赛卡片 (背景色与 TopicPostCard 完全一致)
   Widget _buildMatchRow(BMMatchModel match) {
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Color(0xD9143328), Color(0xF00E261E)],
-        ),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: BMColors.pitch600.withValues(alpha: 0.4)),
+        color: BMColors.pitch850,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: BMColors.pitch700.withValues(alpha: 0.5)),
       ),
       child: Row(
         children: [
@@ -1068,26 +1139,14 @@ class _BMMatchTabPageState extends BMBasePageState<BMMatchTabPage> {
     );
   }
 
-  /// 构建比赛附加信息 (右侧胜率角球盘口等)
+  /// 构建比赛附加信息 (右侧角球盘口等)
   Widget _buildMatchExtra(BMMatchModel match) {
-    final aiRate = (match.homeWinRate + match.drawRate + match.awayWinRate) > 0
-        ? match.homeWinRate
-        : 0;
     return SizedBox(
       width: 72,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
           if (match.status == BMMatchStatus.live) ...[
-            Text(
-              '胜率 $aiRate%',
-              style: const TextStyle(
-                fontSize: 10,
-                fontFamily: 'monospace',
-                color: BMColors.amber,
-              ),
-            ),
-            const SizedBox(height: 2),
             const Text(
               '数据实时',
               style: TextStyle(fontSize: 10, color: BMColors.textSecondary),

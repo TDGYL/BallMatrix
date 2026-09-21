@@ -367,7 +367,7 @@ class _BMTopicListPageState extends BMBasePageState<BMTopicListPage> {
     );
   }
 
-  /// 自定义导航栏 (返回 + 标题)
+  /// 自定义导航栏 (返回 + 标题 + 发布按钮)
   Widget _buildNavBar(BuildContext context) {
     return Container(
       padding: const EdgeInsets.fromLTRB(4, 8, 16, 8),
@@ -400,7 +400,37 @@ class _BMTopicListPageState extends BMBasePageState<BMTopicListPage> {
               ),
             ),
           ),
-          const SizedBox(width: 40),
+          GestureDetector(
+            onTap: () {
+              debugPrint('BMTopicListPage 点击导航右侧发布按钮');
+            },
+            behavior: HitTestBehavior.opaque,
+            child: Container(
+              width: 60,
+              height: 36,
+              decoration: BoxDecoration(
+                color: BMColors.bright.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: BMColors.bright.withValues(alpha: 0.35)),
+              ),
+              alignment: Alignment.center,
+              child: const Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.add, size: 16, color: BMColors.bright),
+                  SizedBox(width: 3),
+                  Text(
+                    '发布',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: BMColors.bright,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
         ],
       ),
     );

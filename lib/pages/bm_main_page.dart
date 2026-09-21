@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../theme/bm_colors.dart';
 import 'home/bm_home_page.dart';
 import 'match/bm_match_tab_page.dart';
@@ -50,10 +51,7 @@ class _BMMainPageState extends State<BMMainPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: BMColors.pitch900,
-      body: IndexedStack(
-        index: _currentIndex,
-        children: _pages,
-      ),
+      body: IndexedStack(index: _currentIndex, children: _pages),
       bottomNavigationBar: _buildBottomNav(),
     );
   }
@@ -64,9 +62,7 @@ class _BMMainPageState extends State<BMMainPage> {
       height: 64,
       decoration: BoxDecoration(
         color: BMColors.pitch950.withValues(alpha: 0.95),
-        border: const Border(
-          top: BorderSide(color: Color(0x80143328)),
-        ),
+        border: const Border(top: BorderSide(color: Color(0x80143328))),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -137,11 +133,15 @@ class _BMMainPageState extends State<BMMainPage> {
                 ],
                 border: Border.all(color: BMColors.pitch950, width: 4),
               ),
-              child: const Icon(Icons.radar, size: 20, color: BMColors.pitch950),
+              child: const Icon(
+                Icons.radar,
+                size: 20,
+                color: BMColors.pitch950,
+              ),
             ),
           ),
           Text(
-            '智算工具',
+            '工具箱',
             style: TextStyle(
               fontSize: 10,
               fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,

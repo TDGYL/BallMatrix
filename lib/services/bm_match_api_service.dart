@@ -244,11 +244,26 @@ class BMMatchApiService {
     );
   }
 
+  /// 按OC语法累加篮球各节比分 (split逗号遍历求和)
+  /// OC: NSArray *a=[str componentsSeparatedByString:@","]; for(NSString*s in a) count+=[s integerValue];
+  int _sumBasketballScores(String? scoresStr) {
+    if (scoresStr == null || scoresStr.isEmpty) return 0;
+    final arr = scoresStr.split(',');
+    int count = 0;
+    for (final sub in arr) {
+      final trimmed = sub.trim();
+      if (trimmed.isEmpty) continue;
+      count += int.tryParse(trimmed) ?? 0;
+    }
+    return count;
+  }
+
   /// 篮球API模型 -> UI模型 转换 (对齐hanklive)
   BMMatchModel _convertBasketballMatch(BMBasketballMatchItem item) {
     final status = _basketballStatusFromId(item.statusId);
-    final int? homeScore = int.tryParse(item.homeScores ?? '');
-    final int? awayScore = int.tryParse(item.awayScores ?? '');
+    // 按OC语法: 逗号分隔各节比分累加
+    final int homeScore = _sumBasketballScores(item.homeScores);
+    final int awayScore = _sumBasketballScores(item.awayScores);
     final String timeStr = _formatMatchTime(item.matchTime);
     return BMMatchModel(
       matchId: item.id?.toString() ?? '',

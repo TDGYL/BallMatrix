@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../bm_base_page.dart';
 import '../../theme/bm_colors.dart';
 
@@ -19,9 +20,6 @@ class _BMToolPageState extends BMBasePageState<BMToolPage> {
 
   /// 客队选择索引 (int 类型)
   int _teamBIndex = 0;
-
-  /// 主场优势加权 (int 类型, 0-30)
-  int _weight = 12;
 
   /// 是否计算中 (bool 类型)
   bool _isCalculating = false;
@@ -65,7 +63,11 @@ class _BMToolPageState extends BMBasePageState<BMToolPage> {
                 const SizedBox(width: 4),
                 const Text(
                   '独家高阶计算矩阵',
-                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: BMColors.bright),
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: BMColors.bright,
+                  ),
                 ),
               ],
             ),
@@ -119,8 +121,6 @@ class _BMToolPageState extends BMBasePageState<BMToolPage> {
           const SizedBox(height: 12),
           _buildRadarPlaceholder(),
           const SizedBox(height: 12),
-          _buildWeightSlider(),
-          const SizedBox(height: 12),
           _buildCalculateButton(),
         ],
       ),
@@ -134,17 +134,29 @@ class _BMToolPageState extends BMBasePageState<BMToolPage> {
       children: [
         Row(
           children: [
-            const Icon(Icons.pie_chart_outline, size: 14, color: BMColors.bright),
+            const Icon(
+              Icons.pie_chart_outline,
+              size: 14,
+              color: BMColors.bright,
+            ),
             const SizedBox(width: 6),
             const Text(
-              '两队多维雷达实力模型引擎',
-              style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFFE2E8F0)),
+              '两球员多维雷达实力模型引擎',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFFE2E8F0),
+              ),
             ),
           ],
         ),
         const Text(
           '实时计算中',
-          style: TextStyle(fontSize: 10, fontFamily: 'monospace', color: BMColors.bright),
+          style: TextStyle(
+            fontSize: 10,
+            fontFamily: 'monospace',
+            color: BMColors.bright,
+          ),
         ),
       ],
     );
@@ -154,16 +166,35 @@ class _BMToolPageState extends BMBasePageState<BMToolPage> {
   Widget _buildTeamSelectors() {
     return Row(
       children: [
-        Expanded(child: _buildTeamSelector('主队 Team A', _teamAOptions, _teamAIndex, (v) => setState(() => _teamAIndex = v))),
+        Expanded(
+          child: _buildTeamSelector(
+            'Player A',
+            _teamAOptions,
+            _teamAIndex,
+            (v) => setState(() => _teamAIndex = v),
+          ),
+        ),
         const SizedBox(width: 8),
-        Expanded(child: _buildTeamSelector('客队 Team B', _teamBOptions, _teamBIndex, (v) => setState(() => _teamBIndex = v))),
+        Expanded(
+          child: _buildTeamSelector(
+            'player B',
+            _teamBOptions,
+            _teamBIndex,
+            (v) => setState(() => _teamBIndex = v),
+          ),
+        ),
       ],
     );
   }
 
   /// 构建单个队伍选择器
   /// 参数: [label] 标签, [options] 选项列表, [selectedIndex] 选中索引, [onChanged] 回调
-  Widget _buildTeamSelector(String label, List<String> options, int selectedIndex, ValueChanged<int> onChanged) {
+  Widget _buildTeamSelector(
+    String label,
+    List<String> options,
+    int selectedIndex,
+    ValueChanged<int> onChanged,
+  ) {
     return Container(
       padding: const EdgeInsets.all(8),
       decoration: BoxDecoration(
@@ -174,15 +205,28 @@ class _BMToolPageState extends BMBasePageState<BMToolPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label, style: const TextStyle(fontSize: 10, color: BMColors.textSecondary)),
+          Text(
+            label,
+            style: const TextStyle(fontSize: 10, color: BMColors.textSecondary),
+          ),
           const SizedBox(height: 4),
           DropdownButton<int>(
             value: selectedIndex,
             underline: const SizedBox(),
             isExpanded: true,
-            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: BMColors.textPrimary),
+            style: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+              color: BMColors.textPrimary,
+            ),
             dropdownColor: BMColors.pitch900,
-            items: options.asMap().entries.map((e) => DropdownMenuItem(value: e.key, child: Text(e.value))).toList(),
+            items: options
+                .asMap()
+                .entries
+                .map(
+                  (e) => DropdownMenuItem(value: e.key, child: Text(e.value)),
+                )
+                .toList(),
             onChanged: (v) => onChanged(v ?? 0),
           ),
         ],
@@ -214,39 +258,6 @@ class _BMToolPageState extends BMBasePageState<BMToolPage> {
     );
   }
 
-  /// 构建权重滑块
-  Widget _buildWeightSlider() {
-    return Column(
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            const Text(
-              '主场优势加权 (Home Advantage)',
-              style: TextStyle(fontSize: 11, color: Color(0xFFCBD5E1)),
-            ),
-            Text(
-              '+$_weight%',
-              style: const TextStyle(
-                fontSize: 11,
-                fontFamily: 'monospace',
-                fontWeight: FontWeight.bold,
-                color: BMColors.bright,
-              ),
-            ),
-          ],
-        ),
-        Slider(
-          value: _weight.toDouble(),
-          min: 0,
-          max: 30,
-          activeColor: BMColors.bright,
-          onChanged: (v) => setState(() => _weight = v.toInt()),
-        ),
-      ],
-    );
-  }
-
   /// 构建计算按钮
   Widget _buildCalculateButton() {
     return GestureDetector(
@@ -260,7 +271,10 @@ class _BMToolPageState extends BMBasePageState<BMToolPage> {
           ),
           borderRadius: BorderRadius.circular(12),
           boxShadow: [
-            BoxShadow(color: BMColors.accent.withValues(alpha: 0.2), blurRadius: 20),
+            BoxShadow(
+              color: BMColors.accent.withValues(alpha: 0.2),
+              blurRadius: 20,
+            ),
           ],
         ),
         child: Row(
@@ -270,13 +284,16 @@ class _BMToolPageState extends BMBasePageState<BMToolPage> {
               const SizedBox(
                 width: 14,
                 height: 14,
-                child: CircularProgressIndicator(strokeWidth: 2, color: BMColors.pitch950),
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: BMColors.pitch950,
+                ),
               )
             else
               const Icon(Icons.play_arrow, size: 14, color: BMColors.pitch950),
             const SizedBox(width: 6),
             Text(
-              _resultText ?? '生成蒙特卡洛 10000 次模拟报告',
+              _resultText ?? '生成战力报告',
               style: const TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w900,
@@ -299,7 +316,7 @@ class _BMToolPageState extends BMBasePageState<BMToolPage> {
       if (mounted) {
         setState(() {
           _isCalculating = false;
-          _resultText = '已生成：主胜概率 62.8%';
+          _resultText = '已生成：甲强概率-';
         });
       }
     });
@@ -311,7 +328,12 @@ class _BMToolPageState extends BMBasePageState<BMToolPage> {
       ('凯利与必发冷热指数', '捕获各大机构赔率异常偏离度与资金博弈方向', Icons.calculate, BMColors.cyan),
       ('历史交锋盘路克制', '结合裁判尺度、主客战术相克属性深挖克星指数', Icons.timeline, BMColors.purple),
       ('实时比赛 Momentum 走势', '分钟级进攻压制力曲线，捕捉临场进球信号', Icons.waves, BMColors.amber),
-      ('异动指标实时预警', '自定义 xG 突破、红黄牌及剧烈水位变轨推送', Icons.notifications_off_outlined, BMColors.bright),
+      (
+        '异动指标实时预警',
+        '自定义 xG 突破、红黄牌及剧烈水位变轨推送',
+        Icons.notifications_off_outlined,
+        BMColors.bright,
+      ),
     ];
     return GridView.builder(
       shrinkWrap: true,
@@ -359,12 +381,20 @@ class _BMToolPageState extends BMBasePageState<BMToolPage> {
           const SizedBox(height: 8),
           Text(
             title,
-            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: BMColors.textPrimary),
+            style: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+              color: BMColors.textPrimary,
+            ),
           ),
           const SizedBox(height: 4),
           Text(
             desc,
-            style: const TextStyle(fontSize: 10, height: 1.3, color: BMColors.textSecondary),
+            style: const TextStyle(
+              fontSize: 10,
+              height: 1.3,
+              color: BMColors.textSecondary,
+            ),
           ),
         ],
       ),
