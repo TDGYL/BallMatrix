@@ -2,6 +2,42 @@
 
 
 
+bm_match_tab_page界面的数据请求，功能要求，当选中足球菜单请求完数据，然后切换到篮球加载完数据，再切换回足球时候只展示之前请求足球的数据，不再请求新数据，只有点中不同的时间才会重新加载新数据，足球和篮球下边的横向菜单 全部，进行中等和横向日期选项卡是独立的，足球和篮球的切换不会相互影响，界面做下拉刷新和上拉加载功能
+
+数据请求部分：
+当请求的是足球部分时候，url=/api/livespeed/football/matches，请求方式为post请求，
+入参为：
+{
+"tab":0,int
+"page":,int
+"size":,int
+"timestamp":,int
+"competition_ids":[int]
+}
+参数说明：全部=0，进行中=1，即将开赛=2，完场复盘=3, timestamp是时间戳，默认今天，page默认=1，size固定=20
+
+
+当请求的是篮球部分时候：
+
+url=/api/livespeed/basketball/matches，请求方式为post请求，
+入参为：
+{
+"tab":0,int
+"page":,int
+"size":,int
+"timestamp":,int
+"competition_ids":[int]
+}
+参数说明：全部=0，进行中=1，即将开赛=2，完场复盘=3, timestamp是时间戳，默认今天，page默认=1，size固定=20
+
+
+
+
+
+
+
+
+
 在topicList中做一个下来刷新，上拉加载的请求功能：请求url=/api/livespeed/community/list，请求方式为get请求
 请求参数
 {
