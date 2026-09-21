@@ -4,9 +4,10 @@ import '../../theme/bm_colors.dart';
 import '../../models/bm_match_model.dart';
 import '../../viewmodels/home/bm_home_view_model.dart' show BMSportType;
 import '../../widgets/home/bm_match_spotlight_card.dart';
+import '../../services/bm_match_api_service.dart';
 
-/// BMMatchListPage - 赛事列表页 (首页「查看全部」push 进来, 替换原bm_match_page)
-/// 功能: mock数据 + 复用首页第一段焦点卡片 + 下拉刷新 + 上拉加载
+/// BMMatchListPage - 赛事列表页 (首页「查看全部」push 进来)
+/// 功能: 真实POST接口请求(tab=0/当天timestamp) + 复用首页卡片 + 下拉刷新 + 上拉加载
 class BMMatchListPage extends BMBasePage {
   /// 运动类型 (BMSportType 类型, football/basketball)
   final BMSportType sportType;
@@ -39,11 +40,17 @@ class _BMMatchListPageState extends BMBasePageState<BMMatchListPage> {
   /// 当前页码 (int 类型, 从1开始)
   int _page = 1;
 
-  /// 每页条数 (int 类型, mock默认第一页2条, 第二页1条用于演示上拉加载)
+  /// 每页条数 (int 类型, 默认10, 对齐hanklive)
   final int _size = 10;
+
+  /// 当前选中的日期时间戳 (int 类型, 秒级, 默认今天0点)
+  int _currentTimestamp = 0;
 
   /// 列表滚动控制器 (ScrollController 类型, 上拉加载监听)
   late final ScrollController _scrollController;
+
+  /// API 服务实例 (BMMatchApiService 类型)
+  final BMMatchApiService _apiService = BMMatchApiService();
 
   @override
   void initState() {
@@ -68,212 +75,25 @@ class _BMMatchListPageState extends BMBasePageState<BMMatchListPage> {
     }
   }
 
-  /// 获取 mock 数据 (按运动类型 + 分页)
-  /// [page] 页码: 第1页2条, 第2页1条, 第3页起空
-  List<BMMatchModel> _mockData(int page) {
-    if (page >= 3) return const [];
-    final isFootball = widget.sportType == BMSportType.football;
-    if (page == 1) {
-      return isFootball ? _mockFootballPage1() : _mockBasketballPage1();
-    } else {
-      return isFootball ? _mockFootballPage2() : _mockBasketballPage2();
-    }
+  /// 获取当天0点秒级时间戳 (若用户未选择日期, 取默认今天0点)
+  int _getSelectedTimestamp() {
+    if (_currentTimestamp > 0) return _currentTimestamp;
+    final now = DateTime.now();
+    final d = DateTime(now.year, now.month, now.day);
+    return d.millisecondsSinceEpoch ~/ 1000;
   }
 
-  /// 足球第1页: 2条 (LIVE + 未开赛)
-  List<BMMatchModel> _mockFootballPage1() {
-    return [
-      BMMatchModel(
-        matchId: '1001',
-        leagueName: '英超联赛',
-        leagueColor: BMColors.orange.toARGB32(),
-        status: BMMatchStatus.live,
-        statusId: 2,
-        statusName: '直播中',
-        sportType: BMMatchSportType.football,
-        matchTime: '21:00',
-        liveMinute: "68'",
-        halfTimeScore: 'half 1-0',
-        isFeatured: true,
-        homeScore: 2,
-        awayScore: 1,
-        homeTeam: BMTeamModel(
-          teamId: '1',
-          teamName: '曼彻斯特联',
-          teamShort: 'MUN',
-          logoUrl:
-              'https://coresg-normal.trae.ai/api/ide/v1/text_to_image?prompt=Manchester%20United%20FC%20football%20club%20logo%20red%20devil%20icon%20simple%20flat%20design&image_size=square_hd',
-        ),
-        awayTeam: BMTeamModel(
-          teamId: '2',
-          teamName: '利物浦',
-          teamShort: 'LIV',
-          logoUrl:
-              'https://coresg-normal.trae.ai/api/ide/v1/text_to_image?prompt=Liverpool%20FC%20football%20club%20logo%20red%20bird%20liverbird%20icon%20simple%20flat%20design&image_size=square_hd',
-        ),
-      ),
-      BMMatchModel(
-        matchId: '1002',
-        leagueName: '西甲联赛',
-        leagueColor: BMColors.amber.toARGB32(),
-        status: BMMatchStatus.upcoming,
-        statusId: 1,
-        statusName: '未开始',
-        sportType: BMMatchSportType.football,
-        matchTime: '03:00',
-        isFeatured: true,
-        homeScore: null,
-        awayScore: null,
-        homeTeam: BMTeamModel(
-          teamId: '3',
-          teamName: '皇家马德里',
-          teamShort: 'RMA',
-          logoUrl:
-              'https://coresg-normal.trae.ai/api/ide/v1/text_to_image?prompt=Real%20Madrid%20CF%20football%20club%20logo%20white%20purple%20crown%20icon%20simple%20flat&image_size=square_hd',
-        ),
-        awayTeam: BMTeamModel(
-          teamId: '4',
-          teamName: '巴塞罗那',
-          teamShort: 'BAR',
-          logoUrl:
-              'https://coresg-normal.trae.ai/api/ide/v1/text_to_image?prompt=FC%20Barcelona%20football%20club%20logo%20bla%20grana%20blue%20claret%20stripes%20icon%20simple%20flat&image_size=square_hd',
-        ),
-      ),
-    ];
-  }
-
-  /// 足球第2页: 1条 (已结束)
-  List<BMMatchModel> _mockFootballPage2() {
-    return [
-      BMMatchModel(
-        matchId: '1003',
-        leagueName: '欧冠联赛',
-        leagueColor: BMColors.purple.toARGB32(),
-        status: BMMatchStatus.ended,
-        statusId: 8,
-        statusName: '已结束',
-        sportType: BMMatchSportType.football,
-        matchTime: '05:00',
-        isFeatured: true,
-        homeScore: 3,
-        awayScore: 2,
-        homeTeam: BMTeamModel(
-          teamId: '5',
-          teamName: '拜仁慕尼黑',
-          teamShort: 'BAY',
-          logoUrl:
-              'https://coresg-normal.trae.ai/api/ide/v1/text_to_image?prompt=Bayern%20Munich%20FC%20football%20club%20logo%20red%20icon%20simple%20flat%20design&image_size=square_hd',
-        ),
-        awayTeam: BMTeamModel(
-          teamId: '6',
-          teamName: '巴黎圣日耳曼',
-          teamShort: 'PSG',
-          logoUrl:
-              'https://coresg-normal.trae.ai/api/ide/v1/text_to_image?prompt=Paris%20Saint%20Germain%20PSG%20football%20club%20logo%20blue%20red%20eiffel%20tower%20icon%20simple%20flat&image_size=square_hd',
-        ),
-      ),
-    ];
-  }
-
-  /// 篮球第1页: 2条 (Q3 进行中 + 未开赛)
-  List<BMMatchModel> _mockBasketballPage1() {
-    return [
-      BMMatchModel(
-        matchId: '2001',
-        leagueName: 'NBA',
-        leagueColor: BMColors.orange.toARGB32(),
-        status: BMMatchStatus.live,
-        statusId: 5,
-        statusName: 'Q3 进行中',
-        sportType: BMMatchSportType.basketball,
-        matchTime: '10:30',
-        liveMinute: 'Q3 04:21',
-        isFeatured: true,
-        homeScore: 82,
-        awayScore: 75,
-        homeTeam: BMTeamModel(
-          teamId: '21',
-          teamName: '洛杉矶湖人',
-          teamShort: 'LAL',
-          logoUrl:
-              'https://coresg-normal.trae.ai/api/ide/v1/text_to_image?prompt=Los%20Angeles%20Lakers%20basketball%20team%20logo%20purple%20gold%20icon%20simple%20flat&image_size=square_hd',
-        ),
-        awayTeam: BMTeamModel(
-          teamId: '22',
-          teamName: '金州勇士',
-          teamShort: 'GSW',
-          logoUrl:
-              'https://coresg-normal.trae.ai/api/ide/v1/text_to_image?prompt=Golden%20State%20Warriors%20basketball%20team%20logo%20blue%20golden%20gate%20bridge%20icon%20simple%20flat&image_size=square_hd',
-        ),
-      ),
-      BMMatchModel(
-        matchId: '2002',
-        leagueName: 'CBA',
-        leagueColor: BMColors.cyan.toARGB32(),
-        status: BMMatchStatus.upcoming,
-        statusId: 1,
-        statusName: '未开始',
-        sportType: BMMatchSportType.basketball,
-        matchTime: '19:35',
-        isFeatured: true,
-        homeScore: null,
-        awayScore: null,
-        homeTeam: BMTeamModel(
-          teamId: '23',
-          teamName: '广东宏远',
-          teamShort: 'GD',
-          logoUrl:
-              'https://coresg-normal.trae.ai/api/ide/v1/text_to_image?prompt=Guangdong%20Tigers%20CBA%20basketball%20team%20logo%20tiger%20red%20icon%20simple%20flat&image_size=square_hd',
-        ),
-        awayTeam: BMTeamModel(
-          teamId: '24',
-          teamName: '辽宁本钢',
-          teamShort: 'LN',
-          logoUrl:
-              'https://coresg-normal.trae.ai/api/ide/v1/text_to_image?prompt=Liaoning%20Flying%20Leopards%20CBA%20basketball%20team%20logo%20leopard%20blue%20icon%20simple%20flat&image_size=square_hd',
-        ),
-      ),
-    ];
-  }
-
-  /// 篮球第2页: 1条 (已结束)
-  List<BMMatchModel> _mockBasketballPage2() {
-    return [
-      BMMatchModel(
-        matchId: '2003',
-        leagueName: 'EuroLeague',
-        leagueColor: BMColors.purple.toARGB32(),
-        status: BMMatchStatus.ended,
-        statusId: 11,
-        statusName: '已结束',
-        sportType: BMMatchSportType.basketball,
-        matchTime: '02:45',
-        isFeatured: true,
-        homeScore: 94,
-        awayScore: 88,
-        homeTeam: BMTeamModel(
-          teamId: '25',
-          teamName: '皇家马德里',
-          teamShort: 'RMA',
-          logoUrl:
-              'https://coresg-normal.trae.ai/api/ide/v1/text_to_image?prompt=Real%20Madrid%20basketball%20team%20logo%20white%20purple%20icon%20simple%20flat&image_size=square_hd',
-        ),
-        awayTeam: BMTeamModel(
-          teamId: '26',
-          teamName: '巴塞罗那',
-          teamShort: 'BAR',
-          logoUrl:
-              'https://coresg-normal.trae.ai/api/ide/v1/text_to_image?prompt=FC%20Barcelona%20basketball%20team%20logo%20bla%20grana%20icon%20simple%20flat&image_size=square_hd',
-        ),
-      ),
-    ];
-  }
-
-  /// 请求比赛列表 (mock 模式, 模拟异步延迟)
+  /// 请求比赛列表 (真实POST接口, tab=0 + 当天时间戳 + 分页)
   /// [isRefresh] - true=重置page=1 / false=加载更多 page+1
   Future<void> _fetchMatches({required bool isRefresh}) async {
-    if (_isFetching) return;
-    if (!isRefresh && _hasNoMore) return;
+    if (_isFetching) {
+      debugPrint('🔒 BMMatchListPage 请求被挡(重入): isRefresh=$isRefresh, _page=$_page');
+      return;
+    }
+    if (!isRefresh && _hasNoMore) {
+      debugPrint('🔒 BMMatchListPage 加载更多被挡: _hasNoMore=true');
+      return;
+    }
     _isFetching = true;
 
     final int requestPage;
@@ -293,12 +113,32 @@ class _BMMatchListPageState extends BMBasePageState<BMMatchListPage> {
       requestPage = _page + 1;
     }
 
-    // 模拟异步请求延迟 600ms
+    final timestamp = _getSelectedTimestamp();
+    debugPrint('🌐 BMMatchListPage 真实请求发起: sport=${widget.sportType.name}, tab=0, page=$requestPage, size=$_size, timestamp=$timestamp');
     List<BMMatchModel> result = [];
-    await Future.delayed(const Duration(milliseconds: 600));
-    result = _mockData(requestPage);
+    try {
+      if (widget.sportType == BMSportType.football) {
+        result = await _apiService.fetchFootballList(
+          timestamp: timestamp,
+          page: requestPage,
+          size: _size,
+        );
+      } else {
+        result = await _apiService.fetchBasketballList(
+          timestamp: timestamp,
+          page: requestPage,
+          size: _size,
+        );
+      }
+      debugPrint('✅ BMMatchListPage 真实请求成功: 本次返回 ${result.length} 条');
+    } catch (e) {
+      debugPrint('❌ BMMatchListPage 真实请求异常(isRefresh=$isRefresh, page=$requestPage): $e');
+      result = [];
+    } finally {
+      _isFetching = false; // 无论成功失败强制释放请求锁
+    }
 
-    if (!mounted) { _isFetching = false; return; }
+    if (!mounted) return;
     setState(() {
       if (isRefresh) {
         _matchList = result;
@@ -309,10 +149,11 @@ class _BMMatchListPageState extends BMBasePageState<BMMatchListPage> {
         _page = requestPage;
         _isLoadingMore = false;
       }
+      // 返回条数 < 每页数量, 标记没有更多页 (对齐hanklive)
       if (result.length < _size) {
         _hasNoMore = true;
+        debugPrint('🛑 BMMatchListPage 无更多页, 本页 ${result.length} < size=$_size');
       }
-      _isFetching = false;
     });
   }
 
@@ -338,10 +179,26 @@ class _BMMatchListPageState extends BMBasePageState<BMMatchListPage> {
     );
   }
 
-  /// 自定义导航栏 (返回 + 标题)
+  /// 自定义导航栏 (返回 + 标题 + 日历按钮 + 选中日期小文字)
   Widget _buildNavBar(BuildContext context) {
+    final now = DateTime.now();
+    final todayMidnight = DateTime(now.year, now.month, now.day);
+    final selectedMidnight = DateTime(
+        _selectedDate.year, _selectedDate.month, _selectedDate.day);
+    final diff = selectedMidnight.difference(todayMidnight).inDays;
+    String dateLabel;
+    if (diff == 0) {
+      dateLabel = '今天';
+    } else if (diff == 1) {
+      dateLabel = '明天';
+    } else if (diff == -1) {
+      dateLabel = '昨天';
+    } else {
+      dateLabel =
+          '${_selectedDate.month.toString().padLeft(2, '0')}/${_selectedDate.day.toString().padLeft(2, '0')}';
+    }
     return Container(
-      padding: const EdgeInsets.fromLTRB(4, 8, 16, 8),
+      padding: const EdgeInsets.fromLTRB(4, 8, 4, 8),
       decoration: BoxDecoration(
         color: BMColors.pitch950,
         border: Border(
@@ -351,7 +208,10 @@ class _BMMatchListPageState extends BMBasePageState<BMMatchListPage> {
       child: Row(
         children: [
           IconButton(
-            onPressed: () => Navigator.of(context).pop(),
+            onPressed: () {
+              debugPrint('👈 导航栏返回按钮点击');
+              Navigator.of(context).pop();
+            },
             icon: const Icon(Icons.arrow_back_ios,
                 size: 18, color: BMColors.textPrimary),
             padding: EdgeInsets.zero,
@@ -368,11 +228,110 @@ class _BMMatchListPageState extends BMBasePageState<BMMatchListPage> {
               ),
             ),
           ),
-          const SizedBox(width: 40),
+          GestureDetector(
+            onTap: () {
+              debugPrint('📅 日历点击手势触发');
+              _showDatePicker(context);
+            },
+            behavior: HitTestBehavior.opaque,
+            child: SizedBox(
+              width: 60,
+              height: 40,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  const Icon(Icons.calendar_month_outlined,
+                      size: 20, color: BMColors.bright),
+                  const SizedBox(height: 1),
+                  Text(
+                    dateLabel,
+                    style: TextStyle(
+                      fontSize: 9,
+                      color: diff == 0
+                          ? BMColors.bright
+                          : BMColors.textSecondary,
+                      fontWeight:
+                          diff == 0 ? FontWeight.w600 : FontWeight.normal,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
         ],
       ),
     );
   }
+
+  /// 弹出日期选择器 (球场深绿主题)，选中后用该天0点时间戳刷新列表
+  Future<void> _showDatePicker(BuildContext context) async {
+    debugPrint('📅 _showDatePicker 开始执行');
+    final now = DateTime.now();
+    final initialDate = _currentTimestamp > 0
+        ? DateTime.fromMillisecondsSinceEpoch(_currentTimestamp * 1000)
+        : DateTime(now.year, now.month, now.day);
+    debugPrint('📅 initialDate = $initialDate, firstDate=${now.year - 2}, lastDate=${now.year + 1}');
+    DateTime? picked;
+    try {
+      debugPrint('📅 await showDatePicker 进入前');
+      picked = await showDatePicker(
+        context: context,
+        initialDate: initialDate,
+        firstDate: DateTime(now.year - 2),
+        lastDate: DateTime(now.year + 1, now.month + 3),
+        locale: const Locale('zh', 'CN'),
+        builder: (ctx, child) {
+          debugPrint('📅 showDatePicker builder 进入');
+          if (child == null) {
+            debugPrint('⚠️  showDatePicker builder child是null, 返回空占位');
+            return const SizedBox.shrink();
+          }
+          return Theme(
+            data: ThemeData.dark().copyWith(
+              colorScheme: const ColorScheme.dark(
+                primary: BMColors.bright,
+                onPrimary: BMColors.pitch950,
+                surface: BMColors.pitch900,
+                onSurface: BMColors.textPrimary,
+              ),
+              scaffoldBackgroundColor: BMColors.pitch950,
+              dialogTheme: const DialogThemeData(
+                backgroundColor: Color(0xFF0E2620),
+              ),
+              textButtonTheme: TextButtonThemeData(
+                style: TextButton.styleFrom(
+                  foregroundColor: BMColors.bright,
+                ),
+              ),
+            ),
+            child: child,
+          );
+        },
+      );
+      debugPrint('📅 await showDatePicker 返回 picked=$picked');
+    } catch (e, s) {
+      debugPrint('❌ showDatePicker 抛出异常: $e');
+      debugPrint('❌ 调用栈: $s');
+      picked = null;
+    }
+    if (picked == null) {
+      debugPrint('📅 用户取消选择日期');
+      return;
+    }
+    final ts = DateTime(picked.year, picked.month, picked.day)
+            .millisecondsSinceEpoch ~/
+        1000;
+    _currentTimestamp = ts;
+    _selectedDate = DateTime(picked.year, picked.month, picked.day);
+    debugPrint(
+        '📅 BMMatchListPage 选中日期: ${picked.year}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}  timestamp=$ts, 准备刷新');
+    await _fetchMatches(isRefresh: true);
+    debugPrint('📅 列表刷新完成');
+  }
+
+  /// 当前选中的 DateTime (用于日期弹窗高亮 + 导航栏显示"今天/昨天/MM-DD"小标签)
+  DateTime _selectedDate = DateTime.now();
 
   /// 比赛列表区 (含首屏Loading/空态/下拉刷新/上拉加载)
   Widget _buildMatchList() {

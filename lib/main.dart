@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'theme/bm_colors.dart';
 import 'pages/bm_main_page.dart';
 
@@ -24,6 +25,17 @@ class BallMatrixApp extends StatelessWidget {
     return MaterialApp(
       title: '绿场智算 Pro',
       debugShowCheckedModeBanner: false,
+      // 中文本地化支持（showDatePicker等系统组件必须配置，否则iOS会卡死不弹出）
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: const [
+        Locale('zh', 'CN'),
+        Locale('en', 'US'),
+      ],
+      locale: const Locale('zh', 'CN'),
       theme: ThemeData(
         useMaterial3: true,
         scaffoldBackgroundColor: BMColors.pitch900,

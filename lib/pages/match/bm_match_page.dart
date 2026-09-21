@@ -1,23 +1,17 @@
 import 'package:flutter/material.dart';
+
 import '../bm_base_page.dart';
 import '../../theme/bm_colors.dart';
 import '../../models/bm_match_model.dart';
 import '../../viewmodels/home/bm_home_view_model.dart' show BMSportType;
 import '../../services/bm_match_api_service.dart';
 
-/// BMMatchPage - 赛事列表页 (首页「查看全部」push 进来)
-/// 数据请求: 参考 hanklive 首页 match 菜单选中 All 的实现
-///   - 足球: POST /api/livespeed/football/matches (tab 等于 0)
-///   - 篮球: POST /api/livespeed/basketball/matches (tab 等于 0)
-/// 功能: 日期筛选 + 下拉刷新 + 上拉加载更多
+///////-比赛列表-------废弃的文件---卡死几次了，ai自己解决不了问题--用matchList代替
 class BMMatchPage extends BMBasePage {
   /// 运动类型 (BMSportType 类型, football/basketball)
   final BMSportType sportType;
 
-  const BMMatchPage({
-    super.key,
-    required this.sportType,
-  });
+  const BMMatchPage({super.key, required this.sportType});
 
   @override
   State<BMMatchPage> createState() => _BMMatchPageState();
@@ -93,7 +87,9 @@ class _BMMatchPageState extends BMBasePageState<BMMatchPage> {
   Future<void> _fetchMatches({required bool isRefresh}) async {
     // --- Step 1: 独立请求锁 _isFetching, 和 UI Loading _isRefreshing 完全解耦 ---
     if (_isFetching) {
-      debugPrint('🔒 BMMatchPage 请求被挡(重入): isRefresh=$isRefresh, _page=$_page, _isFetching=true');
+      debugPrint(
+        '🔒 BMMatchPage 请求被挡(重入): isRefresh=$isRefresh, _page=$_page, _isFetching=true',
+      );
       return;
     }
     if (!isRefresh) {
@@ -104,11 +100,16 @@ class _BMMatchPageState extends BMBasePageState<BMMatchPage> {
       }
     }
     _isFetching = true;
-    debugPrint('🌐 BMMatchPage 开始请求: isRefresh=$isRefresh, sport=${widget.sportType}, page=${isRefresh ? 1 : _page + 1}, timestamp=${_currentTimestamp == 0 ? '(今日)' : _currentTimestamp}');
+    debugPrint(
+      '🌐 BMMatchPage 开始请求: isRefresh=$isRefresh, sport=${widget.sportType}, page=${isRefresh ? 1 : _page + 1}, timestamp=${_currentTimestamp == 0 ? '(今日)' : _currentTimestamp}',
+    );
 
     final int requestPage;
     if (isRefresh) {
-      if (!mounted) { _isFetching = false; return; }
+      if (!mounted) {
+        _isFetching = false;
+        return;
+      }
       setState(() {
         _isRefreshing = true;
         _page = 1;
@@ -116,7 +117,10 @@ class _BMMatchPageState extends BMBasePageState<BMMatchPage> {
       });
       requestPage = 1;
     } else {
-      if (!mounted) { _isFetching = false; return; }
+      if (!mounted) {
+        _isFetching = false;
+        return;
+      }
       setState(() {
         _isLoadingMore = true;
       });
@@ -141,7 +145,9 @@ class _BMMatchPageState extends BMBasePageState<BMMatchPage> {
       }
       debugPrint('✅ BMMatchPage 请求成功: 本次返回 ${result.length} 条, size=$_size');
     } catch (e) {
-      debugPrint('❌ BMMatchPage 请求异常(isRefresh=$isRefresh, page=$requestPage): $e');
+      debugPrint(
+        '❌ BMMatchPage 请求异常(isRefresh=$isRefresh, page=$requestPage): $e',
+      );
       result = [];
     } finally {
       _isFetching = false; // 无论成功失败, 释放请求锁
@@ -161,7 +167,9 @@ class _BMMatchPageState extends BMBasePageState<BMMatchPage> {
       // 返回条数小于每页数量, 标记没有更多页 (对齐hanklive)
       if (result.length < _size) {
         _hasNoMore = true;
-        debugPrint('🛑 BMMatchPage 无更多页, 本页返回 ${result.length} < size=$_size, 标记hasNoMore=true');
+        debugPrint(
+          '🛑 BMMatchPage 无更多页, 本页返回 ${result.length} < size=$_size, 标记hasNoMore=true',
+        );
       }
     });
   }
@@ -183,9 +191,7 @@ class _BMMatchPageState extends BMBasePageState<BMMatchPage> {
     return Column(
       children: [
         _buildNavBar(context),
-        Expanded(
-          child: _buildMatchList(),
-        ),
+        Expanded(child: _buildMatchList()),
       ],
     );
   }
@@ -204,7 +210,11 @@ class _BMMatchPageState extends BMBasePageState<BMMatchPage> {
         children: [
           IconButton(
             onPressed: () => Navigator.of(context).pop(),
-            icon: const Icon(Icons.arrow_back_ios, size: 18, color: BMColors.textPrimary),
+            icon: const Icon(
+              Icons.arrow_back_ios,
+              size: 18,
+              color: BMColors.textPrimary,
+            ),
             padding: EdgeInsets.zero,
             constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
           ),
@@ -221,7 +231,11 @@ class _BMMatchPageState extends BMBasePageState<BMMatchPage> {
           ),
           IconButton(
             onPressed: () => _showDatePickerSheet(context),
-            icon: const Icon(Icons.calendar_today_outlined, size: 20, color: BMColors.bright),
+            icon: const Icon(
+              Icons.calendar_today_outlined,
+              size: 20,
+              color: BMColors.bright,
+            ),
             padding: EdgeInsets.zero,
             constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
           ),
@@ -235,7 +249,10 @@ class _BMMatchPageState extends BMBasePageState<BMMatchPage> {
     // 首次加载 / 下拉刷新且列表为空时显示全屏Loading
     if (_isRefreshing && _matchList.isEmpty) {
       return const Center(
-        child: CircularProgressIndicator(color: BMColors.bright, strokeWidth: 2),
+        child: CircularProgressIndicator(
+          color: BMColors.bright,
+          strokeWidth: 2,
+        ),
       );
     }
 
@@ -250,7 +267,11 @@ class _BMMatchPageState extends BMBasePageState<BMMatchPage> {
           children: const [
             SizedBox(height: 140),
             Center(
-              child: Icon(Icons.sports_soccer_outlined, size: 48, color: BMColors.textTertiary),
+              child: Icon(
+                Icons.sports_soccer_outlined,
+                size: 48,
+                color: BMColors.textTertiary,
+              ),
             ),
             SizedBox(height: 12),
             Center(
@@ -297,10 +318,16 @@ class _BMMatchPageState extends BMBasePageState<BMMatchPage> {
             SizedBox(
               width: 16,
               height: 16,
-              child: CircularProgressIndicator(color: BMColors.bright, strokeWidth: 2),
+              child: CircularProgressIndicator(
+                color: BMColors.bright,
+                strokeWidth: 2,
+              ),
             ),
             SizedBox(width: 10),
-            Text('加载中...', style: TextStyle(fontSize: 12, color: BMColors.textSecondary)),
+            Text(
+              '加载中...',
+              style: TextStyle(fontSize: 12, color: BMColors.textSecondary),
+            ),
           ],
         ),
       );
@@ -393,10 +420,19 @@ class _BMMatchPageState extends BMBasePageState<BMMatchPage> {
           Expanded(
             child: Column(
               children: [
-                _buildTeamLine(homeLogo, match.homeTeamName, match.homeScore ?? 0,
-                    match.status == BMMatchStatus.live),
+                _buildTeamLine(
+                  homeLogo,
+                  match.homeTeamName,
+                  match.homeScore ?? 0,
+                  match.status == BMMatchStatus.live,
+                ),
                 const SizedBox(height: 6),
-                _buildTeamLine(awayLogo, match.awayTeamName, match.awayScore ?? 0, false),
+                _buildTeamLine(
+                  awayLogo,
+                  match.awayTeamName,
+                  match.awayScore ?? 0,
+                  false,
+                ),
               ],
             ),
           ),
@@ -440,7 +476,10 @@ class _BMMatchPageState extends BMBasePageState<BMMatchPage> {
           ],
           const SizedBox(height: 2),
           if (isTbd)
-            const Text('TBD', style: TextStyle(fontSize: 9, color: BMColors.purple))
+            const Text(
+              'TBD',
+              style: TextStyle(fontSize: 9, color: BMColors.purple),
+            )
           else if (isLive)
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
@@ -448,14 +487,25 @@ class _BMMatchPageState extends BMBasePageState<BMMatchPage> {
                 color: BMColors.accent.withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(4),
               ),
-              child: const Text('LIVE',
-                  style:
-                      TextStyle(fontSize: 9, color: BMColors.bright, fontWeight: FontWeight.bold)),
+              child: const Text(
+                'LIVE',
+                style: TextStyle(
+                  fontSize: 9,
+                  color: BMColors.bright,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             )
           else if (isEnded)
-            const Text('FINAL', style: TextStyle(fontSize: 9, color: BMColors.textTertiary))
+            const Text(
+              'FINAL',
+              style: TextStyle(fontSize: 9, color: BMColors.textTertiary),
+            )
           else
-            const Text('未开赛', style: TextStyle(fontSize: 9, color: BMColors.cyan)),
+            const Text(
+              '未开赛',
+              style: TextStyle(fontSize: 9, color: BMColors.cyan),
+            ),
         ],
       ),
     );
@@ -468,18 +518,28 @@ class _BMMatchPageState extends BMBasePageState<BMMatchPage> {
         Container(
           width: 20,
           height: 20,
-          decoration: const BoxDecoration(shape: BoxShape.circle, color: BMColors.pitch800),
+          decoration: const BoxDecoration(
+            shape: BoxShape.circle,
+            color: BMColors.pitch800,
+          ),
           child: ClipOval(
             child: (logo != null && logo.isNotEmpty)
-                ? Image.network(logo, fit: BoxFit.cover,
-                    errorBuilder: (_, _, _) => const Icon(Icons.sports_soccer,
-                        size: 12, color: BMColors.textSecondary))
+                ? Image.network(
+                    logo,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, _, _) => const Icon(
+                      Icons.sports_soccer,
+                      size: 12,
+                      color: BMColors.textSecondary,
+                    ),
+                  )
                 : Icon(
                     widget.sportType == BMSportType.football
                         ? Icons.sports_soccer
                         : Icons.sports_basketball,
                     size: 12,
-                    color: BMColors.textSecondary),
+                    color: BMColors.textSecondary,
+                  ),
           ),
         ),
         const SizedBox(width: 8),
@@ -571,7 +631,11 @@ class _BMMatchPageState extends BMBasePageState<BMMatchPage> {
                 const SizedBox(height: 16),
                 const Row(
                   children: [
-                    Icon(Icons.calendar_month, size: 18, color: BMColors.bright),
+                    Icon(
+                      Icons.calendar_month,
+                      size: 18,
+                      color: BMColors.bright,
+                    ),
                     SizedBox(width: 8),
                     Text(
                       '选择日期',
@@ -622,8 +686,13 @@ class _BMMatchPageState extends BMBasePageState<BMMatchPage> {
         final label = item.$1;
         final date = item.$2;
         final onlyDate = DateTime(date.year, date.month, date.day);
-        final selected = onlyDate ==
-            DateTime(_selectedDate.year, _selectedDate.month, _selectedDate.day);
+        final selected =
+            onlyDate ==
+            DateTime(
+              _selectedDate.year,
+              _selectedDate.month,
+              _selectedDate.day,
+            );
         return GestureDetector(
           onTap: () {
             Navigator.pop(sheetCtx);
@@ -712,7 +781,11 @@ class _BMMatchPageState extends BMBasePageState<BMMatchPage> {
             side: BorderSide(color: BMColors.pitch700),
           ),
         ),
-        icon: const Icon(Icons.date_range_outlined, size: 16, color: BMColors.bright),
+        icon: const Icon(
+          Icons.date_range_outlined,
+          size: 16,
+          color: BMColors.bright,
+        ),
         label: const Text(
           '自定义日期',
           style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
