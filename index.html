@@ -1,0 +1,936 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>绿场智算 Pro - 高阶足篮球数据分析引擎</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Custom Tailwind Configuration -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        pitch: {
+                            950: '#06120E', // Deepest background
+                            900: '#0A1C16', // Primary screen background
+                            850: '#0E261E', // Card dark background
+                            800: '#143328', // Elevated card
+                            700: '#1C4537', // Border color
+                            600: '#275E4B',
+                            accent: '#10B981', // Neon emerald primary accent
+                            bright: '#34D399', // Bright emerald light text
+                            gold: '#F59E0B',   // Premium accent
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['-apple-system', 'BlinkMacSystemFont', '"SF Pro Display"', '"Segoe UI"', 'Roboto', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Custom scrollbar hiding for app-like smooth feel */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        
+        /* Glassmorphic card effect */
+        .glass-card {
+            background: linear-gradient(135deg, rgba(20, 51, 40, 0.85) 0%, rgba(14, 38, 30, 0.95) 100%);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(39, 94, 75, 0.4);
+        }
+        
+        .glass-card-interactive {
+            background: linear-gradient(135deg, rgba(24, 58, 46, 0.85) 0%, rgba(16, 42, 33, 0.95) 100%);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(52, 211, 153, 0.25);
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .glass-card-interactive:active {
+            transform: scale(0.98);
+            border-color: rgba(52, 211, 153, 0.6);
+        }
+
+        /* Animated pulse glow */
+        @keyframes subtle-glow {
+            0%, 100% { box-shadow: 0 0 15px rgba(16, 185, 129, 0.15); }
+            50% { box-shadow: 0 0 25px rgba(16, 185, 129, 0.35); }
+        }
+        .glow-effect {
+            animation: subtle-glow 3s infinite ease-in-out;
+        }
+
+        /* Modal transitions */
+        .modal-enter {
+            transform: translateY(100%);
+            opacity: 0;
+        }
+        .modal-enter-active {
+            transform: translateY(0);
+            opacity: 1;
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+    </style>
+</head>
+<body class="bg-pitch-950 text-slate-100 min-h-screen flex items-center justify-center p-0 md:p-6 font-sans antialiased selection:bg-pitch-accent selection:text-pitch-950">
+
+    <!-- Outer Presentation Container -->
+    <div class="w-full max-w-md h-screen md:h-[880px] bg-pitch-900 rounded-none md:rounded-[50px] shadow-2xl overflow-hidden flex flex-col relative border-0 md:border-[8px] border-slate-800/80 ring-1 ring-emerald-500/20">
+
+        <!-- iOS Status Bar Simulation -->
+        <div class="w-full bg-pitch-950/80 backdrop-blur-md px-6 pt-3 pb-2 flex justify-between items-center z-50 text-xs text-slate-300 font-medium select-none">
+            <span id="current-time">09:41</span>
+            <!-- Dynamic Island simulation -->
+            <div class="w-24 h-5 bg-black rounded-full flex items-center justify-between px-2 text-[9px] text-emerald-400">
+                <i class="fa-solid fa-bolt text-[8px] animate-pulse"></i>
+                <span class="text-[8px] tracking-wider text-slate-400">PITCH AI</span>
+                <div class="w-1.5 h-1.5 rounded-full bg-emerald-500"></div>
+            </div>
+            <div class="flex items-center space-x-2 text-xs">
+                <i class="fa-solid fa-signal"></i>
+                <i class="fa-solid fa-wifi"></i>
+                <i class="fa-solid fa-battery-full text-emerald-400"></i>
+            </div>
+        </div>
+
+        <!-- Main Viewport Scroll Area -->
+        <div class="flex-1 overflow-y-auto no-scrollbar relative pb-20" id="app-content-viewport">
+
+            <!-- ================= TAB 1: HOME (首页) ================= -->
+            <div id="tab-home" class="tab-content block p-4 space-y-5">
+                
+                <!-- Home Top Header -->
+                <div class="flex items-center justify-between pt-1">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-pitch-accent to-emerald-300 flex items-center justify-center text-pitch-950 font-black shadow-lg shadow-emerald-500/20">
+                            <i class="fa-solid fa-futbol text-lg"></i>
+                        </div>
+                        <div>
+                            <div class="flex items-center space-x-1.5">
+                                <h1 class="text-lg font-bold tracking-tight text-white">绿场智算</h1>
+                                <span class="text-[10px] bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-1.5 py-0.5 rounded font-mono font-bold">PRO</span>
+                            </div>
+                            <p class="text-xs text-slate-400">实时 AI 赛况预测与高阶建模</p>
+                        </div>
+                    </div>
+                    <button class="w-9 h-9 rounded-full bg-pitch-850 border border-pitch-700/60 flex items-center justify-center text-slate-300 hover:text-white transition" onclick="switchTab('mine')">
+                        <i class="fa-regular fa-bell text-sm"></i>
+                    </button>
+                </div>
+
+                <!-- Quick Sport Category Switcher -->
+                <div class="flex bg-pitch-950/60 p-1 rounded-xl border border-pitch-800 text-xs font-semibold">
+                    <button onclick="setHomeSport('football')" id="home-sport-fb" class="flex-1 py-1.5 rounded-lg bg-pitch-accent text-pitch-950 font-bold shadow transition flex items-center justify-center space-x-1">
+                        <i class="fa-solid fa-futbol"></i>
+                        <span>足球赛事</span>
+                    </button>
+                    <button onclick="setHomeSport('basketball')" id="home-sport-bb" class="flex-1 py-1.5 rounded-lg text-slate-400 hover:text-white transition flex items-center justify-center space-x-1">
+                        <i class="fa-solid fa-basketball"></i>
+                        <span>篮球赛事</span>
+                    </button>
+                </div>
+
+                <!-- Featured Hot Match Spotlight Card -->
+                <div class="glass-card rounded-2xl p-4 relative overflow-hidden glow-effect">
+                    <div class="absolute -right-8 -bottom-8 w-32 h-32 bg-emerald-500/10 rounded-full blur-2xl pointer-events-none"></div>
+                    <div class="flex justify-between items-center text-xs text-slate-400 mb-3">
+                        <span class="flex items-center space-x-1 font-medium text-emerald-400">
+                            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping inline-block mr-1"></span>
+                            欧冠半决赛 · 焦点对决
+                        </span>
+                        <span class="bg-pitch-950/80 px-2 py-0.5 rounded-full text-[11px] text-slate-300 border border-pitch-700">进行中 68'</span>
+                    </div>
+
+                    <!-- Teams & Live Score -->
+                    <div class="flex justify-between items-center my-3" onclick="openMatchDrawer('real-mci')">
+                        <!-- Home Team -->
+                        <div class="flex flex-col items-center space-y-1.5 w-1/3">
+                            <img src="https://images.unsplash.com/photo-1508098682722-e99c43a406b2?w=100&auto=format&fit=crop&q=80" class="w-12 h-12 rounded-full object-cover border-2 border-emerald-500/50 p-0.5" alt="Real Madrid">
+                            <span class="text-xs font-bold text-slate-100 text-center">皇家马德里</span>
+                            <span class="text-[10px] text-slate-400">主场 xG 1.84</span>
+                        </div>
+                        
+                        <!-- Score Center -->
+                        <div class="flex flex-col items-center justify-center w-1/3">
+                            <div class="text-3xl font-black tracking-wider text-emerald-300 font-mono">
+                                2 <span class="text-slate-600 font-sans text-xl">:</span> 1
+                            </div>
+                            <span class="text-[10px] text-amber-400 bg-amber-400/10 border border-amber-400/20 px-2 py-0.5 rounded-full mt-1">AI 胜率推算 64%</span>
+                        </div>
+
+                        <!-- Away Team -->
+                        <div class="flex flex-col items-center space-y-1.5 w-1/3">
+                            <img src="https://images.unsplash.com/photo-1522778119026-d647f0596c20?w=100&auto=format&fit=crop&q=80" class="w-12 h-12 rounded-full object-cover border-2 border-slate-700 p-0.5" alt="Man City">
+                            <span class="text-xs font-bold text-slate-100 text-center">曼彻斯特城</span>
+                            <span class="text-[10px] text-slate-400">客场 xG 1.12</span>
+                        </div>
+                    </div>
+
+                    <!-- Live AI Momentum Indicator -->
+                    <div class="mt-4 pt-3 border-t border-pitch-700/50 flex items-center justify-between text-xs">
+                        <div class="flex items-center space-x-2">
+                            <i class="fa-solid fa-chart-line text-emerald-400"></i>
+                            <span class="text-slate-300">实时压制力: <strong class="text-emerald-300">皇马 58%</strong></span>
+                        </div>
+                        <button onclick="openMatchDrawer('real-mci')" class="text-emerald-400 text-xs font-bold flex items-center hover:underline">
+                            进入高阶盘路 <i class="fa-solid fa-chevron-right text-[10px] ml-1"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Shortcuts to Smart Tools -->
+                <div>
+                    <div class="flex justify-between items-center mb-2.5">
+                        <h2 class="text-sm font-bold text-slate-200 flex items-center space-x-1.5">
+                            <i class="fa-solid fa-wand-magic-sparkles text-emerald-400"></i>
+                            <span>智算直达工具箱</span>
+                        </h2>
+                        <span class="text-[11px] text-slate-400">核心分析模型</span>
+                    </div>
+                    <div class="grid grid-cols-4 gap-2">
+                        <button onclick="switchTab('tool'); setToolMode('h2h')" class="glass-card-interactive p-2.5 rounded-xl flex flex-col items-center space-y-1.5 text-center">
+                            <div class="w-9 h-9 rounded-xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
+                                <i class="fa-solid fa-diagram-project text-sm"></i>
+                            </div>
+                            <span class="text-[11px] font-medium text-slate-200">两队对比</span>
+                        </button>
+                        <button onclick="switchTab('tool'); setToolMode('model')" class="glass-card-interactive p-2.5 rounded-xl flex flex-col items-center space-y-1.5 text-center">
+                            <div class="w-9 h-9 rounded-xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400">
+                                <i class="fa-solid fa-microchip text-sm"></i>
+                            </div>
+                            <span class="text-[11px] font-medium text-slate-200">胜率模型</span>
+                        </button>
+                        <button onclick="switchTab('tool'); setToolMode('kelly')" class="glass-card-interactive p-2.5 rounded-xl flex flex-col items-center space-y-1.5 text-center">
+                            <div class="w-9 h-9 rounded-xl bg-cyan-500/15 border border-cyan-500/30 flex items-center justify-center text-cyan-400">
+                                <i class="fa-solid fa-calculator text-sm"></i>
+                            </div>
+                            <span class="text-[11px] font-medium text-slate-200">凯利指数</span>
+                        </button>
+                        <button onclick="switchTab('tool'); setToolMode('history')" class="glass-card-interactive p-2.5 rounded-xl flex flex-col items-center space-y-1.5 text-center">
+                            <div class="w-9 h-9 rounded-xl bg-purple-500/15 border border-purple-500/30 flex items-center justify-center text-purple-400">
+                                <i class="fa-solid fa-clock-rotate-left text-sm"></i>
+                            </div>
+                            <span class="text-[11px] font-medium text-slate-200">交锋盘路</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Today's High-Value AI Match Briefing -->
+                <div class="space-y-3">
+                    <div class="flex justify-between items-center">
+                        <h2 class="text-sm font-bold text-slate-200 flex items-center space-x-1.5">
+                            <i class="fa-solid fa-bolt-lightning text-amber-400"></i>
+                            <span>今日重点偏离模型简报</span>
+                        </h2>
+                        <button onclick="switchTab('match')" class="text-xs text-emerald-400 hover:underline">全部赛事</button>
+                    </div>
+
+                    <!-- Briefing Card 1 -->
+                    <div class="glass-card p-3.5 rounded-xl space-y-2.5 hover:border-emerald-500/40 transition cursor-pointer" onclick="openMatchDrawer('arsenal-chelsea')">
+                        <div class="flex justify-between items-center text-xs">
+                            <span class="text-slate-400">英超 · 第34轮 23:00</span>
+                            <span class="text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20 font-mono">模型匹配度 92%</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <div class="flex items-center space-x-2">
+                                <span class="font-bold text-sm text-slate-100">阿森纳 vs 切尔西</span>
+                            </div>
+                            <span class="text-xs font-mono font-semibold text-amber-300">预测: 主胜 / 2.5大球</span>
+                        </div>
+                        <div class="bg-pitch-950/50 p-2 rounded-lg text-[11px] text-slate-300 flex items-start space-x-1.5">
+                            <i class="fa-solid fa-circle-info text-emerald-400 mt-0.5 text-xs"></i>
+                            <p class="leading-relaxed">阿森纳近4场主场xG达2.41，切尔西主力中卫缺阵，主队前场压迫指数达近两季峰值。</p>
+                        </div>
+                    </div>
+
+                    <!-- Briefing Card 2 (Basketball Example) -->
+                    <div class="glass-card p-3.5 rounded-xl space-y-2.5 hover:border-emerald-500/40 transition cursor-pointer" onclick="openMatchDrawer('lakers-warriors')">
+                        <div class="flex justify-between items-center text-xs">
+                            <span class="text-slate-400">NBA 季后赛 · 08:30</span>
+                            <span class="text-cyan-400 bg-cyan-500/10 px-2 py-0.5 rounded border border-cyan-500/20 font-mono">篮球 PACE 高速模型</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <div class="flex items-center space-x-2">
+                                <span class="font-bold text-sm text-slate-100">湖人 vs 勇士</span>
+                            </div>
+                            <span class="text-xs font-mono font-semibold text-emerald-300">预测: 224.5 总分大</span>
+                        </div>
+                        <div class="bg-pitch-950/50 p-2 rounded-lg text-[11px] text-slate-300 flex items-start space-x-1.5">
+                            <i class="fa-solid fa-chart-simple text-cyan-400 mt-0.5 text-xs"></i>
+                            <p class="leading-relaxed">两队近3次交手转换进攻得分均超32分，本场指数调整较初盘上调3.5分，走势吻合。</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ================= TAB 2: MATCH (赛事) ================= -->
+            <div id="tab-match" class="tab-content hidden p-4 space-y-4">
+                
+                <!-- Match Top Segment Bar -->
+                <div class="flex items-center justify-between">
+                    <h1 class="text-lg font-bold text-slate-100">赛程与历史数据库</h1>
+                    <div class="flex bg-pitch-950 p-1 rounded-xl border border-pitch-700">
+                        <button id="match-segment-fb" onclick="switchMatchSport('fb')" class="px-3 py-1 rounded-lg text-xs font-bold bg-pitch-accent text-pitch-950 shadow">足球</button>
+                        <button id="match-segment-bb" onclick="switchMatchSport('bb')" class="px-3 py-1 rounded-lg text-xs font-semibold text-slate-400 hover:text-white">篮球</button>
+                    </div>
+                </div>
+
+                <!-- Status Tabs Filter (Live, Upcoming, Finished) -->
+                <div class="flex space-x-2 border-b border-pitch-800 pb-2 text-xs">
+                    <button onclick="filterMatchStatus('all')" class="px-3 py-1.5 rounded-full bg-pitch-800 text-emerald-300 font-bold border border-emerald-500/30">全部 (24)</button>
+                    <button onclick="filterMatchStatus('live')" class="px-3 py-1.5 rounded-full bg-pitch-950 text-slate-400 hover:text-white border border-pitch-800 flex items-center space-x-1">
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                        <span>进行中 (5)</span>
+                    </button>
+                    <button onclick="filterMatchStatus('upcoming')" class="px-3 py-1.5 rounded-full bg-pitch-950 text-slate-400 hover:text-white border border-pitch-800">即将开赛 (12)</button>
+                    <button onclick="filterMatchStatus('ended')" class="px-3 py-1.5 rounded-full bg-pitch-950 text-slate-400 hover:text-white border border-pitch-800">完场复盘 (7)</button>
+                </div>
+
+                <!-- Date Picker Strip -->
+                <div class="flex justify-between items-center bg-pitch-850/60 p-2 rounded-xl border border-pitch-800 text-xs text-center">
+                    <div class="px-2.5 py-1 rounded-lg text-slate-400">昨天<br><span class="text-[10px]">04-18</span></div>
+                    <div class="px-3 py-1 rounded-lg bg-emerald-500 text-pitch-950 font-bold shadow">今天<br><span class="text-[10px]">04-19</span></div>
+                    <div class="px-2.5 py-1 rounded-lg text-slate-400">明天<br><span class="text-[10px]">04-20</span></div>
+                    <div class="px-2.5 py-1 rounded-lg text-slate-400">周日<br><span class="text-[10px]">04-21</span></div>
+                    <div class="px-2.5 py-1 rounded-lg text-slate-400">周一<br><span class="text-[10px]">04-22</span></div>
+                </div>
+
+                <!-- Match List Grouped by Competition -->
+                <div class="space-y-4" id="match-list-container">
+                    
+                    <!-- League Header 1: UEFA Champions League -->
+                    <div class="space-y-2">
+                        <div class="flex justify-between items-center text-xs font-semibold text-slate-400 px-1">
+                            <span class="flex items-center space-x-1.5">
+                                <i class="fa-solid fa-trophy text-amber-400"></i>
+                                <span>欧洲冠军联赛</span>
+                            </span>
+                            <span>2 场对局</span>
+                        </div>
+
+                        <!-- Match Row Item 1 -->
+                        <div class="glass-card p-3 rounded-xl hover:border-emerald-500/50 transition cursor-pointer flex items-center justify-between" onclick="openMatchDrawer('real-mci')">
+                            <div class="text-[11px] text-slate-400 w-16 text-center">
+                                <span class="text-emerald-400 font-bold block">68'</span>
+                                <span class="text-[9px] bg-emerald-500/10 px-1 py-0.5 rounded text-emerald-300">Live</span>
+                            </div>
+
+                            <div class="flex-1 px-3 space-y-1">
+                                <div class="flex justify-between items-center text-xs">
+                                    <span class="font-bold text-slate-100">皇家马德里</span>
+                                    <span class="font-mono font-bold text-emerald-400 text-sm">2</span>
+                                </div>
+                                <div class="flex justify-between items-center text-xs">
+                                    <span class="font-semibold text-slate-300">曼彻斯特城</span>
+                                    <span class="font-mono font-bold text-slate-400 text-sm">1</span>
+                                </div>
+                            </div>
+
+                            <div class="pl-3 border-l border-pitch-700/60 text-right w-20">
+                                <span class="text-[10px] text-amber-400 block font-mono">胜率 64%</span>
+                                <span class="text-[10px] text-slate-400">角球 6-4</span>
+                            </div>
+                        </div>
+
+                        <!-- Match Row Item 2 -->
+                        <div class="glass-card p-3 rounded-xl hover:border-emerald-500/50 transition cursor-pointer flex items-center justify-between" onclick="openMatchDrawer('bayern-psg')">
+                            <div class="text-[11px] text-slate-400 w-16 text-center">
+                                <span class="block font-semibold">03:00</span>
+                                <span class="text-[9px] text-slate-500">未开赛</span>
+                            </div>
+
+                            <div class="flex-1 px-3 space-y-1">
+                                <div class="flex justify-between items-center text-xs">
+                                    <span class="font-bold text-slate-100">拜仁慕尼黑</span>
+                                    <span class="font-mono text-slate-500 text-sm">-</span>
+                                </div>
+                                <div class="flex justify-between items-center text-xs">
+                                    <span class="font-semibold text-slate-300">巴黎圣日耳曼</span>
+                                    <span class="font-mono text-slate-500 text-sm">-</span>
+                                </div>
+                            </div>
+
+                            <div class="pl-3 border-l border-pitch-700/60 text-right w-20">
+                                <span class="text-[10px] text-slate-400 block font-mono">平半盘</span>
+                                <span class="text-[10px] text-emerald-400">AI指数预警</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- League Header 2: NBA -->
+                    <div class="space-y-2 pt-2">
+                        <div class="flex justify-between items-center text-xs font-semibold text-slate-400 px-1">
+                            <span class="flex items-center space-x-1.5">
+                                <i class="fa-solid fa-basketball text-orange-400"></i>
+                                <span>NBA 季后赛</span>
+                            </span>
+                            <span>1 场对局</span>
+                        </div>
+
+                        <!-- Match Row Item 3 -->
+                        <div class="glass-card p-3 rounded-xl hover:border-emerald-500/50 transition cursor-pointer flex items-center justify-between" onclick="openMatchDrawer('lakers-warriors')">
+                            <div class="text-[11px] text-slate-400 w-16 text-center">
+                                <span class="block font-semibold text-slate-300">完场</span>
+                                <span class="text-[9px] text-slate-500">常规赛</span>
+                            </div>
+
+                            <div class="flex-1 px-3 space-y-1">
+                                <div class="flex justify-between items-center text-xs">
+                                    <span class="font-bold text-slate-100">洛杉矶湖人</span>
+                                    <span class="font-mono font-bold text-emerald-400 text-sm">118</span>
+                                </div>
+                                <div class="flex justify-between items-center text-xs">
+                                    <span class="font-semibold text-slate-300">金州勇士</span>
+                                    <span class="font-mono font-bold text-slate-400 text-sm">112</span>
+                                </div>
+                            </div>
+
+                            <div class="pl-3 border-l border-pitch-700/60 text-right w-20">
+                                <span class="text-[10px] text-emerald-400 block font-mono">大分命中</span>
+                                <span class="text-[10px] text-slate-400">复盘完结</span>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- ================= TAB 3: TOOL (工具) ⭐ CORE FEATURE ================= -->
+            <div id="tab-tool" class="tab-content hidden p-4 space-y-4">
+                
+                <!-- Tool Header -->
+                <div class="flex justify-between items-end">
+                    <div>
+                        <div class="flex items-center space-x-1.5 text-xs text-emerald-400 font-semibold mb-0.5">
+                            <i class="fa-solid fa-microchip"></i>
+                            <span>独家高阶计算矩阵</span>
+                        </div>
+                        <h1 class="text-xl font-black text-white tracking-tight">智算数据分析实验室</h1>
+                    </div>
+                    <span class="text-[10px] bg-pitch-800 text-slate-300 border border-pitch-700 px-2 py-1 rounded-lg">模型版本 v4.2</span>
+                </div>
+
+                <!-- Interactive Radar Tool Section -->
+                <div class="glass-card p-4 rounded-2xl space-y-3">
+                    <div class="flex justify-between items-center">
+                        <h3 class="text-xs font-bold text-slate-200 flex items-center space-x-1">
+                            <i class="fa-solid fa-chart-pie text-emerald-400"></i>
+                            <span>两队多维雷达实力模型引擎</span>
+                        </h3>
+                        <span class="text-[10px] text-emerald-300 font-mono">实时计算中</span>
+                    </div>
+
+                    <!-- Team Pick Dropdowns -->
+                    <div class="grid grid-cols-2 gap-2 text-xs">
+                        <div class="bg-pitch-950 p-2 rounded-xl border border-pitch-700">
+                            <label class="text-[10px] text-slate-400 block mb-1">主队 Team A</label>
+                            <select id="team-a-select" onchange="updateRadarChart()" class="bg-transparent text-slate-100 font-bold w-full focus:outline-none">
+                                <option value="real" class="bg-pitch-900">皇家马德里</option>
+                                <option value="arsenal" class="bg-pitch-900">阿森纳</option>
+                                <option value="bayern" class="bg-pitch-900">拜仁慕尼黑</option>
+                            </select>
+                        </div>
+                        <div class="bg-pitch-950 p-2 rounded-xl border border-pitch-700">
+                            <label class="text-[10px] text-slate-400 block mb-1">客队 Team B</label>
+                            <select id="team-b-select" onchange="updateRadarChart()" class="bg-transparent text-slate-100 font-bold w-full focus:outline-none">
+                                <option value="mci" class="bg-pitch-900">曼彻斯特城</option>
+                                <option value="chelsea" class="bg-pitch-900">切尔西</option>
+                                <option value="psg" class="bg-pitch-900">巴黎圣日耳曼</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Interactive Chart Canvas -->
+                    <div class="w-full h-52 relative flex items-center justify-center my-1">
+                        <canvas id="radarChartCanvas"></canvas>
+                    </div>
+
+                    <!-- Weight Slider Adjustment -->
+                    <div class="space-y-2 pt-2 border-t border-pitch-700/60">
+                        <div class="flex justify-between text-[11px] text-slate-300">
+                            <span>主场优势加权 (Home Advantage)</span>
+                            <span id="weight-val" class="font-mono text-emerald-400 font-bold">+12%</span>
+                        </div>
+                        <input type="range" id="weight-slider" min="0" max="30" value="12" oninput="adjustWeight(this.value)" class="w-full h-1.5 bg-pitch-950 rounded-lg appearance-none cursor-pointer accent-emerald-400">
+                    </div>
+
+                    <button onclick="calculateWinRate()" class="w-full py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 text-pitch-950 font-black text-xs shadow-lg shadow-emerald-500/20 active:scale-95 transition flex items-center justify-center space-x-1.5">
+                        <i class="fa-solid fa-play"></i>
+                        <span>生成蒙特卡洛 10000 次模拟报告</span>
+                    </button>
+                </div>
+
+                <!-- Analytics Tool Set Cards -->
+                <div class="grid grid-cols-2 gap-3">
+                    
+                    <!-- Kelly Calculator Card -->
+                    <div class="glass-card p-3 rounded-xl space-y-1.5 cursor-pointer hover:border-emerald-500/50 transition" onclick="showToolModal('kelly')">
+                        <div class="w-7 h-7 rounded-lg bg-cyan-500/20 text-cyan-400 flex items-center justify-center text-xs mb-1">
+                            <i class="fa-solid fa-calculator"></i>
+                        </div>
+                        <h4 class="text-xs font-bold text-slate-100">凯利与必发冷热指数</h4>
+                        <p class="text-[10px] text-slate-400 leading-tight">捕获各大机构赔率异常偏离度与资金博弈方向</p>
+                    </div>
+
+                    <!-- H2H Deep History Card -->
+                    <div class="glass-card p-3 rounded-xl space-y-1.5 cursor-pointer hover:border-emerald-500/50 transition" onclick="showToolModal('h2h')">
+                        <div class="w-7 h-7 rounded-lg bg-purple-500/20 text-purple-400 flex items-center justify-center text-xs mb-1">
+                            <i class="fa-solid fa-timeline"></i>
+                        </div>
+                        <h4 class="text-xs font-bold text-slate-100">历史交锋盘路克制</h4>
+                        <p class="text-[10px] text-slate-400 leading-tight">结合裁判尺度、主客战术相克属性深挖克星指数</p>
+                    </div>
+
+                    <!-- Dynamic Momentum Curve Card -->
+                    <div class="glass-card p-3 rounded-xl space-y-1.5 cursor-pointer hover:border-emerald-500/50 transition" onclick="showToolModal('momentum')">
+                        <div class="w-7 h-7 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center text-xs mb-1">
+                            <i class="fa-solid fa-wave-square"></i>
+                        </div>
+                        <h4 class="text-xs font-bold text-slate-100">实时比赛 Momentum 走势</h4>
+                        <p class="text-[10px] text-slate-400 leading-tight">分钟级进攻压制力曲线，捕捉临场进球信号</p>
+                    </div>
+
+                    <!-- Custom Alert Triggers -->
+                    <div class="glass-card p-3 rounded-xl space-y-1.5 cursor-pointer hover:border-emerald-500/50 transition" onclick="showToolModal('alert')">
+                        <div class="w-7 h-7 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-xs mb-1">
+                            <i class="fa-solid fa-bell-slash"></i>
+                        </div>
+                        <h4 class="text-xs font-bold text-slate-100">异动指标实时预警</h4>
+                        <p class="text-[10px] text-slate-400 leading-tight">自定义 xG 突破、红黄牌及剧烈水位变轨推送</p>
+                    </div>
+
+                </div>
+
+            </div>
+
+            <!-- ================= TAB 4: MINE (我的) ================= -->
+            <div id="tab-mine" class="tab-content hidden p-4 space-y-4">
+                
+                <!-- Profile Header Card -->
+                <div class="glass-card p-4 rounded-2xl flex items-center justify-between relative overflow-hidden">
+                    <div class="flex items-center space-x-3 z-10">
+                        <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&auto=format&fit=crop&q=80" class="w-14 h-14 rounded-full object-cover border-2 border-emerald-400 ring-4 ring-emerald-500/20" alt="Avatar">
+                        <div>
+                            <div class="flex items-center space-x-1.5">
+                                <h2 class="text-base font-bold text-white">智算领航员</h2>
+                                <span class="bg-gradient-to-r from-amber-400 to-amber-600 text-pitch-950 font-black text-[9px] px-1.5 py-0.5 rounded">VIP PRO</span>
+                            </div>
+                            <p class="text-xs text-slate-400">ID: 88492041 · 专家级模型权限</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- User Stats Dashboard Strip -->
+                <div class="grid grid-cols-3 gap-2 text-center">
+                    <div class="bg-pitch-850/80 p-2.5 rounded-xl border border-pitch-700">
+                        <span class="text-lg font-black text-emerald-400 font-mono">82.4%</span>
+                        <span class="block text-[10px] text-slate-400">模型命中率</span>
+                    </div>
+                    <div class="bg-pitch-850/80 p-2.5 rounded-xl border border-pitch-700">
+                        <span class="text-lg font-black text-amber-400 font-mono">142</span>
+                        <span class="block text-[10px] text-slate-400">保存报告</span>
+                    </div>
+                    <div class="bg-pitch-850/80 p-2.5 rounded-xl border border-pitch-700">
+                        <span class="text-lg font-black text-cyan-400 font-mono">18</span>
+                        <span class="block text-[10px] text-slate-400">关注赛事</span>
+                    </div>
+                </div>
+
+                <!-- Saved Analysis Reports -->
+                <div class="space-y-2">
+                    <h3 class="text-xs font-bold text-slate-300 flex items-center justify-between">
+                        <span class="flex items-center space-x-1">
+                            <i class="fa-solid fa-bookmark text-emerald-400"></i>
+                            <span>我的云端分析归档 (近期)</span>
+                        </span>
+                        <span class="text-[10px] text-slate-500">查看全部</span>
+                    </h3>
+
+                    <div class="glass-card p-3 rounded-xl flex items-center justify-between text-xs">
+                        <div class="space-y-0.5">
+                            <span class="font-bold text-slate-200 block">皇家马德里 vs 曼城 · 欧冠模型报告</span>
+                            <span class="text-[10px] text-slate-400">生成时间: 今天 08:30</span>
+                        </div>
+                        <span class="text-xs font-mono font-bold text-emerald-400">正回报</span>
+                    </div>
+
+                    <div class="glass-card p-3 rounded-xl flex items-center justify-between text-xs">
+                        <div class="space-y-0.5">
+                            <span class="font-bold text-slate-200 block">湖人 vs 勇士 · PACE 速度推算</span>
+                            <span class="text-[10px] text-slate-400">生成时间: 昨天 19:15</span>
+                        </div>
+                        <span class="text-xs font-mono font-bold text-slate-400">已存档</span>
+                    </div>
+                </div>
+
+                <!-- Settings Options List -->
+                <div class="space-y-2 pt-1">
+                    <h3 class="text-xs font-bold text-slate-300">偏好设置与系统</h3>
+                    <div class="bg-pitch-850/60 rounded-xl border border-pitch-700 overflow-hidden divide-y divide-pitch-700/50 text-xs">
+                        <div class="p-3 flex justify-between items-center cursor-pointer hover:bg-pitch-800/50">
+                            <span class="text-slate-200 flex items-center space-x-2">
+                                <i class="fa-solid fa-bell text-slate-400 w-4"></i>
+                                <span>推送预警设置</span>
+                            </span>
+                            <i class="fa-solid fa-chevron-right text-slate-500 text-[10px]"></i>
+                        </div>
+                        <div class="p-3 flex justify-between items-center cursor-pointer hover:bg-pitch-800/50">
+                            <span class="text-slate-200 flex items-center space-x-2">
+                                <i class="fa-solid fa-sliders text-slate-400 w-4"></i>
+                                <span>默认分析模型算法权重</span>
+                            </span>
+                            <span class="text-[10px] text-emerald-400 font-mono">xG 混合 v4</span>
+                        </div>
+                        <div class="p-3 flex justify-between items-center cursor-pointer hover:bg-pitch-800/50">
+                            <span class="text-slate-200 flex items-center space-x-2">
+                                <i class="fa-solid fa-circle-info text-slate-400 w-4"></i>
+                                <span>关于绿场智算 / 版本号</span>
+                            </span>
+                            <span class="text-[10px] text-slate-500">v2.4.0 Pro</span>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+        </div>
+
+        <!-- ================= BOTTOM NAVIGATION TAB BAR ================= -->
+        <div class="absolute bottom-0 left-0 right-0 h-16 bg-pitch-950/95 backdrop-blur-md border-t border-pitch-800/80 px-4 flex justify-around items-center z-40 text-[10px] font-medium">
+            
+            <!-- Tab 1: Home -->
+            <button onclick="switchTab('home')" id="nav-home" class="flex flex-col items-center space-y-1 text-emerald-400 transition">
+                <i class="fa-solid fa-stadium text-base"></i>
+                <span>首页</span>
+            </button>
+
+            <!-- Tab 2: Match -->
+            <button onclick="switchTab('match')" id="nav-match" class="flex flex-col items-center space-y-1 text-slate-400 hover:text-white transition">
+                <i class="fa-solid fa-flag-checkered text-base"></i>
+                <span>赛事</span>
+            </button>
+
+            <!-- Tab 3: Tool ⭐ Feature Spotlight -->
+            <button onclick="switchTab('tool')" id="nav-tool" class="flex flex-col items-center justify-center -mt-5">
+                <div class="w-12 h-12 rounded-full bg-gradient-to-tr from-emerald-500 to-teal-300 text-pitch-950 flex items-center justify-center shadow-lg shadow-emerald-500/30 ring-4 ring-pitch-950 text-lg hover:scale-105 transition">
+                    <i class="fa-solid fa-chart-radar"></i>
+                </div>
+                <span class="text-emerald-400 font-bold mt-1">智算工具</span>
+            </button>
+
+            <!-- Tab 4: Mine -->
+            <button onclick="switchTab('mine')" id="nav-mine" class="flex flex-col items-center space-y-1 text-slate-400 hover:text-white transition">
+                <i class="fa-solid fa-user-gear text-base"></i>
+                <span>我的</span>
+            </button>
+
+        </div>
+
+        <!-- ================= MODAL / DRAWER: MATCH DETAILS ================= -->
+        <div id="match-drawer" class="absolute inset-0 bg-pitch-950/90 backdrop-blur-md z-50 modal-enter hidden flex flex-col">
+            <!-- Modal Close Bar -->
+            <div class="p-4 border-b border-pitch-800 flex justify-between items-center">
+                <div class="flex items-center space-x-2">
+                    <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                    <h3 class="text-xs font-bold text-slate-100" id="drawer-title">比赛深度分析看板</h3>
+                </div>
+                <button onclick="closeMatchDrawer()" class="w-7 h-7 rounded-full bg-pitch-850 flex items-center justify-center text-slate-400 hover:text-white">
+                    <i class="fa-solid fa-xmark text-sm"></i>
+                </button>
+            </div>
+
+            <!-- Modal Scroll Content -->
+            <div class="flex-1 overflow-y-auto p-4 space-y-4 text-xs no-scrollbar">
+                
+                <!-- Match Head to Head Banner -->
+                <div class="glass-card p-4 rounded-2xl space-y-3">
+                    <div class="flex justify-between items-center">
+                        <div class="text-center w-1/3">
+                            <span class="font-bold text-sm text-white block" id="drawer-home-name">皇家马德里</span>
+                            <span class="text-[10px] text-emerald-400">xG: 1.84</span>
+                        </div>
+                        <div class="text-center w-1/3">
+                            <span class="text-2xl font-black text-emerald-300 font-mono" id="drawer-score">2 : 1</span>
+                            <span class="block text-[10px] text-slate-400">进行中 68'</span>
+                        </div>
+                        <div class="text-center w-1/3">
+                            <span class="font-bold text-sm text-white block" id="drawer-away-name">曼彻斯特城</span>
+                            <span class="text-[10px] text-slate-400">xG: 1.12</span>
+                        </div>
+                    </div>
+
+                    <!-- Live Possession Progress Bar -->
+                    <div class="space-y-1">
+                        <div class="flex justify-between text-[10px] text-slate-300 font-mono">
+                            <span>控球率 54%</span>
+                            <span>46%</span>
+                        </div>
+                        <div class="w-full h-2 bg-pitch-950 rounded-full overflow-hidden flex">
+                            <div class="h-full bg-emerald-400 w-[54%]"></div>
+                            <div class="h-full bg-slate-600 w-[46%]"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Stats Breakdown Comparison -->
+                <div class="space-y-2">
+                    <h4 class="font-bold text-slate-200">关键指标实时对比</h4>
+                    <div class="bg-pitch-850/80 p-3 rounded-xl border border-pitch-700 space-y-2.5">
+                        
+                        <!-- Row 1: Shots -->
+                        <div>
+                            <div class="flex justify-between text-[11px] mb-1">
+                                <span class="font-bold text-emerald-300">14</span>
+                                <span class="text-slate-400">射门总数</span>
+                                <span class="font-bold text-slate-300">9</span>
+                            </div>
+                            <div class="w-full h-1.5 bg-pitch-950 rounded-full overflow-hidden flex">
+                                <div class="h-full bg-emerald-400 w-[60%]"></div>
+                                <div class="h-full bg-slate-600 w-[40%]"></div>
+                            </div>
+                        </div>
+
+                        <!-- Row 2: Shots on Target -->
+                        <div>
+                            <div class="flex justify-between text-[11px] mb-1">
+                                <span class="font-bold text-emerald-300">6</span>
+                                <span class="text-slate-400">射正次数</span>
+                                <span class="font-bold text-slate-300">3</span>
+                            </div>
+                            <div class="w-full h-1.5 bg-pitch-950 rounded-full overflow-hidden flex">
+                                <div class="h-full bg-emerald-400 w-[66%]"></div>
+                                <div class="h-full bg-slate-600 w-[34%]"></div>
+                            </div>
+                        </div>
+
+                        <!-- Row 3: Dangerous Attacks -->
+                        <div>
+                            <div class="flex justify-between text-[11px] mb-1">
+                                <span class="font-bold text-emerald-300">48</span>
+                                <span class="text-slate-400">危险进攻</span>
+                                <span class="font-bold text-slate-300">42</span>
+                            </div>
+                            <div class="w-full h-1.5 bg-pitch-950 rounded-full overflow-hidden flex">
+                                <div class="h-full bg-emerald-400 w-[53%]"></div>
+                                <div class="h-full bg-slate-600 w-[47%]"></div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+                <!-- AI Tactical Insights Box -->
+                <div class="bg-emerald-950/40 border border-emerald-500/30 p-3 rounded-xl space-y-1.5">
+                    <span class="text-emerald-400 font-bold flex items-center space-x-1">
+                        <i class="fa-solid fa-robot"></i>
+                        <span>AI 智算模型实时提示</span>
+                    </span>
+                    <p class="text-[11px] text-slate-300 leading-relaxed">
+                        客队过去 15 分钟前场传递成功率下降 14%，主队右路高压反击效果显著。模型推断下一个进球概率：皇马 68% / 曼城 32%。
+                    </p>
+                </div>
+
+            </div>
+        </div>
+
+    </div>
+
+    <!-- JavaScript Logic Section -->
+    <script>
+        // Update live time display
+        function updateTime() {
+            const now = new Date();
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            const timeElem = document.getElementById('current-time');
+            if(timeElem) timeElem.textContent = `${hours}:${minutes}`;
+        }
+        setInterval(updateTime, 1000);
+        updateTime();
+
+        // Navigation Tab Switcher Engine
+        function switchTab(tabName) {
+            const tabs = ['home', 'match', 'tool', 'mine'];
+            tabs.forEach(t => {
+                const el = document.getElementById(`tab-${t}`);
+                const nav = document.getElementById(`nav-${t}`);
+                if(el) el.classList.add('hidden');
+                
+                if(nav) {
+                    if(t !== 'tool') {
+                        nav.classList.remove('text-emerald-400');
+                        nav.classList.add('text-slate-400');
+                    }
+                }
+            });
+
+            const targetTab = document.getElementById(`tab-${tabName}`);
+            if(targetTab) targetTab.classList.remove('hidden');
+
+            const targetNav = document.getElementById(`nav-${tabName}`);
+            if(targetNav && tabName !== 'tool') {
+                targetNav.classList.remove('text-slate-400');
+                targetNav.classList.add('text-emerald-400');
+            }
+
+            // Trigger Radar Canvas Re-render if Tool tab selected
+            if(tabName === 'tool') {
+                setTimeout(initRadarChart, 100);
+            }
+        }
+
+        // Home Sport Category Toggle
+        function setHomeSport(sport) {
+            const fbBtn = document.getElementById('home-sport-fb');
+            const bbBtn = document.getElementById('home-sport-bb');
+            
+            if(sport === 'football') {
+                fbBtn.className = "flex-1 py-1.5 rounded-lg bg-pitch-accent text-pitch-950 font-bold shadow transition flex items-center justify-center space-x-1";
+                bbBtn.className = "flex-1 py-1.5 rounded-lg text-slate-400 hover:text-white transition flex items-center justify-center space-x-1";
+            } else {
+                bbBtn.className = "flex-1 py-1.5 rounded-lg bg-pitch-accent text-pitch-950 font-bold shadow transition flex items-center justify-center space-x-1";
+                fbBtn.className = "flex-1 py-1.5 rounded-lg text-slate-400 hover:text-white transition flex items-center justify-center space-x-1";
+            }
+        }
+
+        // Match Segment Switcher
+        function switchMatchSport(sport) {
+            const fbBtn = document.getElementById('match-segment-fb');
+            const bbBtn = document.getElementById('match-segment-bb');
+            if(sport === 'fb') {
+                fbBtn.className = "px-3 py-1 rounded-lg text-xs font-bold bg-pitch-accent text-pitch-950 shadow";
+                bbBtn.className = "px-3 py-1 rounded-lg text-xs font-semibold text-slate-400 hover:text-white";
+            } else {
+                bbBtn.className = "px-3 py-1 rounded-lg text-xs font-bold bg-pitch-accent text-pitch-950 shadow";
+                fbBtn.className = "px-3 py-1 rounded-lg text-xs font-semibold text-slate-400 hover:text-white";
+            }
+        }
+
+        // Interactive Radar Chart with Chart.js
+        let radarChartInstance = null;
+
+        function initRadarChart() {
+            const ctx = document.getElementById('radarChartCanvas');
+            if(!ctx) return;
+
+            if(radarChartInstance) {
+                radarChartInstance.destroy();
+            }
+
+            radarChartInstance = new Chart(ctx, {
+                type: 'radar',
+                data: {
+                    labels: ['进攻效率', '防守韧性', '控球压制', '转换速率', '关键球员状态', '主场效应'],
+                    datasets: [{
+                        label: '主队 (Team A)',
+                        data: [88, 76, 85, 90, 82, 85],
+                        fill: true,
+                        backgroundColor: 'rgba(16, 185, 129, 0.25)',
+                        borderColor: '#10B981',
+                        pointBackgroundColor: '#10B981',
+                        borderWidth: 2
+                    }, {
+                        label: '客队 (Team B)',
+                        data: [82, 85, 78, 88, 89, 70],
+                        fill: true,
+                        backgroundColor: 'rgba(59, 130, 246, 0.25)',
+                        borderColor: '#3B82F6',
+                        pointBackgroundColor: '#3B82F6',
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        r: {
+                            angleLines: { color: 'rgba(255, 255, 255, 0.1)' },
+                            grid: { color: 'rgba(255, 255, 255, 0.1)' },
+                            pointLabels: {
+                                color: '#9CA3AF',
+                                font: { size: 9, family: 'sans-serif' }
+                            },
+                            ticks: { display: false },
+                            suggestedMin: 50,
+                            suggestedMax: 100
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            labels: {
+                                color: '#D1D5DB',
+                                font: { size: 10 }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function adjustWeight(val) {
+            const display = document.getElementById('weight-val');
+            if(display) display.textContent = `+${val}%`;
+            if(radarChartInstance) {
+                radarChartInstance.data.datasets[0].data[5] = 70 + parseInt(val);
+                radarChartInstance.update();
+            }
+        }
+
+        function updateRadarChart() {
+            if(radarChartInstance) {
+                // Randomize slightly for dynamic preview interaction
+                radarChartInstance.data.datasets[0].data = [
+                    Math.floor(Math.random() * 20) + 75,
+                    Math.floor(Math.random() * 20) + 75,
+                    Math.floor(Math.random() * 20) + 75,
+                    Math.floor(Math.random() * 20) + 75,
+                    Math.floor(Math.random() * 20) + 75,
+                    Math.floor(Math.random() * 20) + 75
+                ];
+                radarChartInstance.update();
+            }
+        }
+
+        function calculateWinRate() {
+            const btn = event.currentTarget;
+            btn.innerHTML = '<i class="fa-solid fa-spinner animate-spin"></i> <span>算力运算中...</span>';
+            setTimeout(() => {
+                btn.innerHTML = '<i class="fa-solid fa-check text-pitch-950"></i> <span>已生成：主胜概率 62.8%</span>';
+            }, 800);
+        }
+
+        // Open/Close Match Detail Drawer
+        function openMatchDrawer(matchId) {
+            const drawer = document.getElementById('match-drawer');
+            if(drawer) {
+                drawer.classList.remove('hidden');
+                drawer.classList.add('modal-enter-active');
+            }
+        }
+
+        function closeMatchDrawer() {
+            const drawer = document.getElementById('match-drawer');
+            if(drawer) {
+                drawer.classList.add('hidden');
+            }
+        }
+
+        // Initializer on window load
+        window.onload = function() {
+            initRadarChart();
+        };
+    </script>
+</body>
+</html>
