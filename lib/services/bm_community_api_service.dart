@@ -38,24 +38,24 @@ class BMCommunityApiService {
   static const String _apiPath = '/api/livespeed/community/list';
 
   /// 请求社区话题列表 (GET)
-  /// [tab] - Tab类型 (推荐/最新/关注)
-  /// [page] - 页码 (从1开始)
-  /// [size] - 每页数量
+  /// [type] - 类型 (String 类型: 1推荐 2最新 3关注, 默认'2')
+  /// [page] - 页码 (String 类型, 从'1'开始)
+  /// [size] - 每页数量 (String 类型)
   /// [matchType] - 比赛类型, 1=足球, 2=篮球, 可空, 为null时不在请求中携带该参数
   /// 返回: BMPostData?
   Future<BMPostData?> fetchPostList({
-    required BMCommunityTab tab,
-    int page = 1,
-    int size = 10,
+    String type = '2',
+    String page = '1',
+    String size = '10',
     int? matchType,
   }) async {
     final params = <String, dynamic>{
-      'type': tab.value,
+      'type': type,
       'page': page,
       'size': size,
     };
     if (matchType != null) {
-      params['match_type'] = matchType;
+      params['match_type'] = matchType.toString();
     }
 
     final response = await BMNetworkManager().getRequest(
@@ -64,7 +64,17 @@ class BMCommunityApiService {
     );
 
     if (response.isSuccess && response.data != null) {
-      return BMPostData.fromJson(response.data as Map<String, dynamic>);
+      final raw = response.data;
+      if (raw is Map<String, dynamic>) {
+        final code = raw['code'];
+        if (code == 0 || code == '0' || code == 200 || response.isSuccess) {
+          final innerData = raw['data'];
+          if (innerData is Map<String, dynamic>) {
+            return BMPostData.fromJson(innerData);
+          }
+          return BMPostData.fromJson(raw);
+        }
+      }
     }
 
     return null;
@@ -79,9 +89,9 @@ class BMCommunityApiService {
     int? matchType,
   }) async {
     final data = await fetchPostList(
-      tab: BMCommunityTab.recent,
-      page: 1,
-      size: count,
+      type: BMCommunityTab.recent.value.toString(),
+      page: '1',
+      size: count.toString(),
       matchType: matchType,
     );
     if (data == null || data.results.isEmpty) return [];
