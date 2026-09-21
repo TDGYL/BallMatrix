@@ -43,6 +43,15 @@ class BMTopicModel {
   /// 关联比赛数据 (BMMatchModel? 类型, 可选)
   final BMMatchModel? embeddedMatch;
 
+  /// 作者名称 (String? 类型, 话题发布者昵称, 对应BMPostAuthor.name)
+  final String? authorName;
+
+  /// 作者头像URL (String? 类型, 对应BMPostAuthor.avatar)
+  final String? authorAvatarUrl;
+
+  /// 发布时间描述 (String? 类型, 相对时间: 如 2小时前, 对应BMPostItem.createTime格式化)
+  final String? publishTimeDesc;
+
   // ===== 兼容旧字段 =====
   /// 旧标题 (String 类型, 默认空)
   final String title;
@@ -73,6 +82,9 @@ class BMTopicModel {
     this.predictionResult = '主胜概率 58%',
     this.confidence = 85,
     this.embeddedMatch,
+    this.authorName,
+    this.authorAvatarUrl,
+    this.publishTimeDesc,
     String? title,
     String? category,
     int? heatCount,

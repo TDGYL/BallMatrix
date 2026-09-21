@@ -1,3 +1,31 @@
+import 'package:flutter/material.dart';
+
+int? _safeInt(dynamic v) {
+  if (v == null) return null;
+  if (v is int) return v;
+  if (v is num) return v.toInt();
+  if (v is String) return int.tryParse(v);
+  return null;
+}
+
+String? _safeString(dynamic v) {
+  if (v == null) return null;
+  if (v is String) return v;
+  return v.toString();
+}
+
+bool? _safeBool(dynamic v) {
+  if (v == null) return null;
+  if (v is bool) return v;
+  if (v is int) return v != 0;
+  if (v is String) {
+    final s = v.toLowerCase();
+    if (s == 'true' || s == '1' || s == 'yes') return true;
+    if (s == 'false' || s == '0' || s == 'no') return false;
+  }
+  return null;
+}
+
 /// BMPostData - 社区话题列表API响应数据体
 /// 作用范围: /api/livespeed/community/list 接口响应data字段
 class BMPostData {
@@ -14,10 +42,19 @@ class BMPostData {
     final list = json['results'] as List?;
     List<BMPostItem> items = [];
     if (list != null) {
-      items = list.map((e) => BMPostItem.fromJson(e as Map<String, dynamic>)).toList();
+      for (int i = 0; i < list.length; i++) {
+        try {
+          final e = list[i];
+          if (e is Map<String, dynamic>) {
+            items.add(BMPostItem.fromJson(e));
+          }
+        } catch (e) {
+          debugPrint('BMPostData.fromJson 单条解析跳过 i=$i: $e');
+        }
+      }
     }
     return BMPostData(
-      total: json['total'] as int?,
+      total: _safeInt(json['total']),
       results: items,
     );
   }
@@ -71,17 +108,40 @@ class BMPostItem {
 
   /// 从 JSON 解析 (snake_case → camelCase)
   factory BMPostItem.fromJson(Map<String, dynamic> json) {
+    dynamic authorRaw = json['author'];
+    dynamic matchRaw = json['match'];
+    BMPostAuthor? author;
+    BMPostMatch? match;
+    if (authorRaw is Map<String, dynamic>) {
+      try {
+        author = BMPostAuthor.fromJson(authorRaw);
+      } catch (_) {}
+    }
+    if (matchRaw is Map<String, dynamic>) {
+      try {
+        match = BMPostMatch.fromJson(matchRaw);
+      } catch (_) {}
+    }
+    final listRaw = json['images'] as List?;
+    List<String>? images;
+    if (listRaw != null) {
+      images = [];
+      for (final e in listRaw) {
+        final s = _safeString(e);
+        if (s != null) images.add(s);
+      }
+    }
     return BMPostItem(
-      id: json['id'] as int?,
-      content: json['content'] as String?,
-      image: json['image'] as String?,
-      images: (json['images'] as List?)?.map((e) => e as String).toList(),
-      likeCount: json['like_count'] as int?,
-      commentCount: json['comment_count'] as int?,
-      createTime: json['create_time'] as int?,
-      author: json['author'] != null ? BMPostAuthor.fromJson(json['author']) : null,
-      match: json['match'] != null ? BMPostMatch.fromJson(json['match']) : null,
-      isLike: json['is_like'] as bool?,
+      id: _safeInt(json['id']),
+      content: _safeString(json['content']),
+      image: _safeString(json['image']),
+      images: images,
+      likeCount: _safeInt(json['like_count']),
+      commentCount: _safeInt(json['comment_count']),
+      createTime: _safeInt(json['create_time']),
+      author: author,
+      match: match,
+      isLike: _safeBool(json['is_like']),
     );
   }
 }
@@ -114,11 +174,11 @@ class BMPostAuthor {
   /// 从 JSON 解析
   factory BMPostAuthor.fromJson(Map<String, dynamic> json) {
     return BMPostAuthor(
-      id: json['id'] as int?,
-      name: json['name'] as String?,
-      isSubscribe: json['is_subscribe'] as bool?,
-      avatar: json['avatar'] as String?,
-      memberId: json['member_id'] as int?,
+      id: _safeInt(json['id']),
+      name: _safeString(json['name']),
+      isSubscribe: _safeBool(json['is_subscribe']),
+      avatar: _safeString(json['avatar']),
+      memberId: _safeInt(json['member_id']),
     );
   }
 }
@@ -191,21 +251,21 @@ class BMPostMatch {
   /// 从 JSON 解析
   factory BMPostMatch.fromJson(Map<String, dynamic> json) {
     return BMPostMatch(
-      matchType: json['match_type'] as int?,
-      matchId: json['match_id'] as int?,
-      competitionId: json['competition_id'] as int?,
-      startTime: json['start_time'] as int?,
-      statusId: json['status_id'] as int?,
-      statusName: json['status_name'] as String?,
-      competitionName: json['competition_name'] as String?,
-      homeTeamId: json['home_team_id'] as int?,
-      homeTeamName: json['home_team_name'] as String?,
-      homeTeamLogo: json['home_team_logo'] as String?,
-      awayTeamId: json['away_team_id'] as int?,
-      awayTeamName: json['away_team_name'] as String?,
-      awayTeamLogo: json['away_team_logo'] as String?,
-      homeScore: json['home_score'] as int?,
-      awayScore: json['away_score'] as int?,
+      matchType: _safeInt(json['match_type']),
+      matchId: _safeInt(json['match_id']),
+      competitionId: _safeInt(json['competition_id']),
+      startTime: _safeInt(json['start_time']),
+      statusId: _safeInt(json['status_id']),
+      statusName: _safeString(json['status_name']),
+      competitionName: _safeString(json['competition_name']),
+      homeTeamId: _safeInt(json['home_team_id']),
+      homeTeamName: _safeString(json['home_team_name']),
+      homeTeamLogo: _safeString(json['home_team_logo']),
+      awayTeamId: _safeInt(json['away_team_id']),
+      awayTeamName: _safeString(json['away_team_name']),
+      awayTeamLogo: _safeString(json['away_team_logo']),
+      homeScore: _safeInt(json['home_score']),
+      awayScore: _safeInt(json['away_score']),
     );
   }
 }

@@ -103,6 +103,10 @@ class BMMatchModel {
   /// 联赛主题色 (int 类型, ARGB格式, 默认橙色)
   final int leagueColor;
 
+  /// 联赛名称别名 (String? getter 类型, 兼容旧代码 competitionName 字段, 与 leagueName 等价, 非空时返回 leagueName)
+  String? get competitionName =>
+      leagueName.isNotEmpty ? leagueName : null;
+
   /// 比赛标签/阶段名 (String? 类型, 如 "半决赛")
   final String? matchTag;
 

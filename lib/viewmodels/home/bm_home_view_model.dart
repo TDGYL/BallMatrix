@@ -177,7 +177,6 @@ class BMHomeViewModel extends ChangeNotifier {
     try {
       final list = await BMCommunityApiService().fetchTopicModels(
         count: 3,
-        matchType: _currentSport == BMSportType.football ? 1 : 2,
       );
       if (list.isNotEmpty) {
         _cachedTopicList = list;

@@ -41,20 +41,22 @@ class BMCommunityApiService {
   /// [tab] - Tab类型 (推荐/最新/关注)
   /// [page] - 页码 (从1开始)
   /// [size] - 每页数量
-  /// [matchType] - 比赛类型, 1=足球, 2=篮球, 默认1
+  /// [matchType] - 比赛类型, 1=足球, 2=篮球, 可空, 为null时不在请求中携带该参数
   /// 返回: BMPostData?
   Future<BMPostData?> fetchPostList({
     required BMCommunityTab tab,
     int page = 1,
     int size = 10,
-    int matchType = 1,
+    int? matchType,
   }) async {
     final params = <String, dynamic>{
       'type': tab.value,
       'page': page,
       'size': size,
-      'match_type': matchType,
     };
+    if (matchType != null) {
+      params['match_type'] = matchType;
+    }
 
     final response = await BMNetworkManager().getRequest(
       _apiPath,
@@ -70,11 +72,11 @@ class BMCommunityApiService {
 
   /// 请求话题并转换为UI模型 (首页热门话题用)
   /// [count] - 请求条数, 默认3
-  /// [matchType] - 比赛类型, 默认1足球
+  /// [matchType] - 比赛类型, 1=足球, 2=篮球, 可空, 为null时不在请求中携带该参数
   /// 返回: List<BMTopicModel>
   Future<List<BMTopicModel>> fetchTopicModels({
     int count = 3,
-    int matchType = 1,
+    int? matchType,
   }) async {
     final data = await fetchPostList(
       tab: BMCommunityTab.recent,
@@ -141,6 +143,9 @@ class BMCommunityApiService {
       predictionResult: _buildPredictionResult(item),
       confidence: 85,
       embeddedMatch: embeddedMatch,
+      authorName: item.author?.name,
+      authorAvatarUrl: item.author?.avatar,
+      publishTimeDesc: _formatPublishTime(item.createTime),
     );
   }
 
@@ -153,6 +158,24 @@ class BMCommunityApiService {
       }
     }
     return '主胜概率 58%';
+  }
+
+  /// 格式化发布时间为相对时间描述
+  String _formatPublishTime(int? timestamp) {
+    if (timestamp == null || timestamp == 0) return '';
+    final now = DateTime.now();
+    final publishDate = DateTime.fromMillisecondsSinceEpoch(timestamp * 1000);
+    final diff = now.difference(publishDate);
+
+    if (diff.inMinutes < 60) {
+      return '${diff.inMinutes}分钟前';
+    } else if (diff.inHours < 24) {
+      return '${diff.inHours}小时前';
+    } else if (diff.inDays < 30) {
+      return '${diff.inDays}天前';
+    } else {
+      return '${publishDate.month}-${publishDate.day}';
+    }
   }
 
   /// 解析话题标签

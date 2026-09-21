@@ -1,5 +1,38 @@
 
 
+
+
+在topicList中做一个下来刷新，上拉加载的请求功能：请求url=/api/livespeed/community/list，请求方式为get请求
+请求参数
+{
+"type":"2",string类型
+"page":"1",string类型
+"size":"10",string类型
+}
+参数说明，type固定=2，下拉时候page=1，上拉时候+1，size固定=10
+
+数据结构：
+{"code":0,"data":{"total":100,"results":[{
+	    "id":123,"content":"今天看好主队取胜","image":"https://cdn.../post/a.png",
+	    "like_count":12,"comment_count":3,"create_time":1722800000,
+	    "author":{"id":456,"name":"用户A","avatar":"https://cdn.../avatar.png","member_id":456},
+	    "match":{"match_type":1,"match_id":1001,"competition_id":2001,"season_id":3001,
+	      "start_time":1722900000,"status_id":1,"status_name":"未开赛","competition_name":"英超",
+	      "home_team_name":"主队","home_team_logo":"https://cdn.../home.png",
+	      "away_team_name":"客队","away_team_logo":"https://cdn.../away.png",
+	      "home_score":0,"away_score":0},
+	    "is_like":false
+	  }]},"message":"ok"}
+
+数据的模型和展示卡片样式参照首页的热门话题模型和卡片
+
+
+话题卡片优化：
+头像旁边的一级标题取作者的名字，二级标题取发布时间，右下角的 信心 85%删除掉
+
+Push进去的话题里表的卡片和首页展示一样，数据取真实的
+
+
 做3件事：
 第一：将第二段头部实时同步修改和第一第三段一样 查看全部
 

@@ -11,6 +11,8 @@ import '../../widgets/home/bm_match_spotlight_card.dart';
 import '../../widgets/home/bm_hot_news_section.dart';
 import '../../widgets/home/bm_hot_topics_section.dart';
 import '../match/matchList.dart';
+import '../news/newsList.dart';
+import '../community/topicList.dart';
 
 /// BMHomePage - 首页
 /// 功能: 展示焦点赛事、热门资讯、热门话题
@@ -291,9 +293,20 @@ class _BMHomePageState extends BMBasePageState<BMHomePage> {
                 ],
               ],
             ),
-            const Text(
-              '实时同步',
-              style: TextStyle(fontSize: 11, color: BMColors.textSecondary),
+            GestureDetector(
+              onTap: loading ? null : _navigateToNewsList,
+              child: Opacity(
+                opacity: loading ? 0.4 : 1.0,
+                child: const Row(
+                  children: [
+                    Text(
+                      '查看全部',
+                      style: TextStyle(fontSize: 12, color: BMColors.bright),
+                    ),
+                    Icon(Icons.chevron_right, size: 14, color: BMColors.bright),
+                  ],
+                ),
+              ),
             ),
           ],
         ),
@@ -400,19 +413,21 @@ class _BMHomePageState extends BMBasePageState<BMHomePage> {
                 ],
               ],
             ),
-            if (!loading)
-              GestureDetector(
-                onTap: _navigateToMatchList,
+            GestureDetector(
+              onTap: loading ? null : _navigateToTopicList,
+              child: Opacity(
+                opacity: loading ? 0.4 : 1.0,
                 child: const Row(
                   children: [
                     Text(
-                      '全部赛事',
+                      '查看全部',
                       style: TextStyle(fontSize: 12, color: BMColors.bright),
                     ),
                     Icon(Icons.chevron_right, size: 14, color: BMColors.bright),
                   ],
                 ),
               ),
+            ),
           ],
         ),
         const SizedBox(height: 12),
@@ -422,7 +437,7 @@ class _BMHomePageState extends BMBasePageState<BMHomePage> {
           BMHotTopicsSection(
             topicList: topics,
             onTopicTap: (BMTopicModel topic) {},
-            onViewAll: _navigateToMatchList,
+            onViewAll: _navigateToTopicList,
           ),
       ],
     );
@@ -500,6 +515,24 @@ class _BMHomePageState extends BMBasePageState<BMHomePage> {
         builder: (context) => BMMatchListPage(
           sportType: widget.viewModel.currentSport,
         ),
+      ),
+    );
+  }
+
+  /// 跳转到资讯列表页 (第二段「查看全部」跳转)
+  void _navigateToNewsList() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => const BMNewsListPage(),
+      ),
+    );
+  }
+
+  /// 跳转到话题列表页 (第三段「查看全部」跳转, type=2 最新)
+  void _navigateToTopicList() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => const BMTopicListPage(),
       ),
     );
   }
