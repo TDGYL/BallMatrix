@@ -1,7 +1,190 @@
 
 
+做3件事：
+第一：将第二段头部实时同步修改和第一第三段一样 查看全部
+
+第二，当点击第三段资讯头部的查看全部时候，push到一个话题列表界面，列表卡片展示同首页一致，界面做下拉刷新和上拉加载功能，接口入参的type=2
+
+第三，当点击第二段资讯头部的查看全部时候，push到一个资讯列表界面，列表卡片展示封面图、发布时间、浏览量和标题，界面做下拉刷新和上拉加载功能
+
+
+
+当请求的是足球列表时候，url=/api/livespeed/football/matches，请求方式为Post请求，
+请求参数和首页一样，唯一不同的是，这里的tab取0，timestamp传当天的时间戳
+
+
+当请求的是篮球列表时候，请求接口url=/api/livespeed/basketball/matches,请求方式为post请求，
+请求参数和首页一样，唯一不同的是，这里的tab取0，timestamp传当天的时间戳
+
+界面做下拉刷新和上拉加载功能
+
+
+
+
+我现在不用bm_match_page这个文件了，给我新建一个dart文件，名字叫做，matchList.dart,界面展示一个列表，列表返回2个数据，列表的卡片展示如首页第一段比赛卡片复用，数据mock下，当点击查看全部push到matchList
+
+当首页顶部菜单选中的是足球赛事时候，点击第一段的查看全部，push到比赛列表界面，界面数据请求参考：/Users/guyilin/Desktop/FlutterProject/hanklive首页match菜单选中All的数据请求，要求界面做下拉刷新和上拉加载功能
+
+
+
+
+0 All 1 Live 2 Schedule 3 Finished 4 Following 5 推荐
+
+当点击第一段的查看全部，选中的是足球赛事时候，push到一个比赛列表，导航标题为 FootBall List,请求url和第一段一样，入参的tab=0；timestamp默认今天的时间戳
+当点击第一段的查看全部，选中的是篮球赛事时候，push到一个比赛列表，导航标题为 BasketBall List,请求url和第一段一样，入参的tab=0；timestamp默认今天的时间戳
+
+这个界面的导航的右上角展示的是一个日历按钮，点击按钮时候从底部弹出一个日期选项卡，当选中日期时候把时间戳传入timestamp
+
+
+
+
+
+话题右上方的更多按钮点击时候出现的弹窗位置应该在更多按钮的左下角
+
+
+
+1、首页加载数据加一个loading，点击足篮球切换数据也加loading
+2、比分的冒号设置成绿色高亮
+3、热门话题的比赛卡片的主客队名颜色设置成绿色高亮
+
+
+第一段的卡片：将球队logo展示出来，主场和客场的文案删掉，ai胜率推算也删掉
+
+第二段的资讯卡片只展示：图片、一级标题2行展示、发布时间，出现其他的标签都删掉
+
+第三段的信心85%删掉，替换成一个...更多的图片,点击更多出现菜单弹窗，有拉黑和举报功能
+
+
+修改第一段比赛的状态：
+足球是足球：
+比赛的状态都使用statusId来做判断，如果哪个比赛模型包含statusId这个属性，则用这个属性来判断比赛状态
+当statusId=1时候表示未开始
+当statusId=2 ｜ 3 ｜ 4 ｜ 5 ｜ 7 时候，表示进行时
+当statusId=8时候表示已结束
+当statusId=0 ｜ 9 ｜ 10 ｜ 11 ｜ 12 ｜ 13 时候，时候表示TBD
+
+如果是篮球：
+当statusId=1 ｜ 13 时候表示未开始
+当statusId=2 ｜ 3 ｜ 4 ｜ 5 ｜ 6 ｜ 7 ｜ 8 ｜ 9 时候，表示进行时
+当statusId=10 ｜ 11 时候表示已结束
+当statusId=0 ｜ 12 ｜ 14 ｜ 15 时候，时候表示TBD
+
+
+
+修改：
+第三段热门话题卡片的展示参照/Users/guyilin/Desktop/FlutterProject/hanklive的Community列表，其他不要的元素删除掉
+
+第二段热门资讯卡片的深度战术删除，livePulse删除，中间黑色透明的图层删除掉
+
+
+第一段实力压制力这块删除掉
+
+
+
+
 
 ===============================首页--比赛列表
+
+当首页选中的是足球菜单的时候
+第一段的数据参考/Users/guyilin/Desktop/FlutterProject/hanklive项目首页match的featured菜单的数据，只请求一个数据即可，第二段参考/Users/guyilin/Desktop/FlutterProject/hanklive项目首页news的数据请求，只请求5个即可，第三段参考/Users/guyilin/Desktop/FlutterProject/hanklive项目首页Community的recent菜单的数据，只请求3条数据即可
+
+当首页选中的是篮球菜单的时候，第二段和第三段的数据不用请求，缓存之前请求好的即可，如果之前请求的数据是空，再重复请求第二第三段；第一段是篮球的数据，请求接口url=/api/livespeed/basketball/matches,请求方式为post请求，
+请求参数和足球的参数一样，篮球返回的数据结构为：
+{
+    "code": 0,
+    "data": {
+        "total": 0,
+        "timestamp": 0,
+        "results": [
+            {
+                "id": 0,
+                "season_id": 0,
+                "competition_id": 0,
+                "competition_logo": "string",
+                "competition_name": "string",
+                "home_team_id": 0,
+                "home_team_name": "string",
+                "home_team_logo": "string",
+                "away_team_id": 0,
+                "away_team_name": "string",
+                "away_team_logo": "string",
+                "home_scores": "string",
+                "away_scores": "string",
+                "series_home_score": "string",
+                "series_away_score": "string",
+                "kind": 0,
+                "period_count": 0,
+                "status_id": 0,
+                "status_name": "string",
+                "match_time": 0,
+                "neutral": 0,
+                "mlive": 0,
+                "mlive_url": "string",
+                "live_video": 0,
+                "has_article": 0,
+                "stage_id": 0,
+                "odds": {
+                    "bs": {
+                        "updated_at": 0,
+                        "match_offset": "string",
+                        "home": "string",
+                        "draw": "string",
+                        "away": "string",
+                        "state": 0,
+                        "closed": 0,
+                        "score": "string"
+                    },
+                    "asia": {
+                        "updated_at": 0,
+                        "match_offset": "string",
+                        "home": "string",
+                        "draw": "string",
+                        "away": "string",
+                        "state": 0,
+                        "closed": 0,
+                        "score": "string"
+                    }
+                },
+                "init_odds": {
+                    "bs": {
+                        "updated_at": 0,
+                        "match_offset": "string",
+                        "home": "string",
+                        "draw": "string",
+                        "away": "string",
+                        "state": 0,
+                        "closed": 0,
+                        "score": "string"
+                    },
+                    "asia": {
+                        "updated_at": 0,
+                        "match_offset": "string",
+                        "home": "string",
+                        "draw": "string",
+                        "away": "string",
+                        "state": 0,
+                        "closed": 0,
+                        "score": "string"
+                    }
+                },
+                "subscribed": true,
+                "home_position": "string",
+                "away_position": "string",
+                "remain_time": 0,
+                "stage_name": "string",
+                "scheme_count": 0,
+                "user_note": {
+                    "content": "string",
+                    "focus_team_id": 0
+                }
+            }
+        ]
+    },
+    "message": "string"
+}
+只请求一个数据即可
+
+
 
 
 

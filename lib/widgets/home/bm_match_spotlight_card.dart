@@ -48,8 +48,6 @@ class BMMatchSpotlightCard extends StatelessWidget {
               _buildHeader(),
               const SizedBox(height: 12),
               _buildTeamsAndScore(),
-              const SizedBox(height: 16),
-              _buildFooter(),
             ],
           ),
         ],
@@ -77,15 +75,16 @@ class BMMatchSpotlightCard extends StatelessWidget {
     );
   }
 
-  /// 构建卡片头部 (修改点1: 添加View All按钮)
+  /// 构建卡片头部 (按statusId+运动类型判断状态)
   Widget _buildHeader() {
+    final statusInfo = _resolveStatusDisplay();
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Expanded(
           child: Row(
             children: [
-              _buildLiveDot(),
+              _buildLiveDot(showLive: statusInfo.isLive),
               const SizedBox(width: 6),
               Flexible(
                 child: Text(
@@ -106,13 +105,13 @@ class BMMatchSpotlightCard extends StatelessWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
               decoration: BoxDecoration(
-                color: BMColors.pitch950.withValues(alpha: 0.8),
+                color: statusInfo.bgColor,
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: BMColors.pitch700),
+                border: Border.all(color: statusInfo.borderColor),
               ),
               child: Text(
-                '进行中 ${match.matchTime}',
-                style: const TextStyle(fontSize: 11, color: BMColors.textSecondary),
+                '${statusInfo.label} ${statusInfo.timeSuffix}',
+                style: TextStyle(fontSize: 11, color: statusInfo.textColor),
               ),
             ),
           ],
@@ -121,14 +120,116 @@ class BMMatchSpotlightCard extends StatelessWidget {
     );
   }
 
+  /// 状态展示配置
+  _StatusDisplay _resolveStatusDisplay() {
+    final hasStatusId = match.statusId != null;
+    final sid = match.statusId ?? 0;
+    final sport = match.sportType;
+    BMMatchStatus resolvedStatus;
+    String label;
+    String timeSuffix;
+    Color bgColor;
+    Color textColor;
+    Color borderColor;
+
+    if (hasStatusId) {
+      if (sport == BMMatchSportType.football) {
+        switch (sid) {
+          case 1:
+            resolvedStatus = BMMatchStatus.upcoming;
+            break;
+          case 2:
+          case 3:
+          case 4:
+          case 5:
+          case 7:
+            resolvedStatus = BMMatchStatus.live;
+            break;
+          case 8:
+            resolvedStatus = BMMatchStatus.ended;
+            break;
+          default:
+            resolvedStatus = BMMatchStatus.tbd;
+        }
+      } else {
+        switch (sid) {
+          case 1:
+          case 13:
+            resolvedStatus = BMMatchStatus.upcoming;
+            break;
+          case 2:
+          case 3:
+          case 4:
+          case 5:
+          case 6:
+          case 7:
+          case 8:
+          case 9:
+            resolvedStatus = BMMatchStatus.live;
+            break;
+          case 10:
+          case 11:
+            resolvedStatus = BMMatchStatus.ended;
+            break;
+          default:
+            resolvedStatus = BMMatchStatus.tbd;
+        }
+      }
+    } else {
+      resolvedStatus = match.status;
+    }
+
+    switch (resolvedStatus) {
+      case BMMatchStatus.live:
+        label = match.statusName != null && match.statusName!.isNotEmpty ? match.statusName! : '进行中';
+        timeSuffix = (match.liveMinute != null && match.liveMinute!.isNotEmpty)
+            ? match.liveMinute!
+            : match.matchTime;
+        bgColor = BMColors.accent.withValues(alpha: 0.12);
+        textColor = BMColors.bright;
+        borderColor = BMColors.accent.withValues(alpha: 0.35);
+        break;
+      case BMMatchStatus.upcoming:
+        label = match.statusName != null && match.statusName!.isNotEmpty ? match.statusName! : '未开始';
+        timeSuffix = match.matchTime;
+        bgColor = BMColors.cyan.withValues(alpha: 0.12);
+        textColor = BMColors.cyan;
+        borderColor = BMColors.cyan.withValues(alpha: 0.35);
+        break;
+      case BMMatchStatus.ended:
+        label = match.statusName != null && match.statusName!.isNotEmpty ? match.statusName! : '已结束';
+        timeSuffix = match.matchTime;
+        bgColor = BMColors.pitch700.withValues(alpha: 0.8);
+        textColor = BMColors.textSecondary;
+        borderColor = BMColors.pitch700;
+        break;
+      case BMMatchStatus.tbd:
+        label = 'TBD';
+        timeSuffix = match.matchTime;
+        bgColor = BMColors.purple.withValues(alpha: 0.12);
+        textColor = BMColors.purple;
+        borderColor = BMColors.purple.withValues(alpha: 0.35);
+        break;
+    }
+
+    return _StatusDisplay(
+      label: label,
+      timeSuffix: timeSuffix,
+      isLive: resolvedStatus == BMMatchStatus.live,
+      bgColor: bgColor,
+      textColor: textColor,
+      borderColor: borderColor,
+    );
+  }
+
   /// 构建实时心跳点
-  Widget _buildLiveDot() {
+  Widget _buildLiveDot({bool showLive = true}) {
     return Container(
       width: 8,
       height: 8,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        color: BMColors.bright,
+        color: showLive ? BMColors.bright : BMColors.textTertiary,
         boxShadow: [
           BoxShadow(color: BMColors.bright.withValues(alpha: 0.5), blurRadius: 6),
         ],
@@ -142,17 +243,16 @@ class BMMatchSpotlightCard extends StatelessWidget {
       onTap: onTap,
       child: Row(
         children: [
-          Expanded(child: _buildTeamInfo(match.homeTeamName, '主场 xG ${match.homeXG}', true)),
+          Expanded(child: _buildTeamInfo(match.homeTeamName, match.homeTeam?.logoUrl ?? match.homeTeamLogo, true)),
           _buildScoreCenter(),
-          Expanded(child: _buildTeamInfo(match.awayTeamName, '客场 xG ${match.awayXG}', false)),
+          Expanded(child: _buildTeamInfo(match.awayTeamName, match.awayTeam?.logoUrl ?? match.awayTeamLogo, false)),
         ],
       ),
     );
   }
 
-  /// 构建单个队伍信息
-  /// 参数: [name] 队名, [subInfo] 子信息, [isHome] 是否主队
-  Widget _buildTeamInfo(String name, String subInfo, bool isHome) {
+  /// 构建单个队伍信息 (展示球队Logo, 删除主客场文案)
+  Widget _buildTeamInfo(String name, String? logoUrl, bool isHome) {
     return Column(
       children: [
         Container(
@@ -166,10 +266,16 @@ class BMMatchSpotlightCard extends StatelessWidget {
             ),
             color: BMColors.pitch800,
           ),
-          child: Icon(
-            isHome ? Icons.sports_soccer : Icons.shield,
-            size: 22,
-            color: isHome ? BMColors.bright : BMColors.textSecondary,
+          child: ClipOval(
+            child: logoUrl != null && logoUrl.isNotEmpty
+                ? Image.network(
+                    logoUrl,
+                    width: 48,
+                    height: 48,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => _buildDefaultTeamIcon(isHome),
+                  )
+                : _buildDefaultTeamIcon(isHome),
           ),
         ),
         const SizedBox(height: 6),
@@ -177,17 +283,23 @@ class BMMatchSpotlightCard extends StatelessWidget {
           name,
           style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: BMColors.textPrimary),
           textAlign: TextAlign.center,
-        ),
-        const SizedBox(height: 2),
-        Text(
-          subInfo,
-          style: const TextStyle(fontSize: 10, color: BMColors.textSecondary),
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
         ),
       ],
     );
   }
 
-  /// 构建比分中心
+  /// 构建默认球队图标 (Logo加载失败或无链接)
+  Widget _buildDefaultTeamIcon(bool isHome) {
+    return Icon(
+      isHome ? Icons.sports_soccer : Icons.shield,
+      size: 22,
+      color: isHome ? BMColors.bright : BMColors.textSecondary,
+    );
+  }
+
+  /// 构建比分中心 (删除AI胜率推算)
   Widget _buildScoreCenter() {
     return Column(
       children: [
@@ -208,7 +320,8 @@ class BMMatchSpotlightCard extends StatelessWidget {
                 text: ' : ',
                 style: TextStyle(
                   fontSize: 20,
-                  color: Color(0xFF475569),
+                  color: BMColors.bright,
+                  fontWeight: FontWeight.bold,
                 ),
               ),
               TextSpan(
@@ -224,71 +337,37 @@ class BMMatchSpotlightCard extends StatelessWidget {
             ],
           ),
         ),
-        const SizedBox(height: 4),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-          decoration: BoxDecoration(
-            color: BMColors.gold.withValues(alpha: 0.1),
-            border: Border.all(color: BMColors.gold.withValues(alpha: 0.2)),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Text(
-            'AI 胜率推算 ${match.aiWinRate.toStringAsFixed(0)}%',
-            style: const TextStyle(fontSize: 10, color: BMColors.amber),
-          ),
-        ),
       ],
     );
   }
+}
 
-  /// 构建底部压制力与进入按钮
-  Widget _buildFooter() {
-    return Container(
-      padding: const EdgeInsets.only(top: 12),
-      decoration: const BoxDecoration(
-        border: Border(
-          top: BorderSide(color: Color(0x801C4537), width: 0.5),
-        ),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Row(
-            children: [
-              const Icon(Icons.show_chart, size: 14, color: BMColors.bright),
-              const SizedBox(width: 6),
-              Text.rich(
-                TextSpan(
-                  children: [
-                    const TextSpan(
-                      text: '实时压制力: ',
-                      style: TextStyle(fontSize: 12, color: BMColors.textSecondary),
-                    ),
-                    TextSpan(
-                      text: '皇马 ${match.momentumPercent.toStringAsFixed(0)}%',
-                      style: const TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                        color: BMColors.bright,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          Row(
-            children: [
-              const Text(
-                '进入高阶盘路',
-                style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: BMColors.bright),
-              ),
-              const SizedBox(width: 4),
-              const Icon(Icons.chevron_right, size: 12, color: BMColors.bright),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
+/// _StatusDisplay - 状态展示辅助配置 (私用)
+class _StatusDisplay {
+  /// 状态中文标签 (String 类型)
+  final String label;
+
+  /// 时间后缀 (String 类型, 进行中=liveMinute, 其他=matchTime)
+  final String timeSuffix;
+
+  /// 是否进行中 (bool 类型, 控制心跳点)
+  final bool isLive;
+
+  /// 胶囊背景色 (Color 类型)
+  final Color bgColor;
+
+  /// 文字颜色 (Color 类型)
+  final Color textColor;
+
+  /// 边框颜色 (Color 类型)
+  final Color borderColor;
+
+  _StatusDisplay({
+    required this.label,
+    required this.timeSuffix,
+    required this.isLive,
+    required this.bgColor,
+    required this.textColor,
+    required this.borderColor,
+  });
 }

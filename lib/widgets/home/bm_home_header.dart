@@ -2,15 +2,15 @@ import 'package:flutter/material.dart';
 import '../../theme/bm_colors.dart';
 
 /// BMHomeHeader - 首页顶部头部组件
-/// 功能: 展示App Logo、标题、副标题及通知按钮
+/// 功能: 展示App Logo、标题、副标题及搜索按钮
 /// 作用范围: 首页顶部
 class BMHomeHeader extends StatelessWidget {
-  /// 通知按钮点击回调 (VoidCallback 类型, 可空)
-  final VoidCallback? onNotificationTap;
+  /// 搜索按钮点击回调 (VoidCallback 类型, 可空)
+  final VoidCallback? onSearchTap;
 
   const BMHomeHeader({
     super.key,
-    this.onNotificationTap,
+    this.onSearchTap,
   });
 
   @override
@@ -22,7 +22,7 @@ class BMHomeHeader extends StatelessWidget {
           _buildLogo(),
           const SizedBox(width: 12),
           Expanded(child: _buildTitleSection()),
-          _buildNotificationButton(),
+          _buildSearchButton(),
         ],
       ),
     );
@@ -101,10 +101,10 @@ class BMHomeHeader extends StatelessWidget {
     );
   }
 
-  /// 构建通知按钮
-  Widget _buildNotificationButton() {
+  /// 构建搜索按钮
+  Widget _buildSearchButton() {
     return GestureDetector(
-      onTap: onNotificationTap,
+      onTap: onSearchTap,
       child: Container(
         width: 36,
         height: 36,
@@ -114,9 +114,9 @@ class BMHomeHeader extends StatelessWidget {
           shape: BoxShape.circle,
         ),
         child: const Icon(
-          Icons.notifications_outlined,
+          Icons.search,
           color: BMColors.textSecondary,
-          size: 16,
+          size: 18,
         ),
       ),
     );

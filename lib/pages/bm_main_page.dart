@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../theme/bm_colors.dart';
 import 'home/bm_home_page.dart';
-import 'match/bm_match_page.dart';
+import 'match/bm_match_tab_page.dart';
 import 'tool/bm_tool_page.dart';
 import 'mine/bm_mine_page.dart';
 import '../viewmodels/home/bm_home_view_model.dart';
@@ -34,7 +34,7 @@ class _BMMainPageState extends State<BMMainPage> {
     // 懒加载初始化页面
     _pages = [
       BMHomePage(viewModel: _homeViewModel),
-      BMMatchPage(viewModel: _homeViewModel),
+      const BMMatchTabPage(),
       const BMToolPage(),
       const BMMinePage(),
     ];
