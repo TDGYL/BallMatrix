@@ -71,8 +71,8 @@ class BMTacticalBoardPage extends BMBasePage {
 }
 
 class _BMTacticalBoardPageState extends BMBasePageState<BMTacticalBoardPage> {
-  /// 横向场地逻辑画布尺寸 (Size 类型, 3:2 比例)
-  static const Size _canvasSize = Size(540, 360);
+  /// 纵向场地逻辑画布尺寸 (Size 类型, 2:3 比例, 足球场标准俯视纵向)
+  static const Size _canvasSize = Size(360, 540);
 
   /// 元素列表 (List<_BMTacticalElement> 类型, 画布所有内容)
   final List<_BMTacticalElement> _elements = [];
@@ -133,24 +133,29 @@ class _BMTacticalBoardPageState extends BMBasePageState<BMTacticalBoardPage> {
     setState(() {});
   }
 
-  /// 应用阵型预设 (只支持默认 433 全场地)
+  /// 应用阵型预设 (只支持默认 433 全场纵向场地)
   void _apply433() {
     _saveUndo();
     _elements.clear();
     final w = _canvasSize.width;
     final h = _canvasSize.height;
+    // 纵向足球场 433: y 小 -> 大 依次是 门将(上方禁区) → 后卫 → 中场 → 前锋(靠近下方禁区)
     final positions = <Offset>[
-      Offset(w * 0.08, h * 0.50),
-      Offset(w * 0.22, h * 0.18),
-      Offset(w * 0.22, h * 0.38),
-      Offset(w * 0.22, h * 0.62),
-      Offset(w * 0.22, h * 0.82),
-      Offset(w * 0.45, h * 0.25),
-      Offset(w * 0.45, h * 0.50),
-      Offset(w * 0.45, h * 0.75),
-      Offset(w * 0.68, h * 0.30),
-      Offset(w * 0.68, h * 0.50),
-      Offset(w * 0.68, h * 0.70),
+      // 门将 (顶部禁区内)
+      Offset(w * 0.50, h * 0.08),
+      // 后卫4人 (y=0.22)
+      Offset(w * 0.18, h * 0.22),
+      Offset(w * 0.38, h * 0.22),
+      Offset(w * 0.62, h * 0.22),
+      Offset(w * 0.82, h * 0.22),
+      // 中场3人 (y=0.45)
+      Offset(w * 0.25, h * 0.45),
+      Offset(w * 0.50, h * 0.45),
+      Offset(w * 0.75, h * 0.45),
+      // 前锋3人 (y=0.68, 靠近中线下方)
+      Offset(w * 0.30, h * 0.68),
+      Offset(w * 0.50, h * 0.68),
+      Offset(w * 0.70, h * 0.68),
     ];
     for (int i = 0; i < positions.length; i++) {
       _elements.add(_BMTacticalElement(
@@ -252,7 +257,10 @@ class _BMTacticalBoardPageState extends BMBasePageState<BMTacticalBoardPage> {
     if (_draggingElement != null) {
       final idx = _elements.indexWhere((e) => e.id == _draggingElement!.id);
       if (idx >= 0) {
-        _elements[idx] = _draggingElement!.copyWith(start: d.localPosition);
+        final updated = _draggingElement!.copyWith(start: d.localPosition);
+        _elements[idx] = updated;
+        // ⭐️ 同步引用: 避免下一次 onPanUpdate 用旧对象
+        _draggingElement = updated;
         setState(() {});
       }
       return;
@@ -260,7 +268,13 @@ class _BMTacticalBoardPageState extends BMBasePageState<BMTacticalBoardPage> {
     if (_drawingElement != null) {
       final idx = _elements.indexWhere((e) => e.id == _drawingElement!.id);
       if (idx >= 0) {
-        _elements[idx] = _drawingElement!.copyWith(end: d.localPosition);
+        final updated = _drawingElement!.copyWith(end: d.localPosition);
+        _elements[idx] = updated;
+        // ⭐️ 关键修复 2: 同步 _drawingElement 引用为新对象
+        //   原代码: onPanEnd 时 _drawingElement 仍是 onPanStart 创建的那个 (end = start),
+        //   -> (end - start).distance = 0 < 12 -> onPanEnd 直接把线删掉了 -> 松手后就看不到任何路径
+        //   现在每次 onPanUpdate 都把引用同步到最新带 end 坐标的对象, onPanEnd 就能取到真实 end 坐标
+        _drawingElement = updated;
         setState(() {});
       }
     }
@@ -409,27 +423,29 @@ class _BMTacticalBoardPageState extends BMBasePageState<BMTacticalBoardPage> {
     return Container(
       color: BMColors.pitch900,
       alignment: Alignment.center,
-      child: InteractiveViewer(
-        minScale: 0.5,
-        maxScale: 2.5,
-        boundaryMargin: const EdgeInsets.all(50),
-        child: Center(
-          child: Container(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(12),
-              boxShadow: const [BoxShadow(color: Color(0x33000000), blurRadius: 12, offset: Offset(0, 4))],
-            ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(12),
-              child: GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onPanStart: _onPanStart,
-                onPanUpdate: _onPanUpdate,
-                onPanEnd: _onPanEnd,
-                child: CustomPaint(
-                  size: _canvasSize,
-                  painter: _BMFieldPainter(isHalf: _isHalfField, elements: _elements),
-                ),
+      // ⭐️ 核心修复: 原 InteractiveViewer(scale + pan) 会吞掉子 GestureDetector 的 onPan 手势
+      //   导致 Arrow/Line 拖动 onPanStart/onPanUpdate 一个都不触发 -> 松手后当然不会显示任何路径
+      // 改为 FittedBox(BoxFit.contain) 让 540x360 画布根据屏幕宽度自适应缩放, 同时保持手势 100% 传递
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      child: FittedBox(
+        fit: BoxFit.contain,
+        alignment: Alignment.center,
+        child: Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: const [BoxShadow(color: Color(0x33000000), blurRadius: 12, offset: Offset(0, 4))],
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              // 本地坐标就是画布 540x360 内的真实坐标 (FittedBox 只是外层 Transform.scale, localPosition 未变)
+              onPanStart: _onPanStart,
+              onPanUpdate: _onPanUpdate,
+              onPanEnd: _onPanEnd,
+              child: CustomPaint(
+                size: _canvasSize,
+                painter: _BMFieldPainter(isHalf: _isHalfField, elements: _elements),
               ),
             ),
           ),
@@ -502,13 +518,13 @@ class _BMFieldPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final w = size.width;
     final h = size.height;
-    // 1. 草地底色 (渐变深浅交替条纹)
+    // 1. 草地底色 (渐变深浅交替横条纹 10 条 - 纵向场地上到下)
     final stripeCount = 10;
     for (int i = 0; i < stripeCount; i++) {
-      final left = w * i / stripeCount;
-      final right = w * (i + 1) / stripeCount;
+      final top = h * i / stripeCount;
+      final bottom = h * (i + 1) / stripeCount;
       canvas.drawRect(
-        Rect.fromLTRB(left, 0, right, h),
+        Rect.fromLTRB(0, top, w, bottom),
         Paint()..color = i.isEven ? const Color(0xFF14532D) : const Color(0xFF166534),
       );
     }
@@ -524,37 +540,39 @@ class _BMFieldPainter extends CustomPainter {
 
     canvas.drawRect(Rect.fromLTRB(6, 6, w - 6, h - 6), line);
 
-    final midX = w / 2;
-    // 半场模式: 中线画在左 1/3 位置, 只画右半场地线
-    final halfStartX = isHalf ? w * 0.33 : midX;
+    final midY = h / 2;
+    // 半场模式: 中线画在上 1/3 位置 (纵向场地上半场只显示下半部分)
+    final halfStartY = isHalf ? h * 0.33 : midY;
     if (!isHalf) {
-      canvas.drawLine(Offset(midX, 6), Offset(midX, h - 6), thin);
-      canvas.drawCircle(Offset(midX, h / 2), h * 0.16, thin);
-      canvas.drawCircle(Offset(midX, h / 2), 3, Paint()..color = Colors.white.withValues(alpha: 0.9));
+      // 全场模式: 画中间横线 (y = h/2) + 中圈 (圆心 x=w/2, y=midY)
+      canvas.drawLine(Offset(6, midY), Offset(w - 6, midY), thin);
+      canvas.drawCircle(Offset(w / 2, midY), w * 0.16, thin);
+      canvas.drawCircle(Offset(w / 2, midY), 3, Paint()..color = Colors.white.withValues(alpha: 0.9));
     } else {
-      canvas.drawLine(Offset(halfStartX, 6), Offset(halfStartX, h - 6), thin);
-      canvas.drawCircle(Offset(halfStartX, h / 2), h * 0.16, thin);
+      // 半场模式: 只画下半场地, 中线在上方 1/3 处
+      canvas.drawLine(Offset(6, halfStartY), Offset(w - 6, halfStartY), thin);
+      canvas.drawCircle(Offset(w / 2, halfStartY), w * 0.16, thin);
     }
-    // 左右禁区 / 小禁区 (半场模式只画右边)
-    void drawBox(double cx, double factor) {
-      final bigW = h * 0.50 * factor;
-      final bigH = h * 0.75 * factor;
+    // 上下禁区 / 小禁区 (纵向场地: 上方=对方球门, 下方=我方球门; 半场模式只画下方我方)
+    void drawBox(double cy, double factor) {
+      final bigW = w * 0.75 * factor;
+      final bigH = w * 0.50 * factor;
       canvas.drawRect(
-        Rect.fromCenter(center: Offset(cx, h / 2), width: bigW, height: bigH),
+        Rect.fromCenter(center: Offset(w / 2, cy), width: bigW, height: bigH),
         thin,
       );
-      final smW = h * 0.17 * factor;
-      final smH = h * 0.40 * factor;
+      final smW = w * 0.40 * factor;
+      final smH = w * 0.17 * factor;
       canvas.drawRect(
-        Rect.fromCenter(center: Offset(cx, h / 2), width: smW, height: smH),
+        Rect.fromCenter(center: Offset(w / 2, cy), width: smW, height: smH),
         thin,
       );
     }
 
-    final leftCx = 6 + h * 0.16;
-    final rightCx = w - 6 - h * 0.16;
-    if (!isHalf) drawBox(leftCx, 1.0);
-    drawBox(rightCx, 1.0);
+    final topCy = 6 + w * 0.16;           // 上方禁区中心Y
+    final bottomCy = h - 6 - w * 0.16;    // 下方禁区中心Y
+    if (!isHalf) drawBox(topCy, 1.0);     // 全场模式才画上方禁区
+    drawBox(bottomCy, 1.0);               // 下方禁区(全场/半场都画)
 
     // 3. 绘制所有战术元素
     for (final e in elements) {

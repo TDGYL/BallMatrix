@@ -1,6 +1,11 @@
 
 
 
+
+修改bm_tool_page的Tactical Board功能：
+1、点击Arrow和Line无法在球场中绘制，结束拖动后，拖动的路径没有渲染在球场中
+
+
 将/Users/guyilin/Desktop/A包材料/BallMatrix复制到项目，然后点击个人中心的用户协议时候push到一个web界面，加载user-agreement.html，点击隐私协议的时候加载的是privacy-agreement.html
 
 
