@@ -1,0 +1,29 @@
+PODS:
+  - captcha_plugin_flutter (0.0.2):
+    - Flutter
+    - NTESVerifyCode
+  - Flutter (1.0.0)
+  - NTESVerifyCode (3.7.2)
+
+DEPENDENCIES:
+  - captcha_plugin_flutter (from `.symlinks/plugins/captcha_plugin_flutter/ios`)
+  - Flutter (from `Flutter`)
+
+SPEC REPOS:
+  trunk:
+    - NTESVerifyCode
+
+EXTERNAL SOURCES:
+  captcha_plugin_flutter:
+    :path: ".symlinks/plugins/captcha_plugin_flutter/ios"
+  Flutter:
+    :path: Flutter
+
+SPEC CHECKSUMS:
+  captcha_plugin_flutter: 44176174ea88736593c329e9ef2f25a2df1a3e1a
+  Flutter: 71a624a5bc0c04062bf19101d501e466baf2fb47
+  NTESVerifyCode: d394da36ac4e56ed2787bf462b1099e81ea5e69a
+
+PODFILE CHECKSUM: 3ba3a73b1b12adcf321a227a745625fe0888cc82
+
+COCOAPODS: 1.16.2

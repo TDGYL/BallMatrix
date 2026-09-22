@@ -44,6 +44,9 @@ dependencies:
   # 本地存储库 (Token/用户信息持久化)
   shared_preferences: ^2.2.2
 
+  # 网易易盾验证码SDK (行为验证码: 滑块/点选/语序验证)
+  captcha_plugin_flutter: 1.2.6
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

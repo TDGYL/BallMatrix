@@ -17,6 +17,14 @@ packages:
       url: "https://pub.flutter-io.cn"
     source: hosted
     version: "2.1.2"
+  captcha_plugin_flutter:
+    dependency: "direct main"
+    description:
+      name: captcha_plugin_flutter
+      sha256: "89ecf9d4f859c6f004b76f0759dde166927e08deabc29fbee1a6b4c6f47014d7"
+      url: "https://pub.flutter-io.cn"
+    source: hosted
+    version: "1.2.6"
   characters:
     dependency: transitive
     description:

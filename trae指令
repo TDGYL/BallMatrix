@@ -2,6 +2,30 @@
 
 
 
+修改bm_mine_page界面中的功能：
+1、顶部个人信息的 vip pro删除掉
+2、下边模型命中率这行、保存报告、关注赛事这些删掉
+3、列表我的云端分析归档改成热门比赛 、 右边的查看全部删掉
+4、第二段偏好设置与系统的第一行改为服务热线，第二行改为用户协议，第三行改为隐私政策，第四改为版本号
+
+5、当登录时候，在底部加一个退出登录按钮，点击时候二次弹窗确认，点击确认直接删除本地用户信息，请求头移除token
+6、点击顶部头像，当未登录则跳转到登录界面，否则跳转到编辑用户信息界面
+7、退出登录后，顶部显示未登录的状态UI
+
+
+
+bm_login_page获取验证码人机检验成功之后，三方库captcha_plugin_flutter代理成功回调validate，然后将validate传给接口/api/livespeed/auth/send-verify发送验证码给邮箱
+
+
+
+bm_login_page点击获取验证码的api，再登录的api，再获取个人信息的api和项目/Users/guyilin/Desktop/FlutterProject/hanklive是一样的，不用修改，获取个人信息之后缓存沙盒本地，刷新请求头的token，通知外面界面登录成功
+
+
+创建登录界面bm_login_page.dart,点击个人中心头像跳转到登录界面，登录界面的功能全部参照项目/Users/guyilin/Desktop/FlutterProject/hanklive，界面要做差异化，点击获取验证码的时候是用的网易易盾SDK，项目引入 captcha_plugin_flutter: '1.2.6'，_captchaVerifyCode = '69d5b2ee3fec46658e01c0b45fc381af';
+
+
+13634150361@163.com
+
 
 bm_tool_page下边的四个金刚区功能修改成三个金刚区：Tactical Board、Notes、Verbal Trick Dictionay,
 这三个金刚页点击push进去的界面功能参考/Users/guyilin/Desktop/FlutterProject/hanklive个人中心第二段相同标题的功能，建议功能和界面做一些差异化

@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import '../bm_base_page.dart';
+import '../login/bm_login_page.dart';
 import '../../theme/bm_colors.dart';
+import '../../utils/bm_auth_manager.dart';
+import '../../models/bm_user_model.dart';
 
 /// BMMinePage - 我的页面
 /// 功能: 展示用户信息、统计仪表、分析报告、设置选项
@@ -16,12 +19,15 @@ class BMMinePage extends BMBasePage {
 class _BMMinePageState extends BMBasePageState<BMMinePage> {
   @override
   Widget buildBody(BuildContext context) {
+    // 每次 build 读取最新内存中的登录态/用户信息 (登录成功 pop 返回时触发 setState 重新走这里)
+    final BMUserModel? user = BMAuthManager().currentUser;
+    final bool loggedIn = BMAuthManager().isLoggedIn;
     return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildProfileHeader(),
+          _buildProfileHeader(user, loggedIn),
           const SizedBox(height: 16),
           _buildStatsStrip(),
           const SizedBox(height: 16),
@@ -34,7 +40,16 @@ class _BMMinePageState extends BMBasePageState<BMMinePage> {
   }
 
   /// 构建用户资料头部卡片
-  Widget _buildProfileHeader() {
+  /// [user] - 已登录: 真实 BMUserModel; 未登录: null → 使用占位文案
+  /// [loggedIn] - 是否已登录 bool, 控制昵称/ID/头像数据源
+  Widget _buildProfileHeader(BMUserModel? user, bool loggedIn) {
+    final String nick = loggedIn && user?.nickname != null && user!.nickname!.isNotEmpty
+        ? user.nickname!
+        : '智算领航员';
+    final String accountLabel = loggedIn && user != null
+        ? 'ID: ${user.id ?? '—'} · ${user.account ?? user.email ?? '已登录账号'}'
+        : 'ID: 88492041 · 专家级模型权限';
+    final String? avatarUrl = loggedIn ? user?.avatar : null;
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -48,15 +63,35 @@ class _BMMinePageState extends BMBasePageState<BMMinePage> {
       ),
       child: Row(
         children: [
-          Container(
-            width: 56,
-            height: 56,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(color: BMColors.bright, width: 2),
-              color: BMColors.pitch800,
+          GestureDetector(
+            onTap: () async {
+              // 登录成功 Navigator.pop(true) → 这里 setState 重新 build, 自动拉最新 BMAuthManager.currentUser
+              final result = await Navigator.push<bool>(
+                context,
+                MaterialPageRoute(builder: (_) => const BMLoginPage()),
+              );
+              if (result == true && mounted) {
+                setState(() {});
+              }
+            },
+            behavior: HitTestBehavior.opaque,
+            child: Container(
+              width: 56,
+              height: 56,
+              clipBehavior: Clip.antiAlias,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(color: BMColors.bright, width: 2),
+                color: BMColors.pitch800,
+              ),
+              child: avatarUrl != null && avatarUrl.isNotEmpty
+                  ? Image.network(
+                      avatarUrl,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => const Icon(Icons.person, size: 28, color: BMColors.bright),
+                    )
+                  : const Icon(Icons.person, size: 28, color: BMColors.bright),
             ),
-            child: const Icon(Icons.person, size: 28, color: BMColors.bright),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -65,28 +100,29 @@ class _BMMinePageState extends BMBasePageState<BMMinePage> {
               children: [
                 Row(
                   children: [
-                    const Text(
-                      '智算领航员',
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+                    Text(
+                      nick,
+                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
                     ),
                     const SizedBox(width: 6),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                      decoration: BoxDecoration(
-                        gradient: const LinearGradient(colors: [BMColors.amber, BMColors.gold]),
-                        borderRadius: BorderRadius.circular(4),
+                    if (loggedIn)
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(colors: [BMColors.amber, BMColors.gold]),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: const Text(
+                          'VIP PRO',
+                          style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: BMColors.pitch950),
+                        ),
                       ),
-                      child: const Text(
-                        'VIP PRO',
-                        style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: BMColors.pitch950),
-                      ),
-                    ),
                   ],
                 ),
                 const SizedBox(height: 4),
-                const Text(
-                  'ID: 88492041 · 专家级模型权限',
-                  style: TextStyle(fontSize: 12, color: BMColors.textSecondary),
+                Text(
+                  accountLabel,
+                  style: const TextStyle(fontSize: 12, color: BMColors.textSecondary),
                 ),
               ],
             ),
