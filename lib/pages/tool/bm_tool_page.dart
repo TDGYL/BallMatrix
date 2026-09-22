@@ -8,6 +8,9 @@ import '../../models/bm_competition_season_model.dart';
 import '../../models/bm_player_ability_model.dart';
 import '../../models/bm_player_rank_model.dart';
 import '../../services/bm_match_api_service.dart';
+import 'bm_tactical_board_page.dart';
+import 'bm_notes_page.dart';
+import 'bm_dictionary_page.dart';
 
 /// BMToolPage - 智算工具页
 /// 功能: 展示高阶计算矩阵、雷达图、分析工具卡片
@@ -1217,16 +1220,50 @@ class _BMToolPageState extends BMBasePageState<BMToolPage> {
   }
 
   /// 构建工具卡片网格
+  /// 构建金刚区工具网格卡片列表 (3个: Tactical Board / Notes / Verbal Trick Dictionary)
   Widget _buildToolGrid() {
-    final tools = [
-      ('凯利与必发冷热指数', '捕获各大机构赔率异常偏离度与资金博弈方向', Icons.calculate, BMColors.cyan),
-      ('历史交锋盘路克制', '结合裁判尺度、主客战术相克属性深挖克星指数', Icons.timeline, BMColors.purple),
-      ('实时比赛 Momentum 走势', '分钟级进攻压制力曲线，捕捉临场进球信号', Icons.waves, BMColors.amber),
+    final tools = <(String, String, IconData, Color, VoidCallback)>[
       (
-        '异动指标实时预警',
-        '自定义 xG 突破、红黄牌及剧烈水位变轨推送',
-        Icons.notifications_off_outlined,
-        BMColors.bright,
+        'Tactical Board',
+        '足篮球战术板: 横向场地, 拖拽球员/箭头/标注',
+        Icons.sports_soccer_outlined,
+        BMColors.cyan,
+        () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => const BMTacticalBoardPage(),
+            ),
+          );
+        },
+      ),
+      (
+        'Notes',
+        '比赛/训练/生活多维笔记, 本地加密存储',
+        Icons.edit_note_outlined,
+        BMColors.purple,
+        () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => const BMNotesPage(),
+            ),
+          );
+        },
+      ),
+      (
+        'Verbal Trick Dictionary',
+        '采访/更衣室/裁判沟通话术分类一键复制',
+        Icons.record_voice_over_outlined,
+        BMColors.amber,
+        () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => const BMDictionaryPage(),
+            ),
+          );
+        },
       ),
     ];
     return GridView.builder(
@@ -1241,52 +1278,71 @@ class _BMToolPageState extends BMBasePageState<BMToolPage> {
       itemCount: tools.length,
       itemBuilder: (context, index) {
         final tool = tools[index];
-        return _buildToolCard(tool.$1, tool.$2, tool.$3, tool.$4);
+        return _buildToolCard(tool.$1, tool.$2, tool.$3, tool.$4, tool.$5);
       },
     );
   }
 
-  /// 构建单个工具卡片
-  /// 参数: [title] 标题, [desc] 描述, [icon] 图标, [color] 颜色
-  Widget _buildToolCard(String title, String desc, IconData icon, Color color) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: BMColors.pitch850,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: BMColors.pitch700.withValues(alpha: 0.5)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 28,
-            height: 28,
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.2),
-              borderRadius: BorderRadius.circular(8),
+  /// 构建单个工具卡片 (参数都带完整类型注释)
+  /// [title] 主标题 (String 类型, 顶部粗体显示)
+  /// [desc] 副标题描述 (String 类型, 灰色小字两行)
+  /// [icon] 图标 (IconData 类型, 28x28 圆角容器内显示)
+  /// [color] 主色 (Color 类型, 图标+容器配色)
+  /// [onTap] 点击回调 (VoidCallback 类型, push 进入子页面)
+  Widget _buildToolCard(
+    String title,
+    String desc,
+    IconData icon,
+    Color color,
+    VoidCallback onTap,
+  ) {
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: BMColors.pitch850,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: BMColors.pitch700.withValues(alpha: 0.5)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              width: 28,
+              height: 28,
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.2),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(icon, size: 14, color: color),
             ),
-            child: Icon(icon, size: 14, color: color),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            title,
-            style: const TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.bold,
-              color: BMColors.textPrimary,
+            const SizedBox(height: 8),
+            Text(
+              title,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                color: BMColors.textPrimary,
+                height: 1.2,
+              ),
             ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            desc,
-            style: const TextStyle(
-              fontSize: 10,
-              height: 1.3,
-              color: BMColors.textSecondary,
+            const SizedBox(height: 4),
+            Text(
+              desc,
+              maxLines: 3,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                fontSize: 10,
+                height: 1.3,
+                color: BMColors.textSecondary,
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

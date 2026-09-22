@@ -2,6 +2,14 @@
 
 
 
+
+bm_tool_page下边的四个金刚区功能修改成三个金刚区：Tactical Board、Notes、Verbal Trick Dictionay,
+这三个金刚页点击push进去的界面功能参考/Users/guyilin/Desktop/FlutterProject/hanklive个人中心第二段相同标题的功能，建议功能和界面做一些差异化
+
+
+
+
+
 修改成：点击生成战力报告时候，只请求player A的数据展示在雷达图
 
 优化2个点： 
