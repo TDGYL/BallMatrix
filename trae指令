@@ -1,3 +1,52 @@
+初始化bm_tool_page界面时候，调用/api/livespeed/football/competition/list接口请求联赛列表显示出来
+
+联赛列表请求数据 url = /api/livespeed/football/competition/list, get请求，无需入参，
+返回的数据结构为
+{
+    "code": 0,
+    "data": [
+        {
+            "id": 100002,
+            "name": "世欧预",
+            "cap": "O",
+            "main": 1
+        }]
+}
+
+将请求到的联赛列表数据展示在bm_tool_page的选择联赛列表中
+
+
+生成战力报告
+
+bm_tool_page请求完联赛列表后，默认选中第一个联赛，当点中其他联赛时候，重新请求新的联赛下的球员列表，球员列表url=/api/livespeed/football/competition/player-rank，get请求，
+请求参数
+{
+"competition_id":, 100082, int
+"season_id", 20261,int
+"key",'k_goals',string
+}
+
+competition_id表示联赛id动态传入，season_id和key固定写死
+
+返回的数据结构为
+{
+    "code": 0,
+    "data": [
+        {
+            "player_id": 100079455,
+            "rank_name": "进球",
+            "position": 1,
+            "player_name": "埃林·布朗特·哈兰德",
+            "player_logo": "https://kq3-online-test-1258443845.cos.ap-beijing.myqcloud.com/football/player/b99836f49322b28a496b06ae19b6fce3.png",
+            "team_name": "曼彻斯特城",
+            "total": 36
+        }]
+}
+
+将球员列表数据显示在联赛下方两个选择列表控件
+
+第二，点击生成战力报告，将选中的两个球员的信息请求出来，在多维雷达实力模型绘制一个6边形雷达图，里边绘制两位球员的战力雷达图
+球员请求接口url=/api/livespeed/football/info
 
 
 

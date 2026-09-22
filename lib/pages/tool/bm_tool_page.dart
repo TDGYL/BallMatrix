@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../bm_base_page.dart';
 import '../../theme/bm_colors.dart';
+import '../../models/bm_competition_model.dart';
+import '../../services/bm_match_api_service.dart';
 
 /// BMToolPage - 智算工具页
 /// 功能: 展示高阶计算矩阵、雷达图、分析工具卡片
@@ -15,11 +17,35 @@ class BMToolPage extends BMBasePage {
 }
 
 class _BMToolPageState extends BMBasePageState<BMToolPage> {
-  /// 主队选择索引 (int 类型)
+  /// 主队选择索引 (int 类型, 从0开始)
   int _teamAIndex = 0;
 
-  /// 客队选择索引 (int 类型)
+  /// 客队选择索引 (int 类型, 从0开始)
   int _teamBIndex = 0;
+
+  /// 联赛筛选索引 (int 类型, 从0开始, 选中的真实联赛的数组下标)
+  int _selectedLeagueIndex = 0;
+
+  /// 联赛选择是否展开 (bool 类型, true=展开显示4行, false=折叠仅显示1行)
+  bool _leagueExpanded = false;
+
+  /// 联赛真实数据加载中标记 (bool 类型, 防止重复请求)
+  bool _leaguesLoading = false;
+
+  /// 联赛真实数据加载失败标记 (bool 类型, 区分『接口失败』和『接口成功但空数组』两种空态)
+  bool _leagueLoadFailed = false;
+
+  /// 联赛真实数据列表 (List<BMCompetitionModel> 类型, 从接口拉取, 初始化空)
+  List<BMCompetitionModel> _leagues = [];
+
+  /// 单行联赛chip区域高度 (double 类型, 估算用于折叠状态1行裁剪, 含 spacing)
+  final double _oneLeagueRowHeight = 52;
+
+  /// 展开状态最大显示行数 (int 类型, 按需求固定=4)
+  final int _maxLeagueRows = 4;
+
+  /// 比赛API服务实例 (BMMatchApiService 类型, 单例复用)
+  final BMMatchApiService _apiService = BMMatchApiService();
 
   /// 是否计算中 (bool 类型)
   bool _isCalculating = false;
@@ -27,9 +53,48 @@ class _BMToolPageState extends BMBasePageState<BMToolPage> {
   /// 计算结果文本 (String 类型)
   String? _resultText;
 
-  /// 主队列表
-  final List<String> _teamAOptions = ['皇家马德里', '阿森纳', '拜仁慕尼黑'];
-  final List<String> _teamBOptions = ['曼彻斯特城', '切尔西', '巴黎圣日耳曼'];
+  /// 主队列表 (Mock数据)
+  final List<String> _teamAOptions = const ['皇家马德里', '阿森纳', '拜仁慕尼黑'];
+
+  /// 客队列表 (Mock数据)
+  final List<String> _teamBOptions = const ['曼彻斯特城', '切尔西', '巴黎圣日耳曼'];
+
+  @override
+  void initState() {
+    super.initState();
+    // 页面初始化时主动拉取真实联赛列表, 只请求一次不重复拉
+    _loadCompetitionList();
+  }
+
+  /// 初始化加载联赛列表 (真实接口: GET /api/livespeed/football/competition/list)
+  /// 异常时自动回退: 接口空/失败 = 保持_leagues=[] 让_buildLeagueFilter展示fallback占位
+  Future<void> _loadCompetitionList() async {
+    if (_leaguesLoading) return;
+    setState(() {
+      _leaguesLoading = true;
+      _leagueLoadFailed = false;
+    });
+    try {
+      debugPrint('🌐 BMToolPage initState 请求足球联赛列表');
+      final list = await _apiService.fetchCompetitionList();
+      if (!mounted) return;
+      setState(() {
+        _leagues = list;
+        // 保证选中索引不越界
+        if (_selectedLeagueIndex >= list.length) {
+          _selectedLeagueIndex = list.isEmpty ? 0 : list.length - 1;
+        }
+        _leagueLoadFailed = list.isEmpty;
+      });
+      debugPrint('✅ BMToolPage initState 联赛列表应用成功: ${_leagues.length}条');
+    } catch (e) {
+      debugPrint('❌ BMToolPage initState 联赛列表请求异常: $e');
+      if (mounted) setState(() => _leagueLoadFailed = true);
+    } finally {
+      if (mounted) setState(() => _leaguesLoading = false);
+    }
+  }
+
 
   @override
   Widget buildBody(BuildContext context) {
@@ -104,26 +169,269 @@ class _BMToolPageState extends BMBasePageState<BMToolPage> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Color(0xD9143328), Color(0xF00E261E)],
-        ),
+        color: BMColors.pitch850,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: BMColors.pitch600.withValues(alpha: 0.4)),
+        border: Border.all(color: BMColors.pitch700.withValues(alpha: 0.5)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _buildRadarHeader(),
           const SizedBox(height: 12),
+          _buildLeagueLabel(),
+          const SizedBox(height: 8),
+          _buildLeagueFilter(),
+          const SizedBox(height: 14),
           _buildTeamSelectors(),
-          const SizedBox(height: 12),
+          const SizedBox(height: 14),
           _buildRadarPlaceholder(),
-          const SizedBox(height: 12),
+          const SizedBox(height: 14),
           _buildCalculateButton(),
         ],
       ),
+    );
+  }
+
+  /// 构建联赛筛选标题标签 (右侧带「展开/收起」按钮, chevron随状态0.5圈旋转动画)
+  Widget _buildLeagueLabel() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Row(
+          children: const [
+            Icon(
+              Icons.emoji_events_outlined,
+              size: 12,
+              color: BMColors.textSecondary,
+            ),
+            SizedBox(width: 4),
+            Text(
+              '选择联赛',
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                color: BMColors.textSecondary,
+              ),
+            ),
+          ],
+        ),
+        GestureDetector(
+          onTap: () => setState(() => _leagueExpanded = !_leagueExpanded),
+          behavior: HitTestBehavior.opaque,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                AnimatedRotation(
+                  duration: const Duration(milliseconds: 220),
+                  turns: _leagueExpanded ? 0.5 : 0,
+                  curve: Curves.easeOut,
+                  child: const Icon(Icons.expand_more, size: 15, color: BMColors.bright),
+                ),
+                const SizedBox(width: 2),
+                Text(
+                  _leagueExpanded ? '收起' : '展开',
+                  style: const TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: BMColors.bright,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// 构建联赛筛选列表 (可折叠三态完全符合需求)
+  /// 折叠态: AnimatedContainer maxHeight = 1行(_oneLeagueRowHeight) + NeverScrollableScrollPhysics
+  ///         -> 仅显示第一行, 多余chip被Clip.antiAlias裁剪不可见, 不可拖拽滚动
+  /// 展开态: maxHeight = 4行(_oneLeagueRowHeight * _maxLeagueRows) + AlwaysScrollableScrollPhysics
+  ///         -> 若联赛数 > 4行, 超出部分可上下拖动竖直滚动; 若<=4行则显示全部
+  Widget _buildLeagueFilter() {
+    final maxH = _leagueExpanded
+        ? _oneLeagueRowHeight * _maxLeagueRows
+        : _oneLeagueRowHeight;
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 260),
+      curve: Curves.easeInOutCubic,
+      constraints: BoxConstraints(maxHeight: maxH),
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(borderRadius: BorderRadius.circular(2)),
+      child: SingleChildScrollView(
+        physics: _leagueExpanded
+            ? const AlwaysScrollableScrollPhysics()
+            : const NeverScrollableScrollPhysics(),
+        child: _buildLeagueChipList(),
+      ),
+    );
+  }
+
+  /// 生成联赛chip的 children 列表 (统一入口 便于loading/fallback/真实三态切换)
+  /// 1) _leaguesLoading=true: 显示灰色加载占位
+  /// 2) _leagues.isEmpty: 显示「暂无联赛数据」fallback (避免空白或越界)
+  /// 3) 有真实数据: 使用 BMCompetitionModel.name/cap/main 渲染, main=1 额外加「主流」星标
+  Widget _buildLeagueChipList() {
+    if (_leaguesLoading) {
+      return Wrap(
+        spacing: 8,
+        runSpacing: 8,
+        alignment: WrapAlignment.start,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        children: List.generate(5, (_) {
+          return Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            decoration: BoxDecoration(
+              color: BMColors.pitch900.withValues(alpha: 0.7),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: BMColors.pitch700.withValues(alpha: 0.4)),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 14,
+                  height: 14,
+                  decoration: BoxDecoration(
+                    color: BMColors.pitch700.withValues(alpha: 0.6),
+                    shape: BoxShape.circle,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Container(
+                  width: 58,
+                  height: 10,
+                  decoration: BoxDecoration(
+                    color: BMColors.pitch700.withValues(alpha: 0.5),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Container(
+                  width: 38,
+                  height: 8,
+                  decoration: BoxDecoration(
+                    color: BMColors.pitch800.withValues(alpha: 0.7),
+                    borderRadius: BorderRadius.circular(3),
+                  ),
+                ),
+              ],
+            ),
+          );
+        }),
+      );
+    }
+    if (_leagues.isEmpty) {
+      final icon = _leagueLoadFailed ? Icons.refresh : Icons.info_outline;
+      final text = _leagueLoadFailed ? '联赛加载失败，点击重试' : '暂无联赛数据';
+      return GestureDetector(
+        onTap: () => _loadCompetitionList(),
+        behavior: HitTestBehavior.opaque,
+        child: Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              decoration: BoxDecoration(
+                color: BMColors.pitch900.withValues(alpha: 0.7),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: BMColors.pitch700.withValues(alpha: 0.4)),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(icon, size: 14, color: BMColors.textTertiary),
+                  const SizedBox(width: 6),
+                  Text(
+                    text,
+                    style: const TextStyle(fontSize: 12, color: BMColors.textTertiary),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      alignment: WrapAlignment.start,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      children: _leagues.asMap().entries.map((entry) {
+        final idx = entry.key;
+        final lg = entry.value;
+        final isSelected = _selectedLeagueIndex == idx;
+        final isMain = lg.main == 1;
+        return GestureDetector(
+          onTap: () => setState(() => _selectedLeagueIndex = idx),
+          behavior: HitTestBehavior.opaque,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 180),
+            curve: Curves.easeOut,
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              color: isSelected
+                  ? BMColors.bright.withValues(alpha: 0.15)
+                  : BMColors.pitch900.withValues(alpha: 0.6),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(
+                color: isSelected
+                    ? BMColors.bright
+                    : BMColors.pitch700.withValues(alpha: 0.6),
+                width: isSelected ? 1.2 : 0.6,
+              ),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Container(
+                  width: 18,
+                  height: 18,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: isSelected
+                        ? BMColors.bright.withValues(alpha: 0.25)
+                        : BMColors.pitch800,
+                  ),
+                  child: Text(
+                    lg.cap.isEmpty ? '·' : lg.cap.substring(0, 1).toUpperCase(),
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w900,
+                      color: isSelected ? BMColors.bright : BMColors.textSecondary,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 6),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      lg.name,
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
+                        color: isSelected ? BMColors.bright : BMColors.textPrimary,
+                      ),
+                    ),
+                    if (isMain) ...[
+                      const SizedBox(width: 4),
+                      const Icon(Icons.star, size: 10, color: Color(0xFFFBBF24)),
+                    ],
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      }).toList(),
     );
   }
 
@@ -177,7 +485,7 @@ class _BMToolPageState extends BMBasePageState<BMToolPage> {
         const SizedBox(width: 8),
         Expanded(
           child: _buildTeamSelector(
-            'player B',
+            'Player B',
             _teamBOptions,
             _teamBIndex,
             (v) => setState(() => _teamBIndex = v),
@@ -316,7 +624,7 @@ class _BMToolPageState extends BMBasePageState<BMToolPage> {
       if (mounted) {
         setState(() {
           _isCalculating = false;
-          _resultText = '已生成：甲强概率-';
+          _resultText = '生成战力报告';
         });
       }
     });
@@ -342,7 +650,7 @@ class _BMToolPageState extends BMBasePageState<BMToolPage> {
         crossAxisCount: 2,
         mainAxisSpacing: 12,
         crossAxisSpacing: 12,
-        childAspectRatio: 1.1,
+        childAspectRatio: 1.35,
       ),
       itemCount: tools.length,
       itemBuilder: (context, index) {
@@ -358,13 +666,9 @@ class _BMToolPageState extends BMBasePageState<BMToolPage> {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Color(0xD9143328), Color(0xF00E261E)],
-        ),
+        color: BMColors.pitch850,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: BMColors.pitch600.withValues(alpha: 0.4)),
+        border: Border.all(color: BMColors.pitch700.withValues(alpha: 0.5)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

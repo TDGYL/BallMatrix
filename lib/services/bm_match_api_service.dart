@@ -4,10 +4,11 @@ import '../network/bm_network_manager.dart';
 import '../models/bm_match_api_model.dart';
 import '../models/bm_basketball_match_model.dart';
 import '../models/bm_match_model.dart';
+import '../models/bm_competition_model.dart';
 import '../theme/bm_colors.dart';
 
 /// BMMatchApiService - 比赛列表API服务
-/// 作用范围: 首页焦点赛事 / 赛事列表页 相关接口
+/// 作用范围: 首页焦点赛事 / 赛事列表页 / 联赛列表 相关接口
 class BMMatchApiService {
   /// 单例实例 (BMMatchApiService 类型)
   static final BMMatchApiService _instance = BMMatchApiService._internal();
@@ -25,6 +26,10 @@ class BMMatchApiService {
 
   /// 篮球比赛API路径
   static const String _basketballApiPath = '/api/livespeed/basketball/matches';
+
+  /// 足球联赛列表API路径
+  static const String _footballCompetitionPath =
+      '/api/livespeed/football/competition/list';
 
   /// 请求足球比赛列表 (POST)
   /// [tab] - Tab类型, 4=关注, 0=All全部, 1=进行中, 5=焦点/推荐, 2=赛程, 3=已结束
@@ -123,7 +128,9 @@ class BMMatchApiService {
     int size = 10,
     List<int> competitionIds = const [],
   }) async {
-    debugPrint('🏟️  BMMatchApiService.fetchFootballList 发起: tab=0, page=$page, size=$size, ts=$timestamp');
+    debugPrint(
+      '🏟️  BMMatchApiService.fetchFootballList 发起: tab=0, page=$page, size=$size, ts=$timestamp',
+    );
     final data = await fetchFootballMatches(
       tab: 0,
       page: page,
@@ -131,7 +138,9 @@ class BMMatchApiService {
       timestamp: timestamp,
       competitionIds: competitionIds,
     );
-    debugPrint('🏟️  BMMatchApiService.fetchFootballList 返回: data == null ? ${data == null}, results.length = ${data?.results.length ?? -1}');
+    debugPrint(
+      '🏟️  BMMatchApiService.fetchFootballList 返回: data == null ? ${data == null}, results.length = ${data?.results.length ?? -1}',
+    );
     if (data == null || data.results.isEmpty) return [];
     final List<BMMatchModel> list = [];
     for (final item in data.results) {
@@ -141,7 +150,9 @@ class BMMatchApiService {
         debugPrint('BMMatchApiService 足球单条转换跳过异常: $e');
       }
     }
-    debugPrint('🏟️  BMMatchApiService.fetchFootballList UI模型数: ${list.length}');
+    debugPrint(
+      '🏟️  BMMatchApiService.fetchFootballList UI模型数: ${list.length}',
+    );
     return list;
   }
 
@@ -156,7 +167,9 @@ class BMMatchApiService {
     int size = 10,
     List<int> competitionIds = const [],
   }) async {
-    debugPrint('🏀 BMMatchApiService.fetchBasketballList 发起: tab=0, page=$page, size=$size, ts=$timestamp');
+    debugPrint(
+      '🏀 BMMatchApiService.fetchBasketballList 发起: tab=0, page=$page, size=$size, ts=$timestamp',
+    );
     final data = await fetchBasketballMatches(
       tab: 0,
       page: page,
@@ -164,7 +177,9 @@ class BMMatchApiService {
       timestamp: timestamp,
       competitionIds: competitionIds,
     );
-    debugPrint('🏀 BMMatchApiService.fetchBasketballList 返回: data == null ? ${data == null}, results.length = ${data?.results.length ?? -1}');
+    debugPrint(
+      '🏀 BMMatchApiService.fetchBasketballList 返回: data == null ? ${data == null}, results.length = ${data?.results.length ?? -1}',
+    );
     if (data == null || data.results.isEmpty) return [];
     final List<BMMatchModel> list = [];
     for (final item in data.results) {
@@ -174,7 +189,9 @@ class BMMatchApiService {
         debugPrint('BMMatchApiService 篮球单条转换跳过异常: $e');
       }
     }
-    debugPrint('🏀 BMMatchApiService.fetchBasketballList UI模型数: ${list.length}');
+    debugPrint(
+      '🏀 BMMatchApiService.fetchBasketballList UI模型数: ${list.length}',
+    );
     return list;
   }
 
@@ -367,5 +384,74 @@ class BMMatchApiService {
     if (name == null || name.isEmpty) return '';
     if (name.length <= 3) return name.toUpperCase();
     return name.substring(0, 3).toUpperCase();
+  }
+
+  /// 请求足球联赛(赛事)列表 (GET 无入参)
+  /// 接口: /api/livespeed/football/competition/list
+  /// Dio 原始响应: {code:int, data:List<{id,name,cap,main}>, message:String?}
+  /// ⚠️ 关键: BMNetworkManager._parseResponse (bm_network_manager.dart:149-153) 已自动解包一层
+  ///     => BMApiResponse.code = 外层 code
+  ///     => BMApiResponse.data = 外层 data (联赛数组本身!)
+  ///     => BMApiResponse.isSuccess = code == 0
+  /// 绝对不能把 response.data 再当 {code,data} Map 解析, 否则 data(是List) is! Map -> return [] 永远空
+  /// 解析规则: isSuccess && data is List -> 单条 for 循环 try-catch 转换, 1条坏数据跳过该条不影响整批
+  /// 返回: 永远非 null, 出错/空数据返回空数组[]
+  Future<List<BMCompetitionModel>> fetchCompetitionList() async {
+    debugPrint('🌐 BMMatchApiService 请求足球联赛列表 GET $_footballCompetitionPath (已由网络层自动解包)');
+    final response = await BMNetworkManager().getRequest(
+      _footballCompetitionPath,
+    );
+
+    if (!response.isSuccess || response.data == null) {
+      debugPrint(
+        '❌ BMMatchApiService 足球联赛列表请求失败: '
+        'isSuccess=${response.isSuccess}, code=${response.code}, msg=${response.message}',
+      );
+      return const [];
+    }
+
+    try {
+      // BMApiResponse.data 已经是外层 {code,data:[...]} 的 data 内部值 = List<联赛> 本身
+      final data = response.data;
+      if (data is! List) {
+        debugPrint(
+          '❌ BMMatchApiService 足球联赛 response.data 不是List '
+          '(请检查BMNetworkManager解包逻辑): 实际类型=${data.runtimeType}, data=$data',
+        );
+        return const [];
+      }
+      final List<BMCompetitionModel> result = [];
+      for (int i = 0; i < data.length; i++) {
+        final item = data[i];
+        try {
+          if (item is Map<String, dynamic>) {
+            final m = BMCompetitionModel.fromMap(item);
+            if (m != null) {
+              result.add(m);
+              debugPrint('⚽️ 联赛解析成功[${result.length}/${data.length}] '
+                  'id=${m.id}, name=${m.name}, cap=${m.cap}, main=${m.main}');
+            } else {
+              debugPrint('⚠️ 跳过第$i条联赛: id/name字段缺失或为null, item=$item');
+            }
+          } else {
+            debugPrint('⚠️ 跳过第$i条联赛: 数据不是Map<String,dynamic>, '
+                '类型=${item.runtimeType}, item=$item');
+          }
+        } catch (e) {
+          debugPrint('⚠️ 跳过第$i条联赛解析异常: $e, item=$item');
+        }
+      }
+      // 排序: main=1的主流联赛置顶, 其余按name升序
+      result.sort((a, b) {
+        if (b.main != a.main) return b.main.compareTo(a.main);
+        return a.name.compareTo(b.name);
+      });
+      debugPrint('✅ BMMatchApiService 足球联赛列表解析完成: '
+          '原始${data.length}条 => 成功${result.length}条');
+      return result;
+    } catch (e) {
+      debugPrint('❌ BMMatchApiService 足球联赛列表总解析异常: $e');
+      return const [];
+    }
   }
 }
