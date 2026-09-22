@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" href="logo.ico" type="image/x-icon" />
+    <link rel="shortcut icon" href="logo.ico" type="image/x-icon" />
+    <link rel="apple-touch-icon" href="logo.ico" />
+    <meta
+      name="description"
+      content="LiveSpeed Support & Help Center. Contact information, service hours, and frequently asked questions."
+    />
+    <title>LiveSpeed - Support & Help Center</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        --bg: #0b0d12;
+        --card: rgba(255, 255, 255, 0.06);
+        --border: rgba(255, 255, 255, 0.12);
+        --text: rgba(255, 255, 255, 0.92);
+        --muted: rgba(255, 255, 255, 0.72);
+        --link: #7db7ff;
+        --shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+      }
+
+      @media (prefers-color-scheme: light) {
+        :root {
+          --bg: #f6f7fb;
+          --card: #ffffff;
+          --border: rgba(10, 20, 40, 0.12);
+          --text: rgba(10, 20, 40, 0.92);
+          --muted: rgba(10, 20, 40, 0.68);
+          --link: #0a64ff;
+          --shadow: 0 10px 30px rgba(10, 20, 40, 0.12);
+        }
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        font-family: -apple-system, BlinkMacSystemFont, "PingFang SC",
+          "Hiragino Sans GB", "Microsoft YaHei", system-ui, Segoe UI, Roboto,
+          Arial, sans-serif;
+        background: radial-gradient(
+            1200px 500px at 50% -50px,
+            rgba(125, 183, 255, 0.35),
+            transparent 55%
+          ),
+          radial-gradient(
+            900px 600px at 0% 15%,
+            rgba(130, 255, 195, 0.18),
+            transparent 50%
+          ),
+          radial-gradient(
+            1000px 700px at 100% 20%,
+            rgba(255, 150, 210, 0.16),
+            transparent 55%
+          ),
+          var(--bg);
+        color: var(--text);
+        line-height: 1.6;
+      }
+
+      a {
+        color: var(--link);
+        text-decoration: none;
+      }
+
+      a:hover {
+        text-decoration: underline;
+      }
+
+      .container {
+        max-width: 920px;
+        margin: 0 auto;
+        padding: 32px 18px 56px;
+      }
+
+      header {
+        padding: 18px 0 8px;
+      }
+
+      .title {
+        font-size: 32px;
+        line-height: 1.2;
+        margin: 0 0 10px;
+        letter-spacing: 0.2px;
+      }
+
+      .subtitle {
+        margin: 0;
+        color: var(--muted);
+        font-size: 16px;
+      }
+
+      .grid {
+        display: grid;
+        gap: 14px;
+        margin-top: 18px;
+      }
+
+      .card {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        box-shadow: var(--shadow);
+        padding: 18px 16px;
+        backdrop-filter: blur(10px);
+      }
+
+      .card h2 {
+        margin: 0 0 12px;
+        font-size: 18px;
+        letter-spacing: 0.2px;
+      }
+
+      .card h3 {
+        margin: 14px 0 8px;
+        font-size: 16px;
+      }
+
+      .card p {
+        margin: 8px 0;
+        color: var(--text);
+      }
+
+      .muted {
+        color: var(--muted);
+      }
+
+      .list {
+        margin: 10px 0 0;
+        padding-left: 18px;
+        color: var(--muted);
+      }
+
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 12px;
+        border-radius: 12px;
+        border: 1px solid var(--border);
+        background: rgba(255, 255, 255, 0.03);
+      }
+
+      .email {
+        font-weight: 700;
+        font-size: 16px;
+      }
+
+      details {
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 10px 12px;
+        background: rgba(255, 255, 255, 0.03);
+      }
+
+      details + details {
+        margin-top: 10px;
+      }
+
+      summary {
+        cursor: pointer;
+        font-weight: 650;
+        list-style: none;
+        outline: none;
+      }
+
+      summary::-webkit-details-marker {
+        display: none;
+      }
+
+      .answer {
+        margin-top: 8px;
+        color: var(--muted);
+      }
+
+      footer {
+        margin-top: 18px;
+        padding-top: 12px;
+        color: var(--muted);
+        font-size: 13px;
+        text-align: center;
+      }
+
+      .kicker {
+        font-size: 13px;
+        color: var(--muted);
+        margin: 0 0 8px;
+      }
+
+      @media (min-width: 860px) {
+        .grid {
+          gap: 16px;
+        }
+        .card {
+          padding: 20px 20px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="container">
+      <header>
+        <p class="kicker">LiveSpeed</p>
+        <h1 class="title">Help & Support</h1>
+        <p class="subtitle">Having an issue? We’re here to help.</p>
+      </header>
+
+      <section class="grid" aria-label="Support content">
+        <section class="card" aria-label="Contact us">
+          <h2>Contact Us</h2>
+
+          <h3>Email Support (Recommended)</h3>
+          <p class="pill">
+            <span class="email"
+              ><a href="mailto:LiveSpeedService@outlook.com"
+                >LiveSpeedService@outlook.com</a
+              ></span
+            >
+          </p>
+          <p class="muted">
+            Please email us at the address above. We will reply within
+            <strong>1–2 business days</strong>. To help us assist you faster,
+            please include:
+          </p>
+          <ul class="list">
+            <li>Your account information (registered phone number/email)</li>
+            <li>The time the issue occurred</li>
+            <li>Screenshots or a screen recording (if available)</li>
+          </ul>
+
+          <h3>Service Hours</h3>
+          <p>Mon–Fri 9:00–18:00 (Beijing Time)</p>
+          <p class="muted">
+            Responses may be slightly delayed on weekends and public holidays.
+          </p>
+        </section>
+
+        <section class="card" aria-label="FAQ">
+          <h2>Frequently Asked Questions (FAQ)</h2>
+
+          <details>
+            <summary>Q: The app won’t open or keeps crashing?</summary>
+            <div class="answer">
+              A: Please try restarting the app or updating to the latest
+              version. If the issue persists, contact us and include your device
+              model and system version.
+            </div>
+          </details>
+
+          <details>
+            <summary>Q: How do I delete my account?</summary>
+            <div class="answer">
+              A: In the app, go to Settings → Account & Security → Delete
+              Account and follow the instructions. After deletion, your data
+              cannot be recovered.
+            </div>
+          </details>
+
+          <p class="muted" style="margin-top: 12px;">
+            If you’d like to add more Q&As, we recommend adding 2–3 real
+            frequently asked questions to help users solve issues faster.
+          </p>
+        </section>
+
+        <section class="card" aria-label="About us">
+          <h2>About Us</h2>
+          <p>
+            LiveSpeed is dedicated to providing a stable and smooth real-time
+            interactive experience for users worldwide. We value every piece of
+            feedback and continuously improve our product. For suggestions or
+            partnership inquiries, feel free to contact us via the email above.
+          </p>
+        </section>
+      </section>
+    </main>
+  </body>
+</html>

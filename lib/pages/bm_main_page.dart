@@ -18,8 +18,12 @@ class BMMainPage extends StatefulWidget {
 }
 
 class _BMMainPageState extends State<BMMainPage> {
+  /// 当前选中的Tab索引 - ValueNotifier (便于子页面监听Tab切换事件)
+  ///   作用: 当 _currentIndex=3 切换到"我的"页面时, BMMinePage 监听到后可刷新个人信息
+  final ValueNotifier<int> currentTabNotifier = ValueNotifier<int>(0);
+
   /// 当前选中的Tab索引 (int 类型, 0-3)
-  int _currentIndex = 0;
+  int get _currentIndex => currentTabNotifier.value;
 
   /// 首页ViewModel (BMHomeViewModel 类型, 懒加载)
   late final BMHomeViewModel _homeViewModel;
@@ -32,18 +36,19 @@ class _BMMainPageState extends State<BMMainPage> {
     super.initState();
     // 懒加载初始化ViewModel
     _homeViewModel = BMHomeViewModel();
-    // 懒加载初始化页面
+    // 懒加载初始化页面: BMMinePage 接收 currentTabNotifier
     _pages = [
       BMHomePage(viewModel: _homeViewModel),
       const BMMatchTabPage(),
       const BMToolPage(),
-      const BMMinePage(),
+      BMMinePage(currentTabNotifier: currentTabNotifier),
     ];
   }
 
   @override
   void dispose() {
     _homeViewModel.dispose();
+    currentTabNotifier.dispose();
     super.dispose();
   }
 
@@ -81,7 +86,11 @@ class _BMMainPageState extends State<BMMainPage> {
   Widget _buildNavItem(int index, IconData icon, String label) {
     final bool isSelected = _currentIndex == index;
     return GestureDetector(
-      onTap: () => setState(() => _currentIndex = index),
+      onTap: () {
+        // 优先更新 ValueNotifier (子页面如 BMMinePage 能第一时间监听 Tab 切换事件)
+        currentTabNotifier.value = index;
+        setState(() {});
+      },
       behavior: HitTestBehavior.opaque,
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -108,7 +117,10 @@ class _BMMainPageState extends State<BMMainPage> {
   Widget _buildCenterNavItem() {
     final bool isSelected = _currentIndex == 2;
     return GestureDetector(
-      onTap: () => setState(() => _currentIndex = 2),
+      onTap: () {
+        currentTabNotifier.value = 2;
+        setState(() {});
+      },
       behavior: HitTestBehavior.opaque,
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,

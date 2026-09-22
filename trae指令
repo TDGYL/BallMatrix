@@ -1,6 +1,53 @@
 
 
 
+将/Users/guyilin/Desktop/A包材料/BallMatrix复制到项目，然后点击个人中心的用户协议时候push到一个web界面，加载user-agreement.html，点击隐私协议的时候加载的是privacy-agreement.html
+
+
+给我在bm_mine_page做2件事：
+第一，当点击首页菜单bm_mine_page界面出现的时候，如果当前用户是登录状态，则重新请求下个人信息刷新用户数据，请求接口和登录的获取个人信息接口一样
+
+第二，热门比赛只取前2条即可
+
+
+
+
+bm_mine_page的热门比赛请求接口为：/api/livespeed/index/search/match/hot，请求方式为get请求，无入参。
+返回数据结构为
+{
+    "code": 0,
+    "data": [
+        {
+            "match_id": 30003750903,
+            "match_time": 1698751800,
+            "category": 2,
+            "competition_name": "WCBA",
+            "home_team_id": 3020597,
+            "home_team_name": "陕西天泽女篮",
+            "home_team_logo": "https://kq3-online-release-1258443845.cos.ap-beijing.myqcloud.com/basketball/team/b27fd77709bbba6555908e28ace0a6c5.png",
+            "home_team_score": 0,
+            "away_team_id": 3012469,
+            "away_team_name": "四川远达女篮",
+            "away_team_logo": "https://kq3-online-release-1258443845.cos.ap-beijing.myqcloud.com/basketball/team/6af2ed6add64ebb5eafa3e229ee38f67.png",
+            "away_team_score": 0
+        },
+ {
+            "match_id": 30003750901,
+            "match_time": 1698751800,
+            "category": 2,
+            "competition_name": "WCBA",
+            "home_team_id": 3010153,
+            "home_team_name": "大庆女篮",
+            "home_team_logo": "https://kq3-online-release-1258443845.cos.ap-beijing.myqcloud.com/basketball/team/118d7c25a95704b2ff90e39516f41a8f.png",
+            "home_team_score": 0,
+            "away_team_id": 3017951,
+            "away_team_name": "厦门白鹭女篮",
+            "away_team_logo": "https://kq3-online-release-1258443845.cos.ap-beijing.myqcloud.com/basketball/team/6a2cd731b82cb5958169a2b7d54904af.png",
+            "away_team_score": 0
+        }]
+}
+
+
 
 修改bm_mine_page界面中的功能：
 1、顶部个人信息的 vip pro删除掉

@@ -47,6 +47,12 @@ dependencies:
   # 网易易盾验证码SDK (行为验证码: 滑块/点选/语序验证)
   captcha_plugin_flutter: 1.2.6
 
+  # 获取APP真实版本号+构建号 (pubspec.yaml 中的 version: 1.0.0+1)
+  package_info_plus: ^8.0.0
+
+  # 本地HTML网页展示 (用户协议/隐私政策本地HTML渲染)
+  webview_flutter: ^4.8.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -68,6 +74,10 @@ flutter:
   # included with your application, so that you can use the icons in
   # the material Icons class.
   uses-material-design: true
+
+  # 本地资源声明 (用户协议/隐私政策HTML + logo)
+  assets:
+    - assets/html/
 
   # To add assets to your application, add an assets section, like this:
   # assets:
