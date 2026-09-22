@@ -24,6 +24,12 @@ class BMNetworkManager {
       connectTimeout: const Duration(seconds: 15),
       receiveTimeout: const Duration(seconds: 15),
       responseType: ResponseType.json,
+      /// ⭐️ 自定义 validateStatus: HTTP 2xx/3xx/4xx/5xx 全部放行, 交给上层 _parseResponse 解析后端自定义{code,data,message}
+      /// 原 Dio 默认行为: 500 会直接抛 DioException 导致 response.data=null 丢失后端错误体
+      validateStatus: (statusCode) {
+        if (statusCode == null) return false;
+        return statusCode >= 200 && statusCode < 600;
+      },
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
@@ -135,38 +141,45 @@ class BMNetworkManager {
   /// 参数: [response] Dio 响应对象
   /// 返回: BMApiResponse 包装结果
   BMApiResponse<dynamic> _parseResponse(Response response) {
-    if (response.statusCode == 200) {
-      try {
-        final dynamic raw = response.data;
-        if (raw is Map<String, dynamic>) {
-          final dynamic codeRaw = raw['code'];
-          int? codeInt;
-          if (codeRaw is int) {
-            codeInt = codeRaw;
-          } else if (codeRaw is String) {
-            codeInt = int.tryParse(codeRaw);
-          }
+    try {
+      final dynamic raw = response.data;
+      if (raw is Map<String, dynamic>) {
+        // ⭐️ 无论 HTTP statusCode 是否为 200, 只要后端按规范返回 {code,data,message}
+        // 就优先取后端自定义 code/message (500/400 时后端会塞具体错误信息, 比 Network Error 更有用)
+        final dynamic codeRaw = raw['code'];
+        int? codeInt;
+        if (codeRaw is int) {
+          codeInt = codeRaw;
+        } else if (codeRaw is String) {
+          codeInt = int.tryParse(codeRaw);
+        }
+        if (codeInt != null) {
           return BMApiResponse(
             code: codeInt,
             data: raw['data'],
             message: raw['message'] as String?,
           );
         }
+        // 后端 Map 但没有 code 字段 -> fallback HTTP statusCode
         return BMApiResponse(
-          code: 0,
+          code: response.statusCode,
           data: raw,
-          message: null,
-        );
-      } catch (e) {
-        return BMApiResponse(
-          code: -2,
-          message: 'Response Parse Error: $e',
+          message: 'No code in response body',
         );
       }
-    } else {
+      // data 不是 Map (List / String / 原始 JSON) -> 直接放 data 字段, code 按是否 HTTP 2xx 给 0 或 statusCode
+      final httpOk = response.statusCode != null &&
+          response.statusCode! >= 200 &&
+          response.statusCode! < 300;
       return BMApiResponse(
-        code: response.statusCode,
-        message: 'Network Error: ${response.statusCode}',
+        code: httpOk ? 0 : response.statusCode,
+        data: raw,
+        message: null,
+      );
+    } catch (e) {
+      return BMApiResponse(
+        code: -2,
+        message: 'Response Parse Error: $e',
       );
     }
   }

@@ -1,6 +1,24 @@
 
 
 
+
+修改成：点击生成战力报告时候，只请求player A的数据展示在雷达图
+
+优化2个点： 
+第一、请求完Player A之后。再请求 player B，然后再绘制两个球员的6项数据到雷达图
+第二、将ATT往下约束在雷达图顶部角的上方2像素处
+
+==============================================雷达图
+
+给我做2件事：
+第一，点击生成战力报告时候，请求选中的两名球员的信息，请求数据参考：/Users/guyilin/Desktop/FlutterProject/hanklive/lib/pages/league/hank_player_detail_page.dart
+
+第二，请求完2个球员的信息后，给我在下方多维雷达实力模型处绘制6边形雷达图，雷达的数据在data["ability"]中，雷达数据参考：/Users/guyilin/Desktop/M8ball/kball_project_shell_修复好bug初版/MEightBall/Class/Page/Player/VM/MEPlayerVM.m的me_applyPlayerInfo方法的296行下边部分，雷达图绘制参考/MEightBall/Class/Page/Player/View/MERadarChartView.m。在雷达图中绘制两位球员的战力，用上边球员的蓝色粉色区分
+
+
+将ATT、 TEC STA、 DEF、 POW、SPD的显示往下移动，ATT靠在雷达定点，DEF靠在最底部，其他也相应往下移相同的像素
+
+
 bm_tool_page目前我已经请求好了联赛的数据，并展示出来了，接下来，给我做3件事：
 
 第一，给我请求联赛的赛季表URL=/api/livespeed/football/competition/season-list，参考：/Users/guyilin/Desktop/FlutterProject/hanklive/lib/pages/league/hank_league_page.dart，
@@ -9,10 +27,6 @@ bm_tool_page目前我已经请求好了联赛的数据，并展示出来了，�
 
 
 第三，请求下来的球员列表用_teamAOptions和_teamBOptions接收，然后将球员展示替代之前的球队展示
-
-
-
-
 
 
 

@@ -1,9 +1,11 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
 
 import '../bm_base_page.dart';
 import '../../theme/bm_colors.dart';
 import '../../models/bm_competition_model.dart';
 import '../../models/bm_competition_season_model.dart';
+import '../../models/bm_player_ability_model.dart';
 import '../../models/bm_player_rank_model.dart';
 import '../../services/bm_match_api_service.dart';
 
@@ -87,6 +89,18 @@ class _BMToolPageState extends BMBasePageState<BMToolPage> {
 
   /// 客队选项 (List<BMPlayerRankModel> 类型, 需求: 球员列表数据替代原来的球队展示)
   List<BMPlayerRankModel> get _teamBOptions => _playerRanks;
+
+  /// 左侧(Player A=蓝色)球员能力雷达数据 (BMPlayerAbilityModel? 类型, 点击生成战力报告串行请求先A再B, 第一步赋值)
+  BMPlayerAbilityModel? _playerLeftAbility;
+
+  /// 右侧(Player B=粉色)球员能力雷达数据 (BMPlayerAbilityModel? 类型, A成功后再请求B, 第二步赋值)
+  BMPlayerAbilityModel? _playerRightAbility;
+
+  /// 球员能力请求中标记 (bool 类型, 防止重复点击生成战力报告)
+  bool _abilitiesLoading = false;
+
+  /// 球员能力请求失败标记 (bool 类型, 展示失败提示)
+  bool _abilitiesLoadFailed = false;
 
   @override
   void initState() {
@@ -903,27 +917,158 @@ class _BMToolPageState extends BMBasePageState<BMToolPage> {
     );
   }
 
-  /// 构建雷达图占位
+  /// 构建 6 边形多维雷达实力模型图
+  /// 参考: MERadarChartView.m (6顶点=ATT/TEC/STA/DEF/POW/SPD, 4环刻度)
+  /// 绘制 2 组数据（Player A 蓝色 + Player B 粉色）
   Widget _buildRadarPlaceholder() {
+    const labels = BMPlayerAbilityModel.dimensionLabels;
+    const leftColor = Color(0xFF60A5FA);
+    const rightColor = Color(0xFFF472B6);
     return Container(
-      height: 200,
+      padding: const EdgeInsets.fromLTRB(10, 14, 10, 10),
       decoration: BoxDecoration(
         color: BMColors.pitch950.withValues(alpha: 0.5),
         borderRadius: BorderRadius.circular(12),
       ),
-      child: const Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.radar, size: 48, color: BMColors.bright),
-            SizedBox(height: 8),
-            Text(
-              '多维雷达实力模型',
-              style: TextStyle(fontSize: 12, color: BMColors.textSecondary),
+      child: Column(
+        children: [
+          if (_abilitiesLoading)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 6),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: const [
+                  SizedBox(width: 12, height: 12, child: CircularProgressIndicator(strokeWidth: 1.6, color: BMColors.bright)),
+                  SizedBox(width: 6),
+                  Text('战力数据拉取中...', style: TextStyle(fontSize: 10, color: BMColors.textSecondary)),
+                ],
+              ),
+            )
+          else if (_abilitiesLoadFailed)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 6),
+              child: GestureDetector(
+                onTap: _startCalculation,
+                behavior: HitTestBehavior.opaque,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: const [
+                    Icon(Icons.refresh_rounded, size: 12, color: BMColors.bright),
+                    SizedBox(width: 6),
+                    Text('战力数据拉取失败，点击重试', style: TextStyle(fontSize: 10, color: BMColors.bright)),
+                  ],
+                ),
+              ),
+            )
+          else
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: const [
+                  Icon(Icons.radar_rounded, size: 12, color: BMColors.bright),
+                  SizedBox(width: 4),
+                  Text('多维雷达实力模型', style: TextStyle(fontSize: 10, color: BMColors.textSecondary)),
+                ],
+              ),
             ),
-          ],
-        ),
+          // 主雷达区域：严格 220x220 正方形 ➔ Stack 叠 6 个 Label + CustomPaint
+          SizedBox(
+            width: 220,
+            height: 220,
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                // 背景 CustomPaint = 刻度环 + 6轴线 + 2组（Player B底 / Player A顶）多边形
+                Positioned.fill(
+                  child: CustomPaint(
+                    painter: _BMRadarPainter(
+                      labelsCount: labels.length,
+                      rings: 4,
+                      leftValues: _playerLeftAbility?.normalizedValues,
+                      rightValues: _playerRightAbility?.normalizedValues,
+                      leftColor: leftColor,
+                      rightColor: rightColor,
+                    ),
+                  ),
+                ),
+                // 6 个角 Label: ATT(i=0) 保持下移100px, 其他5角(TEC/STA/DEF/POW/SPD) 再额外统一向下位移100像素
+                ...List.generate(labels.length, (i) {
+                  // ATT(i=0): 沿角度方向 -100 (正好向下100)
+                  // TEC/STA/DEF/POW/SPD(i!=0): 在贴雷达顶点的基础上, 屏幕坐标系 y+=100 向下100像素
+                  final ePx = i == 0 ? -100.0 : 0.0;
+                  final eDy = i == 0 ?   0.0 : 100.0;
+                  return Positioned.fill(
+                    child: IgnorePointer(
+                      child: CustomSingleChildLayout(
+                        delegate: _BMOffsetLayoutDelegate(
+                          index: i,
+                          count: labels.length,
+                          extraPx: ePx,
+                          extraDy: eDy,
+                        ),
+                        child: Text(
+                          labels[i],
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w800,
+                            fontFamily: 'monospace',
+                            color: BMColors.bright.withValues(alpha: 0.9),
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    ),
+                  );
+                }),
+              ],
+            ),
+          ),
+          // 图例: 左蓝 / 右粉
+          Padding(
+            padding: const EdgeInsets.only(top: 4),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                _buildRadarLegend(leftColor, _playerLeftAbility?.playerName ?? 'Player A'),
+                _buildRadarLegend(rightColor, _playerRightAbility?.playerName ?? 'Player B'),
+              ],
+            ),
+          ),
+        ],
       ),
+    );
+  }
+
+  /// 单个雷达图例 (色块 + 球员名)
+  Widget _buildRadarLegend(Color color, String name) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 12,
+          height: 12,
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: 0.35),
+            borderRadius: BorderRadius.circular(3),
+            border: Border.all(color: color.withValues(alpha: 0.9), width: 1),
+          ),
+        ),
+        const SizedBox(width: 5),
+        SizedBox(
+          width: 110,
+          child: Text(
+            name,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.w600,
+              color: color.withValues(alpha: 0.95),
+            ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -975,20 +1120,100 @@ class _BMToolPageState extends BMBasePageState<BMToolPage> {
     );
   }
 
-  /// 启动计算模拟
-  void _startCalculation() {
+  /// 启动战力报告生成 = 串行请求（先 Player A，成功后再 Player B）→ 绘制双球员雷达图
+  /// 链路: 校验选中 -> fetchPlayerAbility(playerA) 成功 -> fetchPlayerAbility(playerB) -> setState 双能力模型
+  Future<void> _startCalculation() async {
+    // 1. 校验: 球员列表完整 + 双选择下标合法
+    if (_playerRanks.isEmpty ||
+        _teamAIndex >= _playerRanks.length ||
+        _teamBIndex >= _playerRanks.length) {
+      setState(() {
+        _abilitiesLoadFailed = true;
+        _resultText = '请先选择对比球员';
+      });
+      return;
+    }
+    if (_abilitiesLoading || _isCalculating) return;
+    final playerA = _playerRanks[_teamAIndex];
+    final playerB = _playerRanks[_teamBIndex];
     setState(() {
       _isCalculating = true;
-      _resultText = '算力运算中...';
+      _abilitiesLoading = true;
+      _abilitiesLoadFailed = false;
+      _playerLeftAbility = null;
+      _playerRightAbility = null;
+      _resultText = '拉取球员A战力数据中(1/2)...';
     });
-    Future.delayed(const Duration(milliseconds: 800), () {
+    try {
+      debugPrint(
+        '🚀 BMToolPage 串行请求双球员: 先A=${playerA.playerId}(${playerA.playerName}) -> 后B=${playerB.playerId}(${playerB.playerName})',
+      );
+      // === 2. 第1步: 请求 Player A (左侧蓝色) ===
+      final abA = await _apiService.fetchPlayerAbility(
+        playerId: playerA.playerId,
+        playerNameHint: playerA.playerName,
+      );
+      if (!mounted) return;
+      if (abA == null) {
+        setState(() {
+          _abilitiesLoadFailed = true;
+          _playerLeftAbility = null;
+          _playerRightAbility = null;
+          _resultText = '球员A战力数据拉取失败';
+        });
+        return;
+      }
+      setState(() {
+        _playerLeftAbility = abA;
+        _resultText = '拉取球员B战力数据中(2/2)...';
+      });
+      // === 3. 第2步: 请求 Player B (右侧粉色，A成功后才执行) ===
+      final abB = await _apiService.fetchPlayerAbility(
+        playerId: playerB.playerId,
+        playerNameHint: playerB.playerName,
+      );
+      if (!mounted) return;
+      if (abB == null) {
+        setState(() {
+          _abilitiesLoadFailed = true;
+          // A 成功但 B 失败，保留 A 但提示失败
+          _playerRightAbility = null;
+          _resultText = '球员B战力数据拉取失败';
+        });
+        return;
+      }
+      // === 4. 双球员都成功，赋值触发雷达双绘制
+      setState(() {
+        _playerLeftAbility = abA;
+        _playerRightAbility = abB;
+        _abilitiesLoadFailed = false;
+        final avgA =
+            ((abA.att + abA.tec + abA.sta + abA.def + abA.pow + abA.spd) / 6)
+                .toStringAsFixed(1);
+        final avgB =
+            ((abB.att + abB.tec + abB.sta + abB.def + abB.pow + abB.spd) / 6)
+                .toStringAsFixed(1);
+        _resultText = '战力对比: ${abA.playerName} $avgA vs ${abB.playerName} $avgB';
+      });
+      debugPrint(
+        '✅ BMToolPage 串行双球员能力请求完成: A=${abA.playerName} avgA}, B=${abB.playerName}',
+      );
+    } catch (e) {
+      debugPrint('❌ BMToolPage 球员能力串行请求异常: $e');
+      if (mounted) {
+        setState(() {
+          _abilitiesLoadFailed = true;
+          _resultText = '战力数据异常，重试';
+        });
+      }
+    } finally {
       if (mounted) {
         setState(() {
           _isCalculating = false;
-          _resultText = '生成战力报告';
+          _abilitiesLoading = false;
         });
       }
-    });
+    }
   }
 
   /// 构建工具卡片网格
@@ -1064,5 +1289,190 @@ class _BMToolPageState extends BMBasePageState<BMToolPage> {
         ],
       ),
     );
+  }
+}
+
+// ============================================================================
+// 雷达图坐标共享静态工具 (0 误差保证: _BMRadarPainter 和 _BMOffsetLayoutDelegate 都调用)
+// - 1:1 对应 MERadarChartView.m line 124-127 顶点公式
+// ============================================================================
+
+/// 雷达图真实半径常量 (double 类型, 顶点到中心距离 = 雷达正方形最短边 * 0.36)
+const double _kRadarRadiusRatio = 0.36;
+
+/// 【唯一真值函数】计算雷达多边形顶点坐标 (雷达图和 Label 都用这一个, 0 误差)
+/// [size] 雷达正方形尺寸 (220x220)
+/// [index] 0..count-1 顶点索引 (0=ATT顶部, 3=DEF底部)
+/// [count] 顶点总数 (固定 6)
+/// [extraPx] 额外同方向外推像素 (0 = 标签中心点刚好在雷达顶点)
+Offset _radarVertexPoint(Size size, int index, int count, double extraPx) {
+  final cx = size.width / 2;
+  final cy = size.height / 2;
+  final maxR = min(size.width, size.height) * _kRadarRadiusRatio;
+  final r = maxR + extraPx;
+  // 顶点角度公式: -pi/2(正上方) + 2pi*i/count (顺时针)
+  final angle = (-pi / 2) + (2 * pi * index / count);
+  return Offset(cx + r * cos(angle), cy + r * sin(angle));
+}
+
+// ============================================================================
+// 6 角 Label 定位器
+// ============================================================================
+
+/// Label 极坐标定位器 (调用共享函数 _radarVertexPoint, 0 误差)
+/// ⚠️ Dart 不支持 class in class, 所以放在文件顶层
+class _BMOffsetLayoutDelegate extends SingleChildLayoutDelegate {
+  /// 顶点索引 (int 类型, 0..count-1, 0=ATT正上方, 3=DEF正下方)
+  final int index;
+
+  /// 顶点总数 (int 类型, 固定 6)
+  final int count;
+
+  /// 额外外推像素 (double 类型, 沿顶点角度方向, >0向外, <0向内; ATT i=0 时 -100 正好向下100)
+  final double extraPx;
+
+  /// 额外屏幕坐标系 dy 偏移 (double 类型, 屏幕 y 方向向下为正, 用于 TEC~SPD 5 个统一向下 100)
+  final double extraDy;
+
+  _BMOffsetLayoutDelegate({
+    required this.index,
+    required this.count,
+    required this.extraPx,
+    required this.extraDy,
+  });
+
+  @override
+  Offset getPositionForChild(Size size, Size childSize) {
+    // ⭐️ 唯一真值函数 _radarVertexPoint
+    final vertex = _radarVertexPoint(size, index, count, extraPx);
+    return Offset(
+      vertex.dx - childSize.width / 2,
+      vertex.dy - childSize.height / 2 + extraDy, // ⭐️ 叠加 extraDy (屏幕向下 +)
+    );
+  }
+
+  @override
+  bool shouldRelayout(_BMOffsetLayoutDelegate oldDelegate) {
+    return index != oldDelegate.index ||
+        count != oldDelegate.count ||
+        extraPx != oldDelegate.extraPx ||
+        extraDy != oldDelegate.extraDy;
+  }
+}
+
+// ============================================================================
+// 雷达图 CustomPainter (调用共享函数 _radarVertexPoint, 0 误差)
+// 绘制顺序: 4 环刻度 -> 6 条轴线 -> Player B 粉色(底) -> Player A 蓝色(顶)
+// ============================================================================
+
+/// 雷达图绘制器 (刻度=4 环, MERadarChartView.m line 49)
+/// ⚠️ Dart 不支持 class in class, 所以放在文件顶层
+class _BMRadarPainter extends CustomPainter {
+  final int labelsCount;
+  final int rings;
+  final List<double>? leftValues;
+  final List<double>? rightValues;
+  final Color leftColor;
+  final Color rightColor;
+
+  _BMRadarPainter({
+    required this.labelsCount,
+    required this.rings,
+    required this.leftValues,
+    required this.rightValues,
+    required this.leftColor,
+    required this.rightColor,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final cx = size.width / 2;
+    final cy = size.height / 2;
+    final maxR = min(size.width, size.height) * _kRadarRadiusRatio;
+
+    // === 1. Grid 4 环 6 边形刻度 (MERadarChartView line 49) ===
+    final gridPaint = Paint()
+      ..color = BMColors.bright.withValues(alpha: 0.22)
+      ..strokeWidth = 0.8
+      ..style = PaintingStyle.stroke;
+    for (int r = 1; r <= rings; r++) {
+      final rr = maxR * r / rings;
+      final path = Path();
+      for (int i = 0; i < labelsCount; i++) {
+        // ⭐️ 唯一真值函数 _radarVertexPoint (extraPx = rr - maxR, 因为 maxR 是 r=rings 的半径)
+        final p = _radarVertexPoint(size, i, labelsCount, rr - maxR);
+        if (i == 0) {
+          path.moveTo(p.dx, p.dy);
+        } else {
+          path.lineTo(p.dx, p.dy);
+        }
+      }
+      path.close();
+      canvas.drawPath(path, gridPaint);
+    }
+
+    // === 2. 6 条轴线 (中心 -> 雷达顶点) ===
+    final axisPaint = Paint()
+      ..color = BMColors.bright.withValues(alpha: 0.18)
+      ..strokeWidth = 0.8
+      ..style = PaintingStyle.stroke;
+    for (int i = 0; i < labelsCount; i++) {
+      final vertex = _radarVertexPoint(size, i, labelsCount, 0);
+      canvas.drawLine(Offset(cx, cy), vertex, axisPaint);
+    }
+
+    // === 3. 双组能力多边形 (Player B 底, Player A 顶) ===
+    void drawData(List<double> vals, Color color, double fillAlpha, double strokeAlpha) {
+      if (vals.length != labelsCount) return;
+      final path = Path();
+      for (int i = 0; i < labelsCount; i++) {
+        final v = vals[i].clamp(0.0, 1.0);
+        // v=0 -> 中心, v=1 -> 雷达顶点 (maxR), 反推出 extraPx = v*maxR - maxR
+        final extraAtRatio = maxR * (v - 1.0);
+        final p = _radarVertexPoint(size, i, labelsCount, extraAtRatio);
+        if (i == 0) {
+          path.moveTo(p.dx, p.dy);
+        } else {
+          path.lineTo(p.dx, p.dy);
+        }
+      }
+      path.close();
+      final fillPaint = Paint()
+        ..color = color.withValues(alpha: fillAlpha)
+        ..style = PaintingStyle.fill;
+      canvas.drawPath(path, fillPaint);
+      final strokePaint = Paint()
+        ..color = color.withValues(alpha: strokeAlpha)
+        ..strokeWidth = 1.4
+        ..style = PaintingStyle.stroke
+        ..strokeJoin = StrokeJoin.round;
+      canvas.drawPath(path, strokePaint);
+      final dotPaint = Paint()
+        ..color = color.withValues(alpha: strokeAlpha)
+        ..style = PaintingStyle.fill;
+      for (int i = 0; i < labelsCount; i++) {
+        final v = vals[i].clamp(0.0, 1.0);
+        final extraAtRatio = maxR * (v - 1.0);
+        final p = _radarVertexPoint(size, i, labelsCount, extraAtRatio);
+        canvas.drawCircle(p, 2.2, dotPaint);
+      }
+    }
+
+    if (rightValues != null) {
+      drawData(rightValues!, rightColor, 0.18, 0.82);
+    }
+    if (leftValues != null) {
+      drawData(leftValues!, leftColor, 0.24, 0.94);
+    }
+  }
+
+  @override
+  bool shouldRepaint(_BMRadarPainter oldDelegate) {
+    return oldDelegate.leftValues != leftValues ||
+        oldDelegate.rightValues != rightValues ||
+        oldDelegate.labelsCount != labelsCount ||
+        oldDelegate.rings != rings ||
+        oldDelegate.leftColor != leftColor ||
+        oldDelegate.rightColor != rightColor;
   }
 }

@@ -6,6 +6,7 @@ import '../models/bm_basketball_match_model.dart';
 import '../models/bm_match_model.dart';
 import '../models/bm_competition_model.dart';
 import '../models/bm_competition_season_model.dart';
+import '../models/bm_player_ability_model.dart';
 import '../models/bm_player_rank_model.dart';
 import '../theme/bm_colors.dart';
 
@@ -40,6 +41,9 @@ class BMMatchApiService {
   /// 足球联赛球员排行榜API路径
   static const String _footballPlayerRankPath =
       '/api/livespeed/football/competition/player-rank';
+
+  /// 足球球员详情(含能力雷达)API路径
+  static const String _footballPlayerInfoPath = '/api/livespeed/football/info';
 
   /// 请求足球比赛列表 (POST)
   /// [tab] - Tab类型, 4=关注, 0=All全部, 1=进行中, 5=焦点/推荐, 2=赛程, 3=已结束
@@ -612,6 +616,67 @@ class BMMatchApiService {
     } catch (e) {
       debugPrint('❌ BMMatchApiService 联赛球员排行总解析异常: $e');
       return const [];
+    }
+  }
+
+  /// 请求单个球员的详情信息 + 能力雷达数据 (GET)
+  /// 接口: /api/livespeed/football/info (参考 hank_player_detail_page.dart line 62)
+  /// [playerId] - 球员唯一ID (必填, 从球员排行列表 playerId 字段获取)
+  /// Dio 原始响应: {code:int, data:Map{id,name_zh,...,ability:{att,tec,sta,def,pow,spd,...}}, message:String?}
+  /// ⚠️ BMNetworkManager._parseResponse 已自动解包 => BMApiResponse.data = 外层 data (球员详情Map本身!)
+  /// 返回: BMPlayerAbilityModel? , 解析失败/ability为空/非法 -> return null
+  Future<BMPlayerAbilityModel?> fetchPlayerAbility({
+    required int playerId,
+    String? playerNameHint,
+  }) async {
+    debugPrint(
+      '🌐 BMMatchApiService 请求球员详情+能力雷达 GET $_footballPlayerInfoPath '
+      'id=$playerId, hintName=$playerNameHint',
+    );
+    final params = <String, dynamic>{
+      'id': playerId,
+    };
+    final response = await BMNetworkManager().getRequest(
+      _footballPlayerInfoPath,
+      queryParameters: params,
+    );
+
+    if (!response.isSuccess || response.data == null) {
+      debugPrint(
+        '❌ BMMatchApiService 球员详情请求失败: id=$playerId, '
+        'isSuccess=${response.isSuccess}, code=${response.code}, msg=${response.message}',
+      );
+      return null;
+    }
+
+    try {
+      // BMApiResponse.data 已由 BMNetworkManager 解包 = 外层 data (球员详情Map!)
+      final data = response.data;
+      if (data is! Map<String, dynamic>) {
+        debugPrint(
+          '❌ BMMatchApiService 球员详情 response.data 不是Map: '
+          '实际类型=${data.runtimeType}, data=$data',
+        );
+        return null;
+      }
+      final model = BMPlayerAbilityModel.fromPlayerDataMap(
+        data,
+        playerId: playerId,
+        playerName: playerNameHint,
+      );
+      if (model == null) {
+        debugPrint('⚠️ BMMatchApiService 球员$playerId能力模型解析失败, data=$data');
+        return null;
+      }
+      debugPrint(
+        '✅ BMMatchApiService 球员$playerId 能力解析成功: '
+        'name=${model.playerName}, ATT=${model.att}, TEC=${model.tec}, '
+        'STA=${model.sta}, DEF=${model.def}, POW=${model.pow}, SPD=${model.spd}',
+      );
+      return model;
+    } catch (e) {
+      debugPrint('❌ BMMatchApiService 球员详情总解析异常: $e');
+      return null;
     }
   }
 }
