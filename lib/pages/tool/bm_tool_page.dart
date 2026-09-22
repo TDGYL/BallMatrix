@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import '../bm_base_page.dart';
 import '../../theme/bm_colors.dart';
 import '../../models/bm_competition_model.dart';
+import '../../models/bm_competition_season_model.dart';
+import '../../models/bm_player_rank_model.dart';
 import '../../services/bm_match_api_service.dart';
 
 /// BMToolPage - 智算工具页
@@ -17,11 +19,11 @@ class BMToolPage extends BMBasePage {
 }
 
 class _BMToolPageState extends BMBasePageState<BMToolPage> {
-  /// 主队选择索引 (int 类型, 从0开始)
+  /// 主队(球员A)选择索引 (int 类型, 从0开始, 对应球员排行榜数组下标)
   int _teamAIndex = 0;
 
-  /// 客队选择索引 (int 类型, 从0开始)
-  int _teamBIndex = 0;
+  /// 客队(球员B)选择索引 (int 类型, 从0开始, 对应球员排行榜数组下标)
+  int _teamBIndex = 1;
 
   /// 联赛筛选索引 (int 类型, 从0开始, 选中的真实联赛的数组下标)
   int _selectedLeagueIndex = 0;
@@ -44,6 +46,33 @@ class _BMToolPageState extends BMBasePageState<BMToolPage> {
   /// 展开状态最大显示行数 (int 类型, 按需求固定=4)
   final int _maxLeagueRows = 4;
 
+  /// 赛季列表加载中标记 (bool 类型, 防止重复请求)
+  bool _seasonsLoading = false;
+
+  /// 赛季列表加载失败标记 (bool 类型)
+  bool _seasonsLoadFailed = false;
+
+  /// 当前联赛下的赛季列表 (List<BMCompetitionSeasonModel> 类型, 从接口拉取, 初始化空)
+  List<BMCompetitionSeasonModel> _seasons = [];
+
+  /// 当前选中的赛季ID (int 类型, 默认取赛季列表首个 seasonId, 用于请求球员榜)
+  int _currentSeasonId = 0;
+
+  /// 球员排行榜加载中标记 (bool 类型, 防止重复请求)
+  bool _playerRanksLoading = false;
+
+  /// 球员排行榜加载失败标记 (bool 类型, 区分『接口失败』和『接口成功但空数组』)
+  bool _playerRankLoadFailed = false;
+
+  /// 当前联赛+赛季下的球员排行数据 (List<BMPlayerRankModel> 类型, 从接口拉取, 初始化空)
+  List<BMPlayerRankModel> _playerRanks = [];
+
+  /// 左列表球员选择索引 (int 类型, 从0开始, 对应球员排行榜中的数组下标, 默认选中第1名)
+  int _selectedPlayerLeftIndex = 0;
+
+  /// 右列表球员选择索引 (int 类型, 从0开始, 对应球员排行榜中的数组下标, 默认选中第2名)
+  int _selectedPlayerRightIndex = 1;
+
   /// 比赛API服务实例 (BMMatchApiService 类型, 单例复用)
   final BMMatchApiService _apiService = BMMatchApiService();
 
@@ -53,11 +82,11 @@ class _BMToolPageState extends BMBasePageState<BMToolPage> {
   /// 计算结果文本 (String 类型)
   String? _resultText;
 
-  /// 主队列表 (Mock数据)
-  final List<String> _teamAOptions = const ['皇家马德里', '阿森纳', '拜仁慕尼黑'];
+  /// 主队选项 (List<BMPlayerRankModel> 类型, 需求: 球员列表数据替代原来的球队展示)
+  List<BMPlayerRankModel> get _teamAOptions => _playerRanks;
 
-  /// 客队列表 (Mock数据)
-  final List<String> _teamBOptions = const ['曼彻斯特城', '切尔西', '巴黎圣日耳曼'];
+  /// 客队选项 (List<BMPlayerRankModel> 类型, 需求: 球员列表数据替代原来的球队展示)
+  List<BMPlayerRankModel> get _teamBOptions => _playerRanks;
 
   @override
   void initState() {
@@ -67,7 +96,7 @@ class _BMToolPageState extends BMBasePageState<BMToolPage> {
   }
 
   /// 初始化加载联赛列表 (真实接口: GET /api/livespeed/football/competition/list)
-  /// 异常时自动回退: 接口空/失败 = 保持_leagues=[] 让_buildLeagueFilter展示fallback占位
+  /// 链路: 联赛成功 → 默认选中 idx=0 → 请求赛季列表(_loadSeasonList) → 赛季首id → 请求球员列表(_loadPlayerRanks, key=k_shots_on)
   Future<void> _loadCompetitionList() async {
     if (_leaguesLoading) return;
     setState(() {
@@ -75,23 +104,107 @@ class _BMToolPageState extends BMBasePageState<BMToolPage> {
       _leagueLoadFailed = false;
     });
     try {
-      debugPrint('🌐 BMToolPage initState 请求足球联赛列表');
+      debugPrint('🌐 BMToolPage step1/3: 请求足球联赛列表');
       final list = await _apiService.fetchCompetitionList();
       if (!mounted) return;
       setState(() {
         _leagues = list;
-        // 保证选中索引不越界
-        if (_selectedLeagueIndex >= list.length) {
-          _selectedLeagueIndex = list.isEmpty ? 0 : list.length - 1;
-        }
+        // ⭐️ 默认选中第一个联赛 (idx=0)
+        _selectedLeagueIndex = list.isEmpty ? 0 : 0;
         _leagueLoadFailed = list.isEmpty;
       });
-      debugPrint('✅ BMToolPage initState 联赛列表应用成功: ${_leagues.length}条');
+      debugPrint('✅ BMToolPage step1/3: 联赛列表应用成功: ${_leagues.length}条, 默认选中idx=$_selectedLeagueIndex');
+      // ⭐️ step2: 联赛加载完成后, 请求该联赛的赛季列表
+      if (_leagues.isNotEmpty) {
+        await _loadSeasonList(_leagues[_selectedLeagueIndex].id);
+      }
     } catch (e) {
-      debugPrint('❌ BMToolPage initState 联赛列表请求异常: $e');
+      debugPrint('❌ BMToolPage step1/3: 联赛列表请求异常: $e');
       if (mounted) setState(() => _leagueLoadFailed = true);
     } finally {
       if (mounted) setState(() => _leaguesLoading = false);
+    }
+  }
+
+  /// 加载指定联赛的赛季列表 (step2/3: 真实接口 GET /api/livespeed/football/competition/season-list)
+  /// [competitionId] - 联赛唯一ID
+  /// 成功后: 取首个赛季 seasonId (服务端已按 isCurrent=1 优先排第一) → step3 请求球员榜 key=k_shots_on
+  Future<void> _loadSeasonList(int competitionId) async {
+    if (_seasonsLoading) return;
+    setState(() {
+      _seasonsLoading = true;
+      _seasonsLoadFailed = false;
+      _seasons = [];
+      _currentSeasonId = 0;
+    });
+    try {
+      debugPrint('🌐 BMToolPage step2/3: 请求联赛[$competitionId]赛季列表');
+      final list = await _apiService.fetchSeasonList(competitionId: competitionId);
+      if (!mounted) return;
+      setState(() {
+        _seasons = list;
+        // ⭐️ 需求: 选择赛季的第一个id (服务层已按 isCurrent=1 排序, 所以第一个就是当前赛季)
+        _currentSeasonId = list.isEmpty ? 0 : list.first.seasonId;
+        _seasonsLoadFailed = list.isEmpty;
+      });
+      debugPrint('✅ BMToolPage step2/3: 赛季列表成功: ${_seasons.length}条, 首赛季id=$_currentSeasonId');
+      // ⭐️ step3: 赛季首id确定后, 请求球员榜 key=k_shots_on (射正数排行)
+      if (_currentSeasonId > 0) {
+        await _loadPlayerRanks(
+          competitionId: competitionId,
+          seasonId: _currentSeasonId,
+          rankKey: 'k_shots_on',
+        );
+      }
+    } catch (e) {
+      debugPrint('❌ BMToolPage step2/3: 赛季列表请求异常: $e');
+      if (mounted) setState(() => _seasonsLoadFailed = true);
+    } finally {
+      if (mounted) setState(() => _seasonsLoading = false);
+    }
+  }
+
+  /// 加载指定联赛+赛季的球员排行榜 (step3/3: 真实接口 GET /api/livespeed/football/competition/player-rank)
+  /// [competitionId] - 联赛唯一ID
+  /// [seasonId] - 赛季ID (从赛季列表首项获取)
+  /// [rankKey] - 数据维度: k_shots_on=射正(本页默认), k_goals=进球, 等等
+  /// 成功后: 左=球员A默认 idx=0 第1名, 右=球员B默认 idx=1 第2名, 球队选择器_teamAIndex/_teamBIndex 同步; 越界兜底
+  Future<void> _loadPlayerRanks({
+    required int competitionId,
+    required int seasonId,
+    String rankKey = 'k_shots_on',
+  }) async {
+    if (_playerRanksLoading) return;
+    setState(() {
+      _playerRanksLoading = true;
+      _playerRankLoadFailed = false;
+    });
+    try {
+      debugPrint('🌐 BMToolPage step3/3: 请求联赛[$competitionId]赛季[$seasonId]球员排行 key=$rankKey');
+      final list = await _apiService.fetchPlayerRank(
+        competitionId: competitionId,
+        seasonId: seasonId,
+        key: rankKey,
+      );
+      if (!mounted) return;
+      setState(() {
+        _playerRanks = list;
+        // 双球员对比 + 球队选择器 同步默认选中
+        _selectedPlayerLeftIndex = list.isEmpty ? 0 : 0;
+        _selectedPlayerRightIndex = list.length < 2 ? (list.isEmpty ? 0 : list.length - 1) : 1;
+        // ⭐️ 需求第3点: _teamAOptions/_teamBOptions 用球员列表替代球队展示
+        _teamAIndex = list.isEmpty ? 0 : 0;
+        _teamBIndex = list.length < 2 ? (list.isEmpty ? 0 : list.length - 1) : 1;
+        _playerRankLoadFailed = list.isEmpty;
+      });
+      debugPrint('✅ BMToolPage step3/3: 球员排行成功: ${_playerRanks.length}条, '
+          '左idx=$_selectedPlayerLeftIndex, 右idx=$_selectedPlayerRightIndex, '
+          '球员Aidx=$_teamAIndex, 球员Bidx=$_teamBIndex');
+    } catch (e) {
+      debugPrint('❌ BMToolPage step3/3: 球员排行请求异常: $e');
+      if (mounted) setState(() => _playerRankLoadFailed = true);
+    } finally {
+      if (mounted) setState(() => _playerRanksLoading = false);
     }
   }
 
@@ -368,7 +481,13 @@ class _BMToolPageState extends BMBasePageState<BMToolPage> {
         final isSelected = _selectedLeagueIndex == idx;
         final isMain = lg.main == 1;
         return GestureDetector(
-          onTap: () => setState(() => _selectedLeagueIndex = idx),
+          onTap: () async {
+            setState(() => _selectedLeagueIndex = idx);
+            // ⭐️ 切换联赛时: 重走 step2→step3 链路 (赛季→球员)
+            if (_leagues.isNotEmpty && idx < _leagues.length) {
+              await _loadSeasonList(_leagues[idx].id);
+            }
+          },
           behavior: HitTestBehavior.opaque,
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 180),
@@ -470,13 +589,15 @@ class _BMToolPageState extends BMBasePageState<BMToolPage> {
     );
   }
 
-  /// 构建队伍选择器
+  /// 构建队伍(球员)选择器
+  /// ⭐️ 需求第3点: 原来的球队 Mock 展示改为球员列表展示 (_teamAOptions/_teamBOptions = _playerRanks)
   Widget _buildTeamSelectors() {
     return Row(
       children: [
         Expanded(
           child: _buildTeamSelector(
             'Player A',
+            const Color(0xFF60A5FA),
             _teamAOptions,
             _teamAIndex,
             (v) => setState(() => _teamAIndex = v),
@@ -486,6 +607,7 @@ class _BMToolPageState extends BMBasePageState<BMToolPage> {
         Expanded(
           child: _buildTeamSelector(
             'Player B',
+            const Color(0xFFF472B6),
             _teamBOptions,
             _teamBIndex,
             (v) => setState(() => _teamBIndex = v),
@@ -495,14 +617,21 @@ class _BMToolPageState extends BMBasePageState<BMToolPage> {
     );
   }
 
-  /// 构建单个队伍选择器
-  /// 参数: [label] 标签, [options] 选项列表, [selectedIndex] 选中索引, [onChanged] 回调
+  /// 构建单个队伍(球员)选择器
+  /// ⭐️ 参数类型从 List<String> 改为 List<BMPlayerRankModel>, 显示 排名+头像+姓名+球队+数据值
+  /// [label] - 标签 Player A / Player B
+  /// [sideColor] - 侧色 (A=蓝 / B=粉)
+  /// [options] - 球员列表 = _playerRanks (getter: _teamAOptions/_teamBOptions)
+  /// [selectedIndex] - 选中索引
+  /// [onChanged] - 选中回调 idx
   Widget _buildTeamSelector(
     String label,
-    List<String> options,
+    Color sideColor,
+    List<BMPlayerRankModel> options,
     int selectedIndex,
     ValueChanged<int> onChanged,
   ) {
+    final hasData = options.isNotEmpty && selectedIndex < options.length;
     return Container(
       padding: const EdgeInsets.all(8),
       decoration: BoxDecoration(
@@ -515,27 +644,259 @@ class _BMToolPageState extends BMBasePageState<BMToolPage> {
         children: [
           Text(
             label,
-            style: const TextStyle(fontSize: 10, color: BMColors.textSecondary),
+            style: TextStyle(fontSize: 10, color: sideColor, fontWeight: FontWeight.w700),
           ),
           const SizedBox(height: 4),
-          DropdownButton<int>(
-            value: selectedIndex,
-            underline: const SizedBox(),
-            isExpanded: true,
-            style: const TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.bold,
-              color: BMColors.textPrimary,
+          if (_playerRanksLoading)
+            _buildTeamSelectorLoading(sideColor)
+          else if (!hasData)
+            _buildTeamSelectorEmpty(sideColor)
+          else
+            DropdownButtonHideUnderline(
+              child: DropdownButton<int>(
+                value: selectedIndex,
+                isExpanded: true,
+                itemHeight: 60,
+                dropdownColor: BMColors.pitch900,
+                icon: Icon(Icons.keyboard_arrow_down_rounded, size: 18, color: sideColor),
+                borderRadius: BorderRadius.circular(12),
+                items: options.asMap().entries.map((e) {
+                  final idx = e.key;
+                  final p = e.value;
+                  return DropdownMenuItem<int>(
+                    value: idx,
+                    child: _buildTeamSelectorItem(
+                      p: p,
+                      sideColor: sideColor,
+                      isSelected: idx == selectedIndex,
+                    ),
+                  );
+                }).toList(),
+                selectedItemBuilder: (ctx) {
+                  return options.asMap().entries.map((e) {
+                    final idx = e.key;
+                    final p = e.value;
+                    return _buildTeamSelectorItem(
+                      p: p,
+                      sideColor: sideColor,
+                      isSelected: idx == selectedIndex,
+                      compact: true,
+                    );
+                  }).toList();
+                },
+                onChanged: (v) => onChanged(v ?? 0),
+              ),
             ),
-            dropdownColor: BMColors.pitch900,
-            items: options
-                .asMap()
-                .entries
-                .map(
-                  (e) => DropdownMenuItem(value: e.key, child: Text(e.value)),
-                )
-                .toList(),
-            onChanged: (v) => onChanged(v ?? 0),
+        ],
+      ),
+    );
+  }
+
+  /// 球队(球员)选择器加载中占位
+  Widget _buildTeamSelectorLoading(Color sideColor) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Row(
+        children: [
+          Container(width: 28, height: 28, decoration: BoxDecoration(shape: BoxShape.circle, color: BMColors.pitch800)),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(height: 12, decoration: BoxDecoration(color: BMColors.pitch800, borderRadius: BorderRadius.circular(3))),
+                const SizedBox(height: 5),
+                Container(width: 90, height: 9, decoration: BoxDecoration(color: BMColors.pitch800.withValues(alpha: 0.6), borderRadius: BorderRadius.circular(3))),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          Icon(Icons.hourglass_top_rounded, size: 14, color: sideColor.withValues(alpha: 0.7)),
+        ],
+      ),
+    );
+  }
+
+  /// 球队(球员)选择器空态/失败占位
+  Widget _buildTeamSelectorEmpty(Color sideColor) {
+    // 优先级: 赛季加载中 > 赛季失败 > 球员加载中(上层已处理) > 球员失败 > 空数据
+    IconData icon;
+    String text;
+    VoidCallback? onTap;
+    if (_seasonsLoading) {
+      icon = Icons.hourglass_top_rounded;
+      text = '赛季加载中...';
+      onTap = null;
+    } else if (_seasonsLoadFailed) {
+      // ⭐️ 接入 _seasonsLoadFailed, 消除 unused warning
+      icon = Icons.refresh_rounded;
+      text = '赛季加载失败点击重试';
+      onTap = _leagues.isNotEmpty
+          ? () => _loadSeasonList(_leagues[_selectedLeagueIndex].id)
+          : null;
+    } else if (_playerRankLoadFailed && _leagues.isNotEmpty && _currentSeasonId > 0) {
+      icon = Icons.refresh_rounded;
+      text = '加载失败点击重试';
+      onTap = () => _loadPlayerRanks(
+            competitionId: _leagues[_selectedLeagueIndex].id,
+            seasonId: _currentSeasonId,
+            rankKey: 'k_shots_on',
+          );
+    } else {
+      icon = Icons.info_outline_rounded;
+      text = '暂无球员数据';
+      onTap = null;
+    }
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 10),
+        child: Row(
+          children: [
+            Icon(icon, size: 14, color: sideColor.withValues(alpha: 0.75)),
+            const SizedBox(width: 6),
+            Expanded(
+              child: Text(
+                text,
+                style: TextStyle(
+                  fontSize: 11,
+                  color: (_seasonsLoadFailed || _playerRankLoadFailed)
+                      ? sideColor.withValues(alpha: 0.85)
+                      : BMColors.textTertiary.withValues(alpha: 0.9),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// 单条球员项 (DropdownMenuItem / 收起选中态 复用)
+  Widget _buildTeamSelectorItem({
+    required BMPlayerRankModel p,
+    required Color sideColor,
+    required bool isSelected,
+    bool compact = false,
+  }) {
+    final rankColor = p.position == 1
+        ? const Color(0xFFFBBF24)
+        : p.position == 2
+            ? const Color(0xFF94A3B8)
+            : p.position == 3
+                ? const Color(0xFFD97706)
+                : BMColors.textTertiary;
+    return Padding(
+      padding: EdgeInsets.symmetric(vertical: compact ? 2 : 4),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          SizedBox(
+            width: 22,
+            child: Text(
+              '${p.position}',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w900,
+                color: rankColor,
+                fontFamily: 'monospace',
+              ),
+            ),
+          ),
+          const SizedBox(width: 6),
+          Container(
+            width: 28,
+            height: 28,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: isSelected ? sideColor : BMColors.pitch700.withValues(alpha: 0.8),
+                width: isSelected ? 1.4 : 0.6,
+              ),
+              color: BMColors.pitch800,
+            ),
+            clipBehavior: Clip.antiAlias,
+            child: p.playerLogo.isNotEmpty
+                ? Image.network(
+                    p.playerLogo,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => Center(
+                      child: Text(
+                        p.playerName.isEmpty ? '·' : p.playerName.substring(0, 1).toUpperCase(),
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w800,
+                          color: isSelected ? sideColor : BMColors.textSecondary,
+                        ),
+                      ),
+                    ),
+                  )
+                : Center(
+                    child: Text(
+                      p.playerName.isEmpty ? '·' : p.playerName.substring(0, 1).toUpperCase(),
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w800,
+                        color: isSelected ? sideColor : BMColors.textSecondary,
+                      ),
+                    ),
+                  ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  p.playerName,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
+                    color: isSelected ? sideColor : BMColors.textPrimary,
+                  ),
+                ),
+                if (!compact) ...[
+                  const SizedBox(height: 2),
+                  Text(
+                    p.teamName,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 10,
+                      color: BMColors.textTertiary.withValues(alpha: 0.9),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          const SizedBox(width: 6),
+          Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                '${p.total}',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w900,
+                  color: sideColor,
+                  fontFamily: 'monospace',
+                ),
+              ),
+              Text(
+                p.rankName,
+                style: TextStyle(
+                  fontSize: 9,
+                  color: BMColors.textTertiary.withValues(alpha: 0.8),
+                ),
+              ),
+            ],
           ),
         ],
       ),

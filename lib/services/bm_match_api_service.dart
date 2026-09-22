@@ -5,6 +5,8 @@ import '../models/bm_match_api_model.dart';
 import '../models/bm_basketball_match_model.dart';
 import '../models/bm_match_model.dart';
 import '../models/bm_competition_model.dart';
+import '../models/bm_competition_season_model.dart';
+import '../models/bm_player_rank_model.dart';
 import '../theme/bm_colors.dart';
 
 /// BMMatchApiService - 比赛列表API服务
@@ -30,6 +32,14 @@ class BMMatchApiService {
   /// 足球联赛列表API路径
   static const String _footballCompetitionPath =
       '/api/livespeed/football/competition/list';
+
+  /// 足球联赛赛季列表API路径
+  static const String _footballSeasonListPath =
+      '/api/livespeed/football/competition/season-list';
+
+  /// 足球联赛球员排行榜API路径
+  static const String _footballPlayerRankPath =
+      '/api/livespeed/football/competition/player-rank';
 
   /// 请求足球比赛列表 (POST)
   /// [tab] - Tab类型, 4=关注, 0=All全部, 1=进行中, 5=焦点/推荐, 2=赛程, 3=已结束
@@ -451,6 +461,156 @@ class BMMatchApiService {
       return result;
     } catch (e) {
       debugPrint('❌ BMMatchApiService 足球联赛列表总解析异常: $e');
+      return const [];
+    }
+  }
+
+  /// 请求指定联赛的赛季列表 (GET)
+  /// 接口: /api/livespeed/football/competition/season-list
+  /// [competitionId] - 联赛唯一ID (从 BMCompetitionModel.id 获取)
+  /// 返回: 永远非 null, 出错/空数据 返回空数组[]; 数组已按 hanklive 规则: isCurrent=1 的赛季优先 (无当前赛季则保持原顺序)
+  Future<List<BMCompetitionSeasonModel>> fetchSeasonList({
+    required int competitionId,
+  }) async {
+    debugPrint(
+      '🌐 BMMatchApiService 请求联赛赛季列表 GET $_footballSeasonListPath '
+      'competitionId=$competitionId',
+    );
+    final params = <String, dynamic>{
+      'competition_id': competitionId,
+    };
+    final response = await BMNetworkManager().getRequest(
+      _footballSeasonListPath,
+      queryParameters: params,
+    );
+
+    if (!response.isSuccess || response.data == null) {
+      debugPrint(
+        '❌ BMMatchApiService 联赛赛季列表请求失败: '
+        'competitionId=$competitionId, isSuccess=${response.isSuccess}, '
+        'code=${response.code}, msg=${response.message}',
+      );
+      return const [];
+    }
+
+    try {
+      // BMApiResponse.data 已由 BMNetworkManager 解包 = 外层 data (赛季数组本身!)
+      final data = response.data;
+      if (data is! List) {
+        debugPrint(
+          '❌ BMMatchApiService 联赛赛季 response.data 不是List: '
+          '实际类型=${data.runtimeType}, data=$data',
+        );
+        return const [];
+      }
+      final List<BMCompetitionSeasonModel> result = [];
+      for (int i = 0; i < data.length; i++) {
+        final item = data[i];
+        try {
+          if (item is Map<String, dynamic>) {
+            final m = BMCompetitionSeasonModel.fromMap(item);
+            if (m != null) {
+              result.add(m);
+              debugPrint(
+                '📅 赛季解析成功[${result.length}/${data.length}] '
+                'seasonId=${m.seasonId}, year=${m.year}, isCurrent=${m.isCurrent}',
+              );
+            } else {
+              debugPrint('⚠️ 跳过第$i条赛季: season_id字段缺失, item=$item');
+            }
+          } else {
+            debugPrint('⚠️ 跳过第$i条赛季: 数据不是Map<String,dynamic>, '
+                '类型=${item.runtimeType}, item=$item');
+          }
+        } catch (e) {
+          debugPrint('⚠️ 跳过第$i条赛季解析异常: $e, item=$item');
+        }
+      }
+      // ⭐️ 参考 hanklive: isCurrent=1 的赛季排最前
+      result.sort((a, b) => b.isCurrent.compareTo(a.isCurrent));
+      debugPrint('✅ BMMatchApiService 联赛赛季列表解析完成: '
+          '原始${data.length}条 => 成功${result.length}条, 首赛季id=${result.isEmpty ? 0 : result.first.seasonId}');
+      return result;
+    } catch (e) {
+      debugPrint('❌ BMMatchApiService 联赛赛季列表总解析异常: $e');
+      return const [];
+    }
+  }
+
+  /// 请求指定联赛+赛季下的球员排行榜 (GET)
+  /// 接口: /api/livespeed/football/competition/player-rank
+  /// [competitionId] - 联赛唯一ID (必填)
+  /// [seasonId] - 赛季ID (int 类型, 默认 20261 = 兼容旧调用, 工具页改为传赛季列表首个id)
+  /// [key] - 数据维度键 (String 类型, 默认 k_goals = 兼容旧调用, 工具页改为 k_shots_on = 射正)
+  /// ⚠️ BMNetworkManager._parseResponse 已自动解包 => BMApiResponse.data = 外层 data (球员数组本身!)
+  /// 返回: 永远非 null, 出错/空数据 返回空数组[]
+  Future<List<BMPlayerRankModel>> fetchPlayerRank({
+    required int competitionId,
+    int seasonId = 20261,
+    String key = 'k_goals',
+  }) async {
+    debugPrint(
+      '🌐 BMMatchApiService 请求联赛球员排行 GET $_footballPlayerRankPath '
+      'competitionId=$competitionId, seasonId=$seasonId, key=$key',
+    );
+    final params = <String, dynamic>{
+      'competition_id': competitionId,
+      'season_id': seasonId,
+      'key': key,
+    };
+    final response = await BMNetworkManager().getRequest(
+      _footballPlayerRankPath,
+      queryParameters: params,
+    );
+
+    if (!response.isSuccess || response.data == null) {
+      debugPrint(
+        '❌ BMMatchApiService 联赛球员排行请求失败: '
+        'competitionId=$competitionId, seasonId=$seasonId, key=$key, '
+        'isSuccess=${response.isSuccess}, code=${response.code}, msg=${response.message}',
+      );
+      return const [];
+    }
+
+    try {
+      final data = response.data;
+      if (data is! List) {
+        debugPrint(
+          '❌ BMMatchApiService 联赛球员排行 response.data 不是List: '
+          '实际类型=${data.runtimeType}, data=$data',
+        );
+        return const [];
+      }
+      final List<BMPlayerRankModel> result = [];
+      for (int i = 0; i < data.length; i++) {
+        final item = data[i];
+        try {
+          if (item is Map<String, dynamic>) {
+            final m = BMPlayerRankModel.fromMap(item);
+            if (m != null) {
+              result.add(m);
+              debugPrint(
+                '🏆 球员排行解析成功[${result.length}/${data.length}] '
+                'pos=${m.position}, name=${m.playerName}, team=${m.teamName}, total=${m.total}',
+              );
+            } else {
+              debugPrint('⚠️ 跳过第$i条球员排行: player_id/player_name/position/total字段缺失, item=$item');
+            }
+          } else {
+            debugPrint('⚠️ 跳过第$i条球员排行: 数据不是Map<String,dynamic>, '
+                '类型=${item.runtimeType}, item=$item');
+          }
+        } catch (e) {
+          debugPrint('⚠️ 跳过第$i条球员排行解析异常: $e, item=$item');
+        }
+      }
+      // 按 position 升序排序 (第1名在前)
+      result.sort((a, b) => a.position.compareTo(b.position));
+      debugPrint('✅ BMMatchApiService 联赛球员排行解析完成: '
+          '原始${data.length}条 => 成功${result.length}条');
+      return result;
+    } catch (e) {
+      debugPrint('❌ BMMatchApiService 联赛球员排行总解析异常: $e');
       return const [];
     }
   }

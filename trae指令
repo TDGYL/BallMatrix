@@ -1,3 +1,25 @@
+
+
+
+bm_tool_page目前我已经请求好了联赛的数据，并展示出来了，接下来，给我做3件事：
+
+第一，给我请求联赛的赛季表URL=/api/livespeed/football/competition/season-list，参考：/Users/guyilin/Desktop/FlutterProject/hanklive/lib/pages/league/hank_league_page.dart，
+
+第二，请求完赛季后，给我请求球员列表，url=/api/livespeed/football/competition/player-rank，参考：/Users/guyilin/Desktop/FlutterProject/hanklive/lib/pages/league/hank_league_page.dart，球员列表入参season_id选择赛季的第一个id，key默认传入：k_shots_on
+
+
+第三，请求下来的球员列表用_teamAOptions和_teamBOptions接收，然后将球员展示替代之前的球队展示
+
+
+
+
+
+
+
+
+
+
+
 初始化bm_tool_page界面时候，调用/api/livespeed/football/competition/list接口请求联赛列表显示出来
 
 联赛列表请求数据 url = /api/livespeed/football/competition/list, get请求，无需入参，
@@ -25,7 +47,7 @@ bm_tool_page请求完联赛列表后，默认选中第一个联赛，当点中�
 "season_id", 20261,int
 "key",'k_goals',string
 }
-
+k_shots_on
 competition_id表示联赛id动态传入，season_id和key固定写死
 
 返回的数据结构为
