@@ -3,6 +3,8 @@ import '../models/bm_process_model.dart';
 import '../models/bm_odds_model.dart';
 import '../models/bm_lineup_model.dart';
 import '../models/bm_h2h_model.dart';
+import '../models/bm_player_info_model.dart';
+import '../models/bm_team_info_model.dart';
 
 /// BMMatchDetailApiService - 足球比赛详情API服务
 /// 接口路径配置 1:1 同 hanklive HankMatchDetailApiService (替身, 无需修改后端)
@@ -12,6 +14,8 @@ import '../models/bm_h2h_model.dart';
 ///   - GET /api/livespeed/football/match/odd-histories : 指数历史
 ///   - GET /api/livespeed/football/match/lineup     : 首发阵容
 ///   - GET /api/livespeed/football/match/analysis   : H2H 历史交锋(history.vs)
+///   - GET /api/livespeed/football/match/player-info: 球员信息(点击阵容头像弹出)
+///   - GET /api/livespeed/football/team/data      : 球队信息(点击顶部球队头像弹出)
 ///   - POST /api/livespeed/football/match/subscribe : 订阅
 ///   - POST /api/livespeed/football/match/unsubscribe : 取消订阅
 class BMMatchDetailApiService {
@@ -123,6 +127,60 @@ class BMMatchDetailApiService {
       }
     } catch (_) {}
     return result;
+  }
+
+  /// 请求球员详细信息(点击阵容头像弹Sheet用)
+  ///   GET /api/livespeed/football/match/player-info?player_id=&match_id=
+  ///   playerId: 球员ID (int 必传, 来自阵容API player_id)
+  ///   matchId: 比赛ID (int 必传, 当前比赛ID)
+  Future<BMPlayerInfo?> fetchPlayerInfo({
+    required int playerId,
+    required int matchId,
+  }) async {
+    if (playerId <= 0) return null;
+    try {
+      final resp = await BMNetworkManager().getRequest(
+        '/api/livespeed/football/match/player-info',
+        queryParameters: {'player_id': playerId, 'match_id': matchId},
+      );
+      if (resp.isSuccess && resp.data != null && resp.data is Map) {
+        final obj = resp.data as Map<String, dynamic>;
+        final inner = obj['data'];
+        if (inner is Map<String, dynamic>) {
+          return BMPlayerInfo.fromJson(inner);
+        }
+        if (obj['player_id'] != null || obj['playerId'] != null) {
+          return BMPlayerInfo.fromJson(obj);
+        }
+      }
+    } catch (_) {}
+    return null;
+  }
+
+  /// 请求球队详细信息(点击顶部球队头像弹Sheet用)
+  ///   GET /api/livespeed/football/team/data?team_id=
+  ///   teamId: 球队ID (int 必传)
+  Future<BMTeamInfo?> fetchTeamData({required int teamId}) async {
+    if (teamId <= 0) return null;
+    try {
+      final resp = await BMNetworkManager().getRequest(
+        '/api/livespeed/football/team/data',
+        queryParameters: {'team_id': teamId},
+      );
+      if (resp.isSuccess && resp.data != null && resp.data is Map) {
+        final obj = resp.data as Map<String, dynamic>;
+        final inner = obj['data'];
+        if (inner is Map<String, dynamic>) {
+          // 包装型返回 {code/data/message} (用户给的标准格式)
+          return BMTeamInfo.fromJson(inner);
+        }
+        if (obj['name'] != null || obj['team_id'] != null || obj['teamId'] != null) {
+          // 平铺直接返回
+          return BMTeamInfo.fromJson(obj);
+        }
+      }
+    } catch (_) {}
+    return null;
   }
 
   // ================ 篮球详情接口 ================

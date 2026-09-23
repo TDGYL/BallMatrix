@@ -1,5 +1,54 @@
 
 
+点击足球详情顶部的球队头像，下边弹出一个球队信息表，展示球队的主要信息，请求Url=/api/livespeed/football/team/data，请求方式get请求，
+请求参数：
+{
+"team_id":,int
+}
+参数说明：team_id是球队ID
+
+返回的数据结构为：
+{
+    "code": 0,
+    "data": {
+        "competition_id": 82,
+        "competition_name": "ENG Premier League",
+        "name": "Manchester City",
+        "logo": "https://cdn.sportnanoapi.com/football/team/c4a6528a2ee147b99c9885ef24385a4e.png",
+        "foundation_time": 1880,
+        "country_name": "England",
+        "country_logo": "https://cdn.sportnanoapi.com/football/country/916957927a5ee63e040631bd442ada34.png",
+        "venue_name": "Etihad Stadium",
+        "venue_capacity": 55097,
+        "manager_name": "Pep Guardiola",
+        "manager_logo": "https://cdn.sportnanoapi.com/football/player/6ca196de87589a3a2768e9740ab64100.png",
+        "market_value": 1050000000,
+        "is_subscribe": false,
+        "website": "http://www.mcfc.co.uk/"
+    },
+    "message": ""
+}
+
+
+
+点击阵容的头像和球员，下边弹出一个球员信息表，展示球员主要信息，请求球员信息url=/api/livespeed/football/match/player-info，请求方式get请求，
+请求参数：
+{
+"player_id":,int
+"match_id":,int
+}
+参数说明：player_id是球员id，match_id是比赛id
+
+返回的数据结构为：
+
+{"code":0,"data":{"position":"F","player_id":101246223,"player_name":"内马尔","player_logo":"","shirt_number":0,"country_name":"","country_logo":"","market_value":0,"market_value_currency":"","weight":0,"height":0},"message":"success"}
+
+
+
+给我优化bm_football_detail_page以下几点：
+1、修改联赛名约束距右边12像素，将左上角的时间去掉，替换成比分上面的状态时间控件
+
+
 
 
 

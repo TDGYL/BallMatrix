@@ -6,6 +6,8 @@ import '../../models/bm_process_model.dart';
 import '../../models/bm_odds_model.dart';
 import '../../models/bm_h2h_model.dart';
 import '../../models/bm_lineup_model.dart';
+import '../../models/bm_player_info_model.dart';
+import '../../models/bm_team_info_model.dart';
 import '../../services/bm_match_detail_api_service.dart';
 import '../../network/bm_network_manager.dart';
 import '../../utils/bm_auth_manager.dart';
@@ -285,27 +287,7 @@ class _BMFootballDetailPageState extends BMBasePageState<BMFootballDetailPage> {
               ),
             ),
             const SizedBox(width: 12),
-            Expanded(
-              child: Container(
-                alignment: Alignment.center,
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(
-                  color: BMColors.bright.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: BMColors.bright.withValues(alpha: 0.5), width: 1.2),
-                ),
-                child: Text(
-                  widget.match.leagueName,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontSize: 11,
-                    color: BMColors.bright,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
-            ),
+            const Expanded(child: SizedBox()),
             const SizedBox(width: 12),
             GestureDetector(
               onTap: _toggleSubscribe,
@@ -339,9 +321,10 @@ class _BMFootballDetailPageState extends BMBasePageState<BMFootballDetailPage> {
         : widget.match.awayTeam?.teamName ?? '客队';
     final statusLabel = widget.match.displayStatusLabel;
     final bool live = widget.match.status == BMMatchStatus.live;
+    final leagueName = widget.match.leagueName;
     return Container(
       margin: const EdgeInsets.fromLTRB(14, 14, 14, 10),
-      padding: const EdgeInsets.fromLTRB(14, 16, 14, 16),
+      padding: const EdgeInsets.fromLTRB(14, 10, 12, 16), // 右 padding 改为 12 (用户要求联赛名距右边12px)
       decoration: BoxDecoration(
         gradient: const LinearGradient(
           begin: Alignment.topLeft,
@@ -354,51 +337,111 @@ class _BMFootballDetailPageState extends BMBasePageState<BMFootballDetailPage> {
       ),
       child: Column(
         children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
-            decoration: BoxDecoration(
-              color: live
-                  ? BMColors.bright.withValues(alpha: 0.16)
-                  : BMColors.pitch800,
-              borderRadius: BorderRadius.circular(999),
-              border: Border.all(
-                color: live ? BMColors.bright.withValues(alpha: 0.55) : BMColors.pitch700,
-              ),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (live) ...[
-                  Container(width: 6, height: 6, decoration: const BoxDecoration(color: BMColors.bright, shape: BoxShape.circle)),
-                  const SizedBox(width: 5),
-                ],
-                Text(
-                  statusLabel,
-                  style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w800,
-                    color: live ? BMColors.bright : BMColors.textSecondary,
-                    letterSpacing: 0.4,
+          // ========================================
+          // 第 1 行: 【右】 联赛胶囊 (距右边 12px, 背景全透明)
+          // 用户要求: 左上角时间移除, 只保留联赛 (用户要求: 修改联赛名约束距右边12像素, 将左上角时间去掉)
+          // ========================================
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,  // 右对齐
+            children: [
+              // 用户要求: 联赛距右边 12px (容器外 padding-right 已经是 12, 所以这里 Flex fit:tight 即可)
+              Flexible(
+                fit: FlexFit.tight,
+                child: Container(
+                  alignment: Alignment.centerRight,
+                  decoration: const BoxDecoration(
+                    color: Colors.transparent,  // 用户要求: 联赛胶囊背景透明
+                  ),
+                  child: Text(
+                    leagueName,
+                    maxLines: 2,
+                    textAlign: TextAlign.right,
+                    softWrap: true,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 11,
+                      color: BMColors.bright,
+                      fontWeight: FontWeight.w700,
+                      height: 1.2,
+                    ),
                   ),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 8),
+          // 第 2 行: 【主队列】+【中间: 状态时间控件(比分上方) + 比分显示】+【客队列】
+          // 用户要求: 把比分上面的状态时间控件 (原来的 LIVE 75' 胶囊) 放在比分显示的上方
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // 主队: 左对齐 + Flex 5
               Expanded(
                 flex: 5,
-                child: _teamHomeColumn(homeLogo, homeName),
+                child: () {
+                  // 兼容 2 种 teamId 取法: ① 顶层 homeTeamId (对齐 hanklive BMMatchModel 新字段) ② homeTeam.teamId String (老结构)
+                  final idFromTop = widget.match.homeTeamId;
+                  final idFromTeam = widget.match.homeTeam?.teamId;
+                  int? teamId;
+                  if (idFromTop != null && idFromTop != 0) {
+                    teamId = idFromTop;
+                  } else if (idFromTeam != null && idFromTeam.isNotEmpty) {
+                    teamId = int.tryParse(idFromTeam);
+                  }
+                  return GestureDetector(
+                    onTap: () {
+                      final tId = teamId;
+                      if (tId == null || tId <= 0) return;
+                      _showTeamInfoSheet(
+                        teamId: tId,
+                        fallbackName: homeName,
+                        fallbackLogo: homeLogo,
+                        isHome: true,
+                      );
+                    },
+                    behavior: HitTestBehavior.opaque,
+                    child: _teamHomeColumn(homeLogo, homeName),
+                  );
+                }(),
               ),
-              // 中间比分: Flex 4 居中
+              // 中间比分区: Flex 4 居中, 比分上方放状态时间控件 (用户要求)
               Expanded(
                 flex: 4,
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: live
+                            ? BMColors.bright.withValues(alpha: 0.16)
+                            : BMColors.pitch800,
+                        borderRadius: BorderRadius.circular(999),
+                        border: Border.all(
+                          color: live ? BMColors.bright.withValues(alpha: 0.55) : BMColors.pitch700,
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (live) ...[
+                            Container(width: 6, height: 6, decoration: const BoxDecoration(color: BMColors.bright, shape: BoxShape.circle)),
+                            const SizedBox(width: 5),
+                          ],
+                          Text(
+                            statusLabel,
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w800,
+                              color: live ? BMColors.bright : BMColors.textSecondary,
+                              letterSpacing: 0.4,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    // 比分显示 (状态控件下方, 用户要求: 控件放在"比分上面" → 控件在上, 比分在下)
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       crossAxisAlignment: CrossAxisAlignment.center,
@@ -429,23 +472,36 @@ class _BMFootballDetailPageState extends BMBasePageState<BMFootballDetailPage> {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 8),
-                    if ((widget.match.round.isNotEmpty || widget.match.kickoffText.isNotEmpty))
-                      Text(
-                        widget.match.displayMatchTime,
-                        style: const TextStyle(
-                          fontSize: 11,
-                          color: BMColors.textTertiary,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
                   ],
                 ),
               ),
               // 客队: 右对齐 + Flex 5
               Expanded(
                 flex: 5,
-                child: _teamAwayColumn(awayLogo, awayName),
+                child: () {
+                  final idFromTop = widget.match.awayTeamId;
+                  final idFromTeam = widget.match.awayTeam?.teamId;
+                  int? teamId;
+                  if (idFromTop != null && idFromTop != 0) {
+                    teamId = idFromTop;
+                  } else if (idFromTeam != null && idFromTeam.isNotEmpty) {
+                    teamId = int.tryParse(idFromTeam);
+                  }
+                  return GestureDetector(
+                    onTap: () {
+                      final tId = teamId;
+                      if (tId == null || tId <= 0) return;
+                      _showTeamInfoSheet(
+                        teamId: tId,
+                        fallbackName: awayName,
+                        fallbackLogo: awayLogo,
+                        isHome: false,
+                      );
+                    },
+                    behavior: HitTestBehavior.opaque,
+                    child: _teamAwayColumn(awayLogo, awayName),
+                  );
+                }(),
               ),
             ],
           ),
@@ -560,6 +616,441 @@ class _BMFootballDetailPageState extends BMBasePageState<BMFootballDetailPage> {
       ],
     );
   }
+
+  // =========== 球队信息 Bottom Sheet (点击顶部球队头像弹出, 用户要求) ===========
+
+  /// 核心: 弹 Bottom Sheet + 异步请求 GET /api/livespeed/football/team/data?team_id=
+  void _showTeamInfoSheet({
+    required int teamId,
+    required String fallbackName,
+    String? fallbackLogo,
+    required bool isHome,
+  }) {
+    if (teamId <= 0) return;
+    final sideColor = isHome ? BMColors.bright : const Color(0xFF3B82F6);
+    final loadingVN = ValueNotifier<bool>(true);
+    final infoVN = ValueNotifier<BMTeamInfo?>(null);
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      barrierColor: Colors.black.withValues(alpha: 0.55),
+      builder: (_) {
+        Future.microtask(() async {
+          final info = await BMMatchDetailApiService().fetchTeamData(teamId: teamId);
+          loadingVN.value = false;
+          infoVN.value = info;
+        });
+        return ValueListenableBuilder<bool>(
+          valueListenable: loadingVN,
+          builder: (_, loading, __) {
+            return ValueListenableBuilder<BMTeamInfo?>(
+              valueListenable: infoVN,
+              builder: (_, info, ___) {
+                return Container(
+                  constraints: BoxConstraints(
+                    maxHeight: MediaQuery.of(context).size.height * 0.68,
+                  ),
+                  padding: EdgeInsets.only(
+                    left: 14,
+                    right: 14,
+                    top: 12,
+                    bottom: 14 + MediaQuery.of(context).padding.bottom,
+                  ),
+                  decoration: BoxDecoration(
+                    color: BMColors.pitch900,
+                    borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+                    border: Border.all(color: BMColors.pitch700.withValues(alpha: 0.6)),
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // 顶部拖拽手柄
+                      Container(
+                        width: 38,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: BMColors.pitch700,
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+                      // 标题行: 图标 + 球队信息文字 + 主/客小色点
+                      Row(
+                        children: [
+                          Icon(Icons.shield_rounded, size: 15, color: sideColor),
+                          const SizedBox(width: 6),
+                          const Text(
+                            '球队信息',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w800,
+                              color: BMColors.textPrimary,
+                            ),
+                          ),
+                          const Spacer(),
+                          Container(width: 7, height: 7, decoration: BoxDecoration(color: sideColor, shape: BoxShape.circle)),
+                          const SizedBox(width: 4),
+                          Text(
+                            isHome ? '主队' : '客队',
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w700,
+                              color: sideColor,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 14),
+                      if (loading)
+                        Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 24),
+                          child: Center(
+                            child: SizedBox(
+                              width: 22,
+                              height: 22,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2.2,
+                                valueColor: AlwaysStoppedAnimation<Color>(sideColor),
+                              ),
+                            ),
+                          ),
+                        )
+                      else if (info == null)
+                        _teamSheetEmpty(fallbackName, sideColor)
+                      else
+                        Flexible(
+                          child: SingleChildScrollView(
+                            physics: const BouncingScrollPhysics(),
+                            child: _teamSheetContent(info, sideColor, fallbackName, fallbackLogo),
+                          ),
+                        ),
+                      const SizedBox(height: 12),
+                    ],
+                  ),
+                );
+              },
+            );
+          },
+        );
+      },
+    );
+  }
+
+  /// 球队空态 (请求失败/无数据)
+  Widget _teamSheetEmpty(String fallbackName, Color sideColor) {
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 12),
+      padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 12),
+      decoration: BoxDecoration(
+        color: BMColors.pitch850,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        children: [
+          Icon(Icons.holiday_village, size: 30, color: sideColor.withValues(alpha: 0.75)),
+          const SizedBox(height: 8),
+          Text(
+            '暂无 $fallbackName 的详细信息',
+            style: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: BMColors.textTertiary,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 球队数据态 (2 段卡片: 顶部主信息卡 + 2列6行详细信息卡)
+  Widget _teamSheetContent(BMTeamInfo info, Color sideColor, String fbName, String? fbLogo) {
+    final name = (info.name?.isNotEmpty ?? false) ? info.name! : fbName;
+    final logo = (info.logo?.isNotEmpty ?? false) ? info.logo! : fbLogo;
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // ========== 卡片 1: 顶部主信息 (Logo 66x66 + 球队名 + 联赛 + 国家 + 订阅状态) ==========
+        Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: BMColors.pitch850,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: sideColor.withValues(alpha: 0.28)),
+          ),
+          child: Row(
+            children: [
+              // 球队 Logo 66x66 圆
+              Container(
+                width: 66,
+                height: 66,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: BMColors.pitch700.withValues(alpha: 0.7),
+                  border: Border.all(color: sideColor.withValues(alpha: 0.45), width: 1.1),
+                ),
+                clipBehavior: Clip.antiAlias,
+                child: (logo != null && logo.isNotEmpty)
+                    ? Padding(
+                        padding: const EdgeInsets.all(8),
+                        child: Image.network(
+                          logo,
+                          fit: BoxFit.contain,
+                          errorBuilder: (_, __, ___) =>
+                              Icon(Icons.shield_rounded, size: 28, color: sideColor),
+                        ),
+                      )
+                    : Center(
+                        child: Icon(Icons.shield_rounded, size: 32, color: sideColor),
+                      ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // 球队名 + 订阅状态(右上角)
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Flexible(
+                          child: Text(
+                            name,
+                            maxLines: 2,
+                            softWrap: true,
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w900,
+                              color: BMColors.textPrimary,
+                              height: 1.15,
+                            ),
+                          ),
+                        ),
+                        if (info.isSubscribe == true) ...[
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: sideColor.withValues(alpha: 0.16),
+                              borderRadius: BorderRadius.circular(999),
+                              border: Border.all(color: sideColor.withValues(alpha: 0.5)),
+                            ),
+                            child: Icon(Icons.star_rounded, size: 11, color: sideColor),
+                          ),
+                        ],
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    // 联赛 + 国旗/国家
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 6,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: [
+                        if (info.competitionName?.isNotEmpty ?? false)
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: sideColor.withValues(alpha: 0.14),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Text(
+                              info.competitionName!,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: 10.5,
+                                fontWeight: FontWeight.w700,
+                                color: sideColor,
+                              ),
+                            ),
+                          ),
+                        if (info.countryName?.isNotEmpty ?? false)
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              if (info.countryLogo?.isNotEmpty ?? false)
+                                Padding(
+                                  padding: const EdgeInsets.only(right: 5),
+                                  child: ClipRRect(
+                                    borderRadius: BorderRadius.circular(2),
+                                    child: Image.network(
+                                      info.countryLogo!,
+                                      width: 16,
+                                      height: 12,
+                                      fit: BoxFit.cover,
+                                      errorBuilder: (_, __, ___) =>
+                                          const SizedBox(width: 0, height: 0),
+                                    ),
+                                  ),
+                                ),
+                              Flexible(
+                                child: Text(
+                                  info.countryName!,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w600,
+                                    color: BMColors.textSecondary,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 12),
+        // ========== 卡片 2: 2列6字段 详细信息 (成立/球场/容量/教练/身价/官网) ==========
+        Container(
+          decoration: BoxDecoration(
+            color: BMColors.pitch850,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: BMColors.pitch700.withValues(alpha: 0.6)),
+          ),
+          child: Column(
+            children: [
+              _teamInfoRow(Icons.cake, '成立', info.foundationLabel, Icons.stadium, '主场', info.venueName ?? '-'),
+              _teamInfoDivider(),
+              _teamInfoRow(Icons.chair_alt, '容量', info.venueCapacityLabel, Icons.people, '教练', info.managerName ?? '-',
+                  managerLogo: info.managerLogo),
+              _teamInfoDivider(),
+              _teamInfoRow(Icons.euro_symbol, '身价', info.marketValueLabel, Icons.public, '官网',
+                  (info.website != null && info.website!.isNotEmpty) ? _shortUrl(info.website!) : '-'),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// 简化 URL 展示: http://www.mcfc.co.uk/ → mcfc.co.uk
+  static String _shortUrl(String url) {
+    try {
+      final u = Uri.parse(url);
+      String host = u.host;
+      if (host.startsWith('www.')) host = host.substring(4);
+      if (host.endsWith('/')) host = host.substring(0, host.length - 1);
+      if (host.isEmpty) {
+        if (url.length > 26) return '${url.substring(0, 24)}...';
+        return url;
+      }
+      if (u.path.isNotEmpty && u.path != '/') {
+        return '$host${u.path}';
+      }
+      return host;
+    } catch (_) {
+      if (url.length > 26) return '${url.substring(0, 24)}...';
+      return url;
+    }
+  }
+
+  /// 2列一行球队信息, 中间 0.5px 分隔线; 教练额外支持小头像 (managerLogo)
+  Widget _teamInfoRow(
+      IconData li, String ll, String lv, IconData ri, String rl, String rv, {String? managerLogo}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+      child: Row(
+        children: [
+          Expanded(
+            child: Row(
+              children: [
+                Icon(li, size: 15, color: BMColors.textTertiary),
+                const SizedBox(width: 6),
+                Text(
+                  '$ll  ',
+                  style: const TextStyle(
+                    fontSize: 10.5,
+                    fontWeight: FontWeight.w600,
+                    color: BMColors.textTertiary,
+                  ),
+                ),
+                const Spacer(),
+                Flexible(
+                  child: Text(
+                    lv,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.right,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w800,
+                      color: BMColors.textPrimary,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Container(
+            width: 0.5,
+            height: 20,
+            color: BMColors.pitch700.withValues(alpha: 0.8),
+            margin: const EdgeInsets.symmetric(horizontal: 12),
+          ),
+          Expanded(
+            child: Row(
+              children: [
+                // 教练字段优先显示 managerLogo 20x20
+                if (rl == '教练' && managerLogo != null && managerLogo.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(right: 5),
+                    child: ClipOval(
+                      child: Image.network(
+                        managerLogo,
+                        width: 18,
+                        height: 18,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) =>
+                            Icon(ri, size: 15, color: BMColors.textTertiary),
+                      ),
+                    ),
+                  )
+                else
+                  Icon(ri, size: 15, color: BMColors.textTertiary),
+                const SizedBox(width: 6),
+                Text(
+                  '$rl  ',
+                  style: const TextStyle(
+                    fontSize: 10.5,
+                    fontWeight: FontWeight.w600,
+                    color: BMColors.textTertiary,
+                  ),
+                ),
+                const Spacer(),
+                Flexible(
+                  child: Text(
+                    rv,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.right,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w800,
+                      color: BMColors.textPrimary,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 球队信息字段 0.5px 分隔线
+  Widget _teamInfoDivider() => Container(
+        height: 0.5,
+        color: BMColors.pitch700.withValues(alpha: 0.6),
+        margin: const EdgeInsets.symmetric(horizontal: 12),
+      );
 
   // ==================== Tab Bar (胶囊式, 差异化) ====================
 
@@ -1346,6 +1837,9 @@ class _BMFootballDetailPageState extends BMBasePageState<BMFootballDetailPage> {
   // =========== Odds Tab (数据获取参照 hanklive match_detail_odds_tab.dart，UI 深绿差异化) ===========
   BMOddsType _oddsSel = BMOddsType.asianHandicap;
 
+  /// 指数 Tab: 显示 2 行赔率的状态 (用户要求: 默认 true=初盘+早盘, 点击切换后 false=早盘+即时)
+  bool _oddsShowIniPre = true;
+
   Widget _buildOddsTab() {
     _ensureOdds();
     final companies = _oddsData?.listBy(_oddsSel) ?? [];
@@ -1353,44 +1847,59 @@ class _BMFootballDetailPageState extends BMBasePageState<BMFootballDetailPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // ① 4 段 selector (对齐 hanklive Row + Expanded 4 等分,不再 Wrap)
+        // ① 4 段 selector (样式改成顶部比赛详情 Tab 胶囊式一致: 选中 = 亮绿填充 + pitch900 深色字 + 阴影)
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 14),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 5),
-            decoration: BoxDecoration(
-              color: BMColors.pitch850,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: BMColors.pitch700.withValues(alpha: 0.6)),
-              boxShadow: [
-                BoxShadow(
-                  color: BMColors.bright.withValues(alpha: 0.05),
-                  blurRadius: 10,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-            ),
-            child: Row(
-              children: BMOddsType.values.map((t) {
+          padding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
+          child: SizedBox(
+            height: 42,
+            child: ListView(
+              scrollDirection: Axis.horizontal,
+              physics: const NeverScrollableScrollPhysics(),
+              children: BMOddsType.values.asMap().entries.map((e) {
+                final i = e.key;
+                final t = e.value;
                 final selected = _oddsSel == t;
-                return Expanded(
+                return Padding(
+                  padding: EdgeInsets.only(right: (i == BMOddsType.values.length - 1) ? 0 : 8),
                   child: GestureDetector(
-                    onTap: () => setState(() => _oddsSel = t),
+                    onTap: () {
+                      if (_oddsSel == t) return;
+                      setState(() {
+                        _oddsSel = t;
+                        // 切换盘口类型时, 重置为默认初盘+早盘(用户约定)
+                        _oddsShowIniPre = true;
+                      });
+                    },
                     behavior: HitTestBehavior.opaque,
                     child: Container(
-                      margin: const EdgeInsets.symmetric(horizontal: 2),
-                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
                       decoration: BoxDecoration(
-                        color: selected ? BMColors.bright.withValues(alpha: 0.16) : Colors.transparent,
-                        borderRadius: BorderRadius.circular(8),
+                        color: selected ? BMColors.bright : BMColors.pitch850,
+                        borderRadius: BorderRadius.circular(999),
+                        border: Border.all(
+                          color: selected
+                              ? BMColors.bright
+                              : BMColors.pitch700.withValues(alpha: 0.5),
+                          width: selected ? 1.2 : 0.6,
+                        ),
+                        boxShadow: selected
+                            ? [
+                                BoxShadow(
+                                  color: BMColors.bright.withValues(alpha: 0.22),
+                                  blurRadius: 10,
+                                  offset: const Offset(0, 3),
+                                )
+                              ]
+                            : null,
                       ),
+                      alignment: Alignment.center,
                       child: Text(
                         t.shortLabel,
-                        textAlign: TextAlign.center,
                         style: TextStyle(
                           fontSize: 12,
-                          fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
-                          color: selected ? BMColors.bright : BMColors.textSecondary,
+                          fontWeight: FontWeight.w800,
+                          color: selected ? BMColors.pitch900 : BMColors.textSecondary,
+                          letterSpacing: 0.6,
                         ),
                       ),
                     ),
@@ -1400,7 +1909,6 @@ class _BMFootballDetailPageState extends BMBasePageState<BMFootballDetailPage> {
             ),
           ),
         ),
-        const SizedBox(height: 14),
         // ② Loading / 空态 / 赔率数据卡片
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 14),
@@ -1415,7 +1923,9 @@ class _BMFootballDetailPageState extends BMBasePageState<BMFootballDetailPage> {
                         border: Border.all(color: BMColors.pitch700.withValues(alpha: 0.6)),
                       ),
                       child: const Center(
-                        child: Text('暂无赔率数据', style: TextStyle(fontSize: 13, color: BMColors.textTertiary, fontWeight: FontWeight.w600)),
+                        child: Text('暂无赔率数据',
+                            style:
+                                TextStyle(fontSize: 13, color: BMColors.textTertiary, fontWeight: FontWeight.w600)),
                       ),
                     )
                   : Container(
@@ -1435,7 +1945,7 @@ class _BMFootballDetailPageState extends BMBasePageState<BMFootballDetailPage> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          // 卡片标题行: 左 盘口类型名 / 右 LIVE 标识
+                          // 卡片标题行: 左 盘口类型名 / 右 **可点击切换按钮** (用户要求: 初盘/早盘 ↔ 早盘/即时)
                           Row(
                             children: [
                               Text(
@@ -1447,24 +1957,51 @@ class _BMFootballDetailPageState extends BMBasePageState<BMFootballDetailPage> {
                                 ),
                               ),
                               const Spacer(),
-                              Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Container(
-                                    width: 7,
-                                    height: 7,
-                                    decoration: const BoxDecoration(
-                                      shape: BoxShape.circle,
-                                      color: BMColors.bright,
-                                      boxShadow: [BoxShadow(color: BMColors.bright, blurRadius: 6)],
+                              // 用户要求: 右上角即时盘口按钮可点击切换 2 行显示
+                              GestureDetector(
+                                onTap: () => setState(() => _oddsShowIniPre = !_oddsShowIniPre),
+                                behavior: HitTestBehavior.opaque,
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: _oddsShowIniPre
+                                        ? BMColors.pitch700.withValues(alpha: 0.5)
+                                        : BMColors.bright.withValues(alpha: 0.14),
+                                    borderRadius: BorderRadius.circular(999),
+                                    border: Border.all(
+                                      color: _oddsShowIniPre
+                                          ? BMColors.pitch700.withValues(alpha: 0.6)
+                                          : BMColors.bright.withValues(alpha: 0.5),
                                     ),
                                   ),
-                                  const SizedBox(width: 5),
-                                  const Text(
-                                    '即时盘口',
-                                    style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: BMColors.bright),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Container(
+                                        width: 7,
+                                        height: 7,
+                                        decoration: BoxDecoration(
+                                          shape: BoxShape.circle,
+                                          color: _oddsShowIniPre ? BMColors.textTertiary : BMColors.bright,
+                                          boxShadow: _oddsShowIniPre
+                                              ? null
+                                              : [const BoxShadow(color: BMColors.bright, blurRadius: 6)],
+                                        ),
+                                      ),
+                                      const SizedBox(width: 5),
+                                      Text(
+                                        // true: 初盘+早盘模式 按钮文案 "早盘+即时" (可切过去)
+                                        // false: 当前展示早盘+即时, 按钮文案 "初盘+早盘" (可切回来)
+                                        _oddsShowIniPre ? '早盘+即时' : '初盘+早盘',
+                                        style: TextStyle(
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.w700,
+                                          color: _oddsShowIniPre ? BMColors.textTertiary : BMColors.bright,
+                                        ),
+                                      ),
+                                    ],
                                   ),
-                                ],
+                                ),
                               ),
                             ],
                           ),
@@ -1472,7 +2009,9 @@ class _BMFootballDetailPageState extends BMBasePageState<BMFootballDetailPage> {
                           // 表头(公司列 70px宽 + 阶段标签列 40px宽 + 3 或 4 栏 Expanded 表头)
                           _oddsTableHeader(is1x2: is1x2),
                           const SizedBox(height: 4),
-                          // 每家公司 3 阶段行
+                          // 每家公司 **只展示 2 行数据**
+                          //   true (默认) → 初盘(ini) + 早盘(pre)
+                          //   false (切过) → 早盘(pre) + 即时(spot)
                           ...companies.map((c) => _oddsCompanyRow(c, is1x2)),
                         ],
                       ),
@@ -1517,11 +2056,36 @@ class _BMFootballDetailPageState extends BMBasePageState<BMFootballDetailPage> {
     );
   }
 
-  /// 单家博彩公司的行(左侧公司名列 + 3 阶段 odds rows + 右箭头)
+  /// 单家博彩公司的行(左侧公司名列 + **只展示 2 行** odds rows + 右箭头)
+  /// 用户要求: 默认展示初盘(ini)+早盘(pre); 点右上角按钮切到 早盘(pre)+即时(spot)
   Widget _oddsCompanyRow(BMCompanyOdds company, bool is1x2) {
     final hasIni = company.ini != null;
     final hasPre = company.pre != null;
     final hasSpot = company.spot != null;
+    final List<Widget> rows = [];
+    if (_oddsShowIniPre) {
+      // 默认模式: 初盘 + 早盘 (2 行, 都有就 2 行; 缺 1 个就显示存在的那个; 保证不 >2)
+      if (hasIni) {
+        rows.add(_oddsStageRow(company.ini!,
+            stageLabel: '初盘', color: BMColors.textTertiary, is1x2: is1x2));
+        rows.add(const SizedBox(height: 8));
+      }
+      if (hasPre) {
+        rows.add(_oddsStageRow(company.pre!,
+            stageLabel: '早盘', color: const Color(0xFF3B82F6), is1x2: is1x2));
+      }
+    } else {
+      // 切换模式: 早盘 + 即时 (2 行)
+      if (hasPre) {
+        rows.add(_oddsStageRow(company.pre!,
+            stageLabel: '早盘', color: const Color(0xFF3B82F6), is1x2: is1x2));
+        rows.add(const SizedBox(height: 8));
+      }
+      if (hasSpot) {
+        rows.add(_oddsStageRow(company.spot!,
+            stageLabel: '即时', color: BMColors.bright, is1x2: is1x2));
+      }
+    }
     return GestureDetector(
       onTap: () => _gotoOddsHistory(company),
       behavior: HitTestBehavior.opaque,
@@ -1566,27 +2130,18 @@ class _BMFootballDetailPageState extends BMBasePageState<BMFootballDetailPage> {
                 ],
               ),
             ),
-            // 阶段赔率列
+            // 阶段赔率列 (只包含 2 行)
             Expanded(
               child: Column(
-                children: [
-                  if (hasIni) ...[
-                    _oddsStageRow(company.ini!, stageLabel: '初盘', color: BMColors.textTertiary, is1x2: is1x2),
-                    const SizedBox(height: 8),
-                  ],
-                  if (hasPre) ...[
-                    _oddsStageRow(company.pre!, stageLabel: '早盘', color: const Color(0xFF3B82F6), is1x2: is1x2),
-                    const SizedBox(height: 8),
-                  ],
-                  if (hasSpot)
-                    _oddsStageRow(company.spot!, stageLabel: '即时', color: BMColors.bright, is1x2: is1x2),
-                ],
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: rows,
               ),
             ),
             // 右箭头
             Padding(
               padding: const EdgeInsets.only(left: 6, top: 16),
-              child: Icon(Icons.chevron_right, size: 16, color: BMColors.pitch700.withValues(alpha: 0.9)),
+              child:
+                  Icon(Icons.chevron_right, size: 16, color: BMColors.pitch700.withValues(alpha: 0.9)),
             ),
           ],
         ),
@@ -1674,24 +2229,409 @@ class _BMFootballDetailPageState extends BMBasePageState<BMFootballDetailPage> {
 
   // =========== Lineup Tab (对齐 hanklive match_detail_lineup_tab.dart) ===========
 
-  /// 阵容 Tab 跳球员详情 (对齐 hanklive _navigateToPlayerDetail)
-  ///   - BallMatrix 当前暂无球员详情页,先 SnackBar 提示待开发,不中断用户
-  ///   - 未来有 BMPlayerDetailPage 时直接替换 Navigator.push 即可
+  /// 阵容 Tab 点击球员 → 底部弹出球员信息 Sheet (用户要求)
+  ///   步骤: 1. 校验 playerId (0 或空直接 return)
+  ///         2. showModalBottomSheet (Loading 态)
+  ///         3. 请求 GET /api/livespeed/football/match/player-info?player_id=&match_id=
+  ///         4. setState 刷新 Bottom Sheet → 数据态 / 空态
   void _navigateToLineupPlayerDetail(BMMatchLineupPlayer player) {
     final idStr = player.playerId;
     final pid = (idStr != null && idStr.isNotEmpty) ? int.tryParse(idStr) : null;
     // 对齐 hanklive: playerId == 0 直接 return
     if (pid == null || pid == 0) return;
-    final name = player.playerName?.trim();
-    if (name == null || name.isEmpty) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('球员详情开发中：$name'),
-        backgroundColor: BMColors.pitch850,
-        behavior: SnackBarBehavior.floating,
-        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-        duration: const Duration(seconds: 1),
+    final matchId = int.tryParse(widget.match.matchId) ?? 0;
+    if (matchId == 0) return;
+    _loadAndShowPlayerSheet(playerId: pid, matchId: matchId, fallbackName: player.playerName);
+  }
+
+  /// 核心: 弹 Bottom Sheet + 异步请求球员信息(用户给的接口/参数/返回结构)
+  Future<void> _loadAndShowPlayerSheet({
+    required int playerId,
+    required int matchId,
+    String? fallbackName,
+  }) async {
+    // 内部 ValueNotifier 控制 Loading/数据/空态 (不 setState 页面, 只刷新 Sheet)
+    final loadingVN = ValueNotifier<bool>(true);
+    final infoVN = ValueNotifier<BMPlayerInfo?>(null);
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      barrierColor: Colors.black.withValues(alpha: 0.55),
+      builder: (sheetCtx) {
+        // 异步请求 (独立 Future, 不阻塞 Sheet 弹出)
+        Future.microtask(() async {
+          final info = await BMMatchDetailApiService().fetchPlayerInfo(
+            playerId: playerId,
+            matchId: matchId,
+          );
+          loadingVN.value = false;
+          infoVN.value = info;
+        });
+        return ValueListenableBuilder<bool>(
+          valueListenable: loadingVN,
+          builder: (_, loading, __) {
+            return ValueListenableBuilder<BMPlayerInfo?>(
+              valueListenable: infoVN,
+              builder: (_, info, ___) {
+                return Container(
+                  constraints: BoxConstraints(
+                    maxHeight: MediaQuery.of(context).size.height * 0.62,
+                  ),
+                  padding: EdgeInsets.only(
+                    left: 14,
+                    right: 14,
+                    top: 12,
+                    bottom: 14 + MediaQuery.of(context).padding.bottom,
+                  ),
+                  decoration: BoxDecoration(
+                    color: BMColors.pitch900,
+                    borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+                    border: Border.all(color: BMColors.pitch700.withValues(alpha: 0.6)),
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // 顶部拖拽手柄
+                      Container(
+                        width: 38,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: BMColors.pitch700,
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+                      // 标题 + 关闭
+                      Row(
+                        children: const [
+                          Icon(Icons.person, size: 15, color: BMColors.bright),
+                          SizedBox(width: 6),
+                          Text(
+                            '球员信息',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w800,
+                              color: BMColors.textPrimary,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 14),
+                      if (loading)
+                        Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 24),
+                          child: Center(
+                            child: SizedBox(
+                              width: 22,
+                              height: 22,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2.2,
+                                valueColor: AlwaysStoppedAnimation<Color>(BMColors.bright),
+                              ),
+                            ),
+                          ),
+                        )
+                      else if (info == null)
+                        _playerSheetEmpty(fallbackName)
+                      else
+                        Flexible(child: _playerSheetContent(info)),
+                      const SizedBox(height: 12),
+                    ],
+                  ),
+                );
+              },
+            );
+          },
+        );
+      },
+    );
+  }
+
+  /// 球员 Sheet: 请求失败 / 无数据空态
+  Widget _playerSheetEmpty(String? fallbackName) {
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 12),
+      padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 12),
+      decoration: BoxDecoration(
+        color: BMColors.pitch850,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        children: [
+          Icon(Icons.person_off, size: 30, color: BMColors.pitch700.withValues(alpha: 0.9)),
+          const SizedBox(height: 8),
+          Text(
+            fallbackName?.isNotEmpty == true ? '暂无 $fallbackName 的详细信息' : '暂无该球员的详细信息',
+            style: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: BMColors.textTertiary,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 球员 Sheet: 成功数据态 (8 个字段 2 列 grid + 顶部主信息行)
+  Widget _playerSheetContent(BMPlayerInfo info) {
+    final name = (info.playerName?.isNotEmpty ?? false) ? info.playerName! : '未知球员';
+    final shirt = info.shirtNumber ?? 0;
+    return SingleChildScrollView(
+      physics: const BouncingScrollPhysics(),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // 顶部主卡片: 头像 + 球衣号码 + 名字 + 位置 + 国籍
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: BMColors.pitch850,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: BMColors.pitch700.withValues(alpha: 0.6)),
+            ),
+            child: Row(
+              children: [
+                // 头像 60x60
+                ClipOval(
+                  child: Container(
+                    width: 60,
+                    height: 60,
+                    color: BMColors.pitch700.withValues(alpha: 0.7),
+                    child: (info.playerLogo != null && info.playerLogo!.isNotEmpty)
+                        ? Image.network(
+                            info.playerLogo!,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => _playerAvatarFallback(name, shirt),
+                          )
+                        : _playerAvatarFallback(name, shirt),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          // 球衣号徽章
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: BMColors.bright.withValues(alpha: 0.18),
+                              borderRadius: BorderRadius.circular(6),
+                              border: Border.all(color: BMColors.bright.withValues(alpha: 0.5)),
+                            ),
+                            child: Text(
+                              shirt > 0 ? '#$shirt' : '-',
+                              style: const TextStyle(
+                                fontSize: 10.5,
+                                fontWeight: FontWeight.w800,
+                                color: BMColors.bright,
+                                letterSpacing: 0.4,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Flexible(
+                            child: Text(
+                              name,
+                              maxLines: 2,
+                              softWrap: true,
+                              style: const TextStyle(
+                                fontSize: 15.5,
+                                fontWeight: FontWeight.w800,
+                                color: BMColors.textPrimary,
+                                height: 1.2,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      // 位置 + 国籍
+                      Row(
+                        children: [
+                          // 位置 Chip
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF3B82F6).withValues(alpha: 0.15),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Text(
+                              info.positionFullLabel,
+                              style: const TextStyle(
+                                fontSize: 10.5,
+                                fontWeight: FontWeight.w700,
+                                color: Color(0xFF3B82F6),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          if (info.countryName != null && info.countryName!.isNotEmpty) ...[
+                            if (info.countryLogo != null && info.countryLogo!.isNotEmpty)
+                              Padding(
+                                padding: const EdgeInsets.only(right: 5),
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(2),
+                                  child: Image.network(
+                                    info.countryLogo!,
+                                    width: 16,
+                                    height: 12,
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (_, __, ___) =>
+                                        const SizedBox(width: 0, height: 0),
+                                  ),
+                                ),
+                              ),
+                            Flexible(
+                              child: Text(
+                                info.countryName!,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                  color: BMColors.textSecondary,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+          // 下方字段 2x2 Grid: 身高 / 体重 / 身价 / 位置缩写
+          Container(
+            decoration: BoxDecoration(
+              color: BMColors.pitch850,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: BMColors.pitch700.withValues(alpha: 0.6)),
+            ),
+            child: Column(
+              children: [
+                _playerInfoRow(Icons.height, '身高', info.heightLabel, Icons.fitness_center, '体重', info.weightLabel),
+                Container(height: 0.5, color: BMColors.pitch700.withValues(alpha: 0.6)),
+                _playerInfoRow(Icons.attach_money, '身价', info.marketValueLabel, Icons.flag_circle, '位置', info.position ?? '-'),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 头像加载失败 fallback: 首字母 + 号码绿底
+  Widget _playerAvatarFallback(String name, int shirt) {
+    final first = (name.isNotEmpty) ? name.trim().characters.first.toUpperCase() : '?';
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(
+            first,
+            style: const TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.w900,
+              color: BMColors.bright,
+            ),
+          ),
+          if (shirt > 0)
+            Text(
+              '$shirt',
+              style: const TextStyle(
+                fontSize: 10,
+                color: BMColors.textTertiary,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  /// 2 列一行字段 (左: icon/label/value + 右: icon/label/value)
+  Widget _playerInfoRow(
+      IconData li, String ll, String lv, IconData ri, String rl, String rv) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+      child: Row(
+        children: [
+          Expanded(
+            child: Row(
+              children: [
+                Icon(li, size: 15, color: BMColors.textTertiary),
+                const SizedBox(width: 6),
+                Text(
+                  '$ll  ',
+                  style: const TextStyle(
+                    fontSize: 10.5,
+                    fontWeight: FontWeight.w600,
+                    color: BMColors.textTertiary,
+                  ),
+                ),
+                const Spacer(),
+                Flexible(
+                  child: Text(
+                    lv,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.right,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w800,
+                      color: BMColors.textPrimary,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Container(
+            width: 0.5,
+            height: 18,
+            color: BMColors.pitch700.withValues(alpha: 0.8),
+            margin: const EdgeInsets.symmetric(horizontal: 12),
+          ),
+          Expanded(
+            child: Row(
+              children: [
+                Icon(ri, size: 15, color: BMColors.textTertiary),
+                const SizedBox(width: 6),
+                Text(
+                  '$rl  ',
+                  style: const TextStyle(
+                    fontSize: 10.5,
+                    fontWeight: FontWeight.w600,
+                    color: BMColors.textTertiary,
+                  ),
+                ),
+                const Spacer(),
+                Flexible(
+                  child: Text(
+                    rv,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.right,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w800,
+                      color: BMColors.textPrimary,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -1735,10 +2675,9 @@ class _BMFootballDetailPageState extends BMBasePageState<BMFootballDetailPage> {
     );
   }
 
-  /// 阵型头部: HomeLogo+formation VS AwayLogo+formation (对齐 hanklive _buildLineupHeader)
-  ///   新增: 下一行主/客教练名 + 图标帽 (对齐真实后端 home_coach / away_coach 字段)
+  /// 阵型头部: 主阵型名 VS 客阵型名 (用户要求: 阵型旁 LOGO 删除)
+  ///   下方保留主/客教练名 + 图标帽 (对齐真实后端 home_coach / away_coach 字段)
   Widget _buildLineupHeader(BMLineupData data) {
-    // 主客教练名 (优先 BMLineupData.homeCoach/awayCoach, fallback homeSide.coach)
     final hCoachName = data.homeCoach?.name ?? data.home.coach?.name;
     final aCoachName = data.awayCoach?.name ?? data.away.coach?.name;
     return Container(
@@ -1750,45 +2689,46 @@ class _BMFootballDetailPageState extends BMBasePageState<BMFootballDetailPage> {
       ),
       child: Column(
         children: [
-          // 第 1 行: Logo + 阵型 VS Logo + 阵型 (对齐 Hank 原版)
+          // 第 1 行: 4-3-3 VS 4-2-3-1 (删除了主客队 logo, 用户要求)
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Row(
-                children: [
-                  _buildLineupTeamLogo(widget.match.homeTeamLogo),
-                  const SizedBox(width: 6),
-                  Text(
-                    data.homeFormation ?? '',
-                    style: const TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                      color: BMColors.textPrimary,
-                    ),
+              Flexible(
+                child: Text(
+                  data.homeFormation ?? '',
+                  maxLines: 2,
+                  softWrap: true,
+                  textAlign: TextAlign.left,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w800,
+                    color: BMColors.textPrimary,
                   ),
-                ],
-              ),
-              const Text(
-                'VS',
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                  color: BMColors.textTertiary,
                 ),
               ),
-              Row(
-                children: [
-                  Text(
-                    data.awayFormation ?? '',
-                    style: const TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                      color: BMColors.textPrimary,
-                    ),
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 12),
+                child: Text(
+                  'VS',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: BMColors.textTertiary,
                   ),
-                  const SizedBox(width: 6),
-                  _buildLineupTeamLogo(widget.match.awayTeamLogo),
-                ],
+                ),
+              ),
+              Flexible(
+                child: Text(
+                  data.awayFormation ?? '',
+                  maxLines: 2,
+                  softWrap: true,
+                  textAlign: TextAlign.right,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w800,
+                    color: BMColors.textPrimary,
+                  ),
+                ),
               ),
             ],
           ),
@@ -1800,7 +2740,6 @@ class _BMFootballDetailPageState extends BMBasePageState<BMFootballDetailPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                // 主队教练: Icons.coffee (教练帽图标) + 名字, 左对齐
                 Expanded(
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
@@ -1827,9 +2766,7 @@ class _BMFootballDetailPageState extends BMBasePageState<BMFootballDetailPage> {
                     ],
                   ),
                 ),
-                // 中间占位, 不让主客教练重叠
                 const SizedBox(width: 24),
-                // 客队教练: Icons.coffee + 名字, 右对齐
                 Expanded(
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
@@ -1862,32 +2799,6 @@ class _BMFootballDetailPageState extends BMBasePageState<BMFootballDetailPage> {
             ),
           ],
         ],
-      ),
-    );
-  }
-
-  Widget _buildLineupTeamLogo(String? logoUrl) {
-    if (logoUrl == null || logoUrl.isEmpty) {
-      return Container(
-        width: 18,
-        height: 18,
-        decoration: BoxDecoration(
-          color: BMColors.pitch700,
-          shape: BoxShape.circle,
-        ),
-      );
-    }
-    return ClipOval(
-      child: Image.network(
-        logoUrl,
-        width: 18,
-        height: 18,
-        fit: BoxFit.cover,
-        errorBuilder: (c, e, s) => Container(
-          width: 18,
-          height: 18,
-          color: BMColors.pitch700,
-        ),
       ),
     );
   }
@@ -1956,7 +2867,7 @@ class _BMFootballDetailPageState extends BMBasePageState<BMFootballDetailPage> {
     );
   }
 
-  /// 球员节点 (头像+号码+事件徽标+名字 Chip, 对齐 hanklive _buildPlayerNode)
+  /// 球员节点 (头像+号码+事件徽标, 用户要求: 首发名字 Chip 删除, 只保留站位头像)
   /// 点击跳球员详情页 (对齐 hanklive _navigateToPlayerDetail)
   Widget _buildLineupPlayerNode(BMMatchLineupPlayer player, {required bool isHome}) {
     final teamColor = isHome ? const Color(0xFFE11D48) : const Color(0xFF3B82F6);
@@ -1964,39 +2875,26 @@ class _BMFootballDetailPageState extends BMBasePageState<BMFootballDetailPage> {
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: () => _navigateToLineupPlayerDetail(player),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Stack(
-            alignment: Alignment.center,
-            children: [
-              Container(
-                width: 36,
-                height: 36,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(color: teamColor, width: 2),
-                ),
-                child: ClipOval(
-                  child: (player.playerLogo != null && player.playerLogo!.isNotEmpty)
-                      ? Image.network(
-                          player.playerLogo!,
-                          fit: BoxFit.cover,
-                          errorBuilder: (c, e, s) => Container(
-                            color: teamColor.withValues(alpha: 0.3),
-                            child: Center(
-                              child: Text(
-                                '$shirtNum',
-                                style: const TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w700,
-                                  color: Colors.white,
-                                ),
-                              ),
-                            ),
-                          ),
-                        )
-                      : Container(
+      child: SizedBox(
+        width: 36,
+        height: 40,
+        child: Stack(
+          clipBehavior: Clip.none,
+          alignment: Alignment.topCenter,
+          children: [
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(color: teamColor, width: 2),
+              ),
+              child: ClipOval(
+                child: (player.playerLogo != null && player.playerLogo!.isNotEmpty)
+                    ? Image.network(
+                        player.playerLogo!,
+                        fit: BoxFit.cover,
+                        errorBuilder: (c, e, s) => Container(
                           color: teamColor.withValues(alpha: 0.3),
                           child: Center(
                             child: Text(
@@ -2009,36 +2907,30 @@ class _BMFootballDetailPageState extends BMBasePageState<BMFootballDetailPage> {
                             ),
                           ),
                         ),
-                ),
-              ),
-              if (player.incidents.isNotEmpty)
-                Positioned(
-                  right: -2,
-                  top: -2,
-                  child: _buildLineupIncidentBadge(player.incidents),
-                ),
-            ],
-          ),
-          const SizedBox(height: 2),
-          // 球员名 Chip: 对齐 hanklive 白 85% 半透明 + 黑字 (深绿草皮背景对比度高)
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.85),
-              borderRadius: BorderRadius.circular(4),
-            ),
-            child: Text(
-              player.playerName ?? '',
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                fontSize: 9,
-                color: Colors.black87,
-                fontWeight: FontWeight.w500,
+                      )
+                    : Container(
+                        color: teamColor.withValues(alpha: 0.3),
+                        child: Center(
+                          child: Text(
+                            '$shirtNum',
+                            style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                      ),
               ),
             ),
-          ),
-        ],
+            if (player.incidents.isNotEmpty)
+              Positioned(
+                right: -2,
+                top: -2,
+                child: _buildLineupIncidentBadge(player.incidents),
+              ),
+          ],
+        ),
       ),
     );
   }
@@ -2079,11 +2971,14 @@ class _BMFootballDetailPageState extends BMBasePageState<BMFootballDetailPage> {
     );
   }
 
-  /// 替补区 (Home + Away, 对齐 hanklive _buildSubSection)
+  /// 替补区 (Home + Away, 用户要求: 左右两列, 每行2球员, 左主队 / 右客队)
   Widget _buildLineupSubSection(BMLineupData data) {
-    if (data.homeSub.isEmpty && data.awaySub.isEmpty) {
+    final homeList = data.homeSub;
+    final awayList = data.awaySub;
+    if (homeList.isEmpty && awayList.isEmpty) {
       return const SizedBox.shrink();
     }
+    final maxLen = homeList.length > awayList.length ? homeList.length : awayList.length;
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -2101,11 +2996,12 @@ class _BMFootballDetailPageState extends BMBasePageState<BMFootballDetailPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // 标题行 + 主/客小标签 (左右两端)
           Row(
-            children: const [
-              Icon(Icons.chair, size: 14, color: BMColors.bright),
-              SizedBox(width: 8),
-              Text(
+            children: [
+              const Icon(Icons.chair, size: 14, color: BMColors.bright),
+              const SizedBox(width: 8),
+              const Text(
                 '替补',
                 style: TextStyle(
                   fontSize: 12,
@@ -2113,40 +3009,45 @@ class _BMFootballDetailPageState extends BMBasePageState<BMFootballDetailPage> {
                   color: BMColors.textPrimary,
                 ),
               ),
+              const Spacer(),
+              // 主队小球
+              Container(width: 7, height: 7, decoration: const BoxDecoration(color: Color(0xFFE11D48), shape: BoxShape.circle)),
+              const SizedBox(width: 3),
+              const Text('主', style: TextStyle(fontSize: 10, color: BMColors.textTertiary, fontWeight: FontWeight.w600)),
+              const SizedBox(width: 10),
+              // 客队小球
+              Container(width: 7, height: 7, decoration: const BoxDecoration(color: Color(0xFF3B82F6), shape: BoxShape.circle)),
+              const SizedBox(width: 3),
+              const Text('客', style: TextStyle(fontSize: 10, color: BMColors.textTertiary, fontWeight: FontWeight.w600)),
             ],
           ),
           const SizedBox(height: 8),
-          if (data.homeSub.isNotEmpty) ...[
-            _buildLineupSubTeamTitle(widget.match.homeTeamName, isHome: true),
-            const SizedBox(height: 4),
-            ...data.homeSub.map((p) => _buildLineupSubPlayerChip(p)),
-            const SizedBox(height: 12),
-          ],
-          if (data.awaySub.isNotEmpty) ...[
-            _buildLineupSubTeamTitle(widget.match.awayTeamName, isHome: false),
-            const SizedBox(height: 4),
-            ...data.awaySub.map((p) => _buildLineupSubPlayerChip(p)),
-          ],
+          // 每行: 左 Expanded 主队球员 / 右 Expanded 客队球员 (两边各一位 → 共 2 位球员/行)
+          ...List.generate(maxLen, (i) {
+            final hPlayer = i < homeList.length ? homeList[i] : null;
+            final aPlayer = i < awayList.length ? awayList[i] : null;
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: hPlayer != null
+                        ? _buildLineupSubPlayerChip(hPlayer)
+                        : const SizedBox.shrink(),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: aPlayer != null
+                        ? _buildLineupSubPlayerChip(aPlayer)
+                        : const SizedBox.shrink(),
+                  ),
+                ],
+              ),
+            );
+          }),
         ],
       ),
-    );
-  }
-
-  Widget _buildLineupSubTeamTitle(String name, {required bool isHome}) {
-    final color = isHome ? const Color(0xFFE11D48) : const Color(0xFF3B82F6);
-    return Row(
-      children: [
-        Container(width: 8, height: 8, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
-        const SizedBox(width: 6),
-        Text(
-          name,
-          style: const TextStyle(
-            fontSize: 11,
-            fontWeight: FontWeight.w600,
-            color: BMColors.textSecondary,
-          ),
-        ),
-      ],
     );
   }
 
@@ -2212,11 +3113,14 @@ class _BMFootballDetailPageState extends BMBasePageState<BMFootballDetailPage> {
     );
   }
 
-  /// 伤停区 (Home + Away, 对齐 hanklive _buildInjurySection)
+  /// 伤停区 (Home + Away, 用户要求: 左右两列, 每行2球员, 左主队 / 右客队)
   Widget _buildLineupInjurySection(BMLineupData data) {
-    if (data.homeInjury.isEmpty && data.awayInjury.isEmpty) {
+    final homeList = data.homeInjury;
+    final awayList = data.awayInjury;
+    if (homeList.isEmpty && awayList.isEmpty) {
       return const SizedBox.shrink();
     }
+    final maxLen = homeList.length > awayList.length ? homeList.length : awayList.length;
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -2234,11 +3138,12 @@ class _BMFootballDetailPageState extends BMBasePageState<BMFootballDetailPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // 标题行 + 主/客小标签 (左右两端)
           Row(
-            children: const [
-              Icon(Icons.local_hospital, size: 14, color: Color(0xFFF87171)),
-              SizedBox(width: 8),
-              Text(
+            children: [
+              const Icon(Icons.local_hospital, size: 14, color: Color(0xFFF87171)),
+              const SizedBox(width: 8),
+              const Text(
                 '伤停',
                 style: TextStyle(
                   fontSize: 12,
@@ -2246,116 +3151,126 @@ class _BMFootballDetailPageState extends BMBasePageState<BMFootballDetailPage> {
                   color: BMColors.textPrimary,
                 ),
               ),
+              const Spacer(),
+              // 主队小球
+              Container(width: 7, height: 7, decoration: const BoxDecoration(color: Color(0xFFE11D48), shape: BoxShape.circle)),
+              const SizedBox(width: 3),
+              const Text('主', style: TextStyle(fontSize: 10, color: BMColors.textTertiary, fontWeight: FontWeight.w600)),
+              const SizedBox(width: 10),
+              // 客队小球
+              Container(width: 7, height: 7, decoration: const BoxDecoration(color: Color(0xFF3B82F6), shape: BoxShape.circle)),
+              const SizedBox(width: 3),
+              const Text('客', style: TextStyle(fontSize: 10, color: BMColors.textTertiary, fontWeight: FontWeight.w600)),
             ],
           ),
           const SizedBox(height: 8),
-          if (data.homeInjury.isNotEmpty) ...[
-            _buildLineupInjuryTeamTitle(widget.match.homeTeamName),
-            const SizedBox(height: 4),
-            ...data.homeInjury.map((p) => _buildLineupInjuryPlayerChip(p)),
-            const SizedBox(height: 12),
-          ],
-          if (data.awayInjury.isNotEmpty) ...[
-            _buildLineupInjuryTeamTitle(widget.match.awayTeamName),
-            const SizedBox(height: 4),
-            ...data.awayInjury.map((p) => _buildLineupInjuryPlayerChip(p)),
-          ],
+          // 每行: 左 Expanded 主队 / 右 Expanded 客队 (每行 2 位球员, 用户要求)
+          ...List.generate(maxLen, (i) {
+            final hPlayer = i < homeList.length ? homeList[i] : null;
+            final aPlayer = i < awayList.length ? awayList[i] : null;
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: hPlayer != null
+                        ? _buildLineupInjuryPlayerChip(hPlayer)
+                        : const SizedBox.shrink(),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: aPlayer != null
+                        ? _buildLineupInjuryPlayerChip(aPlayer)
+                        : const SizedBox.shrink(),
+                  ),
+                ],
+              ),
+            );
+          }),
         ],
       ),
-    );
-  }
-
-  Widget _buildLineupInjuryTeamTitle(String name) {
-    return Row(
-      children: [
-        Container(width: 8, height: 8, decoration: const BoxDecoration(color: Color(0xFFF87171), shape: BoxShape.circle)),
-        const SizedBox(width: 6),
-        Text(
-          name,
-          style: const TextStyle(
-            fontSize: 11,
-            fontWeight: FontWeight.w600,
-            color: BMColors.textSecondary,
-          ),
-        ),
-      ],
     );
   }
 
   Widget _buildLineupInjuryPlayerChip(BMMatchLineupPlayer player) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 6),
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-      decoration: BoxDecoration(
-        color: const Color(0xFF2B0E0E),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Row(
-        children: [
-          if (player.playerLogo != null && player.playerLogo!.isNotEmpty)
-            ClipOval(
-              child: Image.network(
-                player.playerLogo!,
-                width: 24,
-                height: 24,
-                fit: BoxFit.cover,
-                errorBuilder: (c, e, s) => Container(
+    return GestureDetector(
+      onTap: () => _navigateToLineupPlayerDetail(player),
+      behavior: HitTestBehavior.opaque,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 6),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+        decoration: BoxDecoration(
+          color: const Color(0xFF2B0E0E),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Row(
+          children: [
+            if (player.playerLogo != null && player.playerLogo!.isNotEmpty)
+              ClipOval(
+                child: Image.network(
+                  player.playerLogo!,
                   width: 24,
                   height: 24,
-                  color: const Color(0xFF7F1D1D),
-                ),
-              ),
-            )
-          else
-            Container(
-              width: 24,
-              height: 24,
-              decoration: const BoxDecoration(
-                color: Color(0xFF7F1D1D),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(Icons.person, size: 14, color: Color(0xFFF87171)),
-            ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  player.playerName ?? '',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: BMColors.textPrimary,
+                  fit: BoxFit.cover,
+                  errorBuilder: (c, e, s) => Container(
+                    width: 24,
+                    height: 24,
+                    color: const Color(0xFF7F1D1D),
                   ),
                 ),
-                // 伤停原因 (HankLineupInjuryPlayer.reason 对齐, 优先显示; 缺 reason 才显示位置 fallback)
-                if (player.reason != null && player.reason!.isNotEmpty)
+              )
+            else
+              Container(
+                width: 24,
+                height: 24,
+                decoration: const BoxDecoration(
+                  color: Color(0xFF7F1D1D),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.person, size: 14, color: Color(0xFFF87171)),
+              ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
                   Text(
-                    player.reason!,
+                    player.playerName ?? '',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
-                      fontSize: 10,
-                      color: Color(0xFFF87171),
-                    ),
-                  )
-                else if (player.position != null && player.position!.isNotEmpty)
-                  Text(
-                    player.position!,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontSize: 10,
-                      color: Color(0xFFF87171),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: BMColors.textPrimary,
                     ),
                   ),
-              ],
+                  // 伤停原因 (HankLineupInjuryPlayer.reason 对齐, 优先显示; 缺 reason 才显示位置 fallback)
+                  if (player.reason != null && player.reason!.isNotEmpty)
+                    Text(
+                      player.reason!,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 10,
+                        color: Color(0xFFF87171),
+                      ),
+                    )
+                  else if (player.position != null && player.position!.isNotEmpty)
+                    Text(
+                      player.position!,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 10,
+                        color: Color(0xFFF87171),
+                      ),
+                    ),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -2472,7 +3387,7 @@ class _BMFootballDetailPageState extends BMBasePageState<BMFootballDetailPage> {
     );
   }
 
-  /// 单段完整交锋区 (WDL汇总 + 过滤器 + 卡片列表) — 完全对齐 hanklive 逻辑
+  /// 单段完整交锋区 (过滤器 + 卡片列表) — 用户要求: 删除 WDL 比例条区
   Widget _h2hHomeSection({
     required List<BMH2HMatch> list,
     required int currentTeamId,
@@ -2506,10 +3421,7 @@ class _BMFootballDetailPageState extends BMBasePageState<BMFootballDetailPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ① WDL 汇总卡 (对齐 hanklive _buildWDLSummary)
-          _buildWDLSummaryCard(display, currentTeamId, sideColor),
-          const SizedBox(height: 12),
-          // ② 过滤器胶囊 (对齐 hanklive _buildFilterChips)
+          // ① 过滤器胶囊 (对齐 hanklive _buildFilterChips)
           _buildFilterRow(
             sideColor: sideColor,
             limit: limit,
@@ -2520,7 +3432,7 @@ class _BMFootballDetailPageState extends BMBasePageState<BMFootballDetailPage> {
             onLeagueOnlyChanged: onLeagueOnlyChanged,
           ),
           const SizedBox(height: 14),
-          // ③ 卡片列表 (对齐 hanklive ...displayMatches.map)
+          // ② 卡片列表 (对齐 hanklive ...displayMatches.map)
           if (display.isEmpty)
             const Padding(
               padding: EdgeInsets.symmetric(vertical: 20),
@@ -2530,144 +3442,6 @@ class _BMFootballDetailPageState extends BMBasePageState<BMFootballDetailPage> {
             )
           else
             ...display.map((m) => _buildH2HMatchCard(m, currentTeamId, sideColor, isHomeSection)),
-        ],
-      ),
-    );
-  }
-
-  /// WDL 汇总卡 (1:1 对齐 hanklive W/D/L 三栏 + 比例条 + 总进球/场均)
-  Widget _buildWDLSummaryCard(List<BMH2HMatch> display, int currentTeamId, Color sideColor) {
-    int curWin = 0;
-    int draw = 0;
-    int curLose = 0;
-    int curGoals = 0;
-    int oppGoals = 0;
-
-    for (final m in display) {
-      final hs = m.homeNormalScore ?? m.homeScore;
-      final as = m.awayNormalScore ?? m.awayScore;
-      if (hs == null || as == null) continue;
-      final isCurHome = m.homeTeamId == currentTeamId;
-      if (isCurHome) {
-        curGoals += hs;
-        oppGoals += as;
-        if (hs > as) {
-          curWin++;
-        } else if (hs < as) {
-          curLose++;
-        } else {
-          draw++;
-        }
-      } else {
-        curGoals += as;
-        oppGoals += hs;
-        if (as > hs) {
-          curWin++;
-        } else if (as < hs) {
-          curLose++;
-        } else {
-          draw++;
-        }
-      }
-    }
-
-    final total = display.length;
-    final winPct = total > 0 ? curWin / total : 0.0;
-    final drawPct = total > 0 ? draw / total : 0.0;
-    final losePct = total > 0 ? curLose / total : 0.0;
-    final avgGoals = total > 0 ? ((curGoals + oppGoals) / total).toStringAsFixed(1) : '0.0';
-
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: BMColors.pitch850,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: sideColor.withValues(alpha: 0.3), width: 0.9),
-      ),
-      child: Column(
-        children: [
-          // Row1: W D L 三个数字
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                '$curWin W',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w800,
-                  color: sideColor,
-                ),
-              ),
-              Text(
-                '$draw D',
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w800,
-                  color: BMColors.textTertiary,
-                ),
-              ),
-              Text(
-                '$curLose L',
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w800,
-                  color: Color(0xFFEF4444),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          // Row2: 三栏比例条 (Win 主队色 / D 灰 / L 红)
-          ClipRRect(
-            borderRadius: BorderRadius.circular(4),
-            child: SizedBox(
-              height: 10,
-              child: Row(
-                children: [
-                  if (winPct > 0)
-                    Expanded(
-                      flex: (winPct * 100).round() > 0 ? (winPct * 100).round() : 1,
-                      child: Container(color: sideColor),
-                    ),
-                  if (drawPct > 0)
-                    Expanded(
-                      flex: (drawPct * 100).round() > 0 ? (drawPct * 100).round() : 1,
-                      child: Container(color: BMColors.pitch700),
-                    ),
-                  if (losePct > 0)
-                    Expanded(
-                      flex: (losePct * 100).round() > 0 ? (losePct * 100).round() : 1,
-                      child: Container(color: const Color(0xFFEF4444)),
-                    ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 10),
-          // Row3: 进球汇总
-          Container(
-            padding: const EdgeInsets.only(top: 8),
-            decoration: BoxDecoration(
-              border: Border(top: BorderSide(color: BMColors.pitch700.withValues(alpha: 0.65))),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  '进球: $curGoals',
-                  style: TextStyle(fontSize: 10, color: sideColor, fontWeight: FontWeight.w700),
-                ),
-                Text(
-                  '场均进球: $avgGoals',
-                  style: const TextStyle(fontSize: 10, color: BMColors.textTertiary, fontWeight: FontWeight.w600),
-                ),
-                Text(
-                  '失球: $oppGoals',
-                  style: const TextStyle(fontSize: 10, color: Color(0xFFEF4444), fontWeight: FontWeight.w700),
-                ),
-              ],
-            ),
-          ),
         ],
       ),
     );
