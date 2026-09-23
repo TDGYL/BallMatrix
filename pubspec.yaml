@@ -53,6 +53,9 @@ dependencies:
   # 本地HTML网页展示 (用户协议/隐私政策本地HTML渲染)
   webview_flutter: ^4.8.0
 
+  # 从本地相册/相机选图 (编辑资料头像上传)
+  image_picker: ^1.0.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

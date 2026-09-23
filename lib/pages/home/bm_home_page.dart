@@ -12,6 +12,7 @@ import '../../widgets/home/bm_hot_news_section.dart';
 import '../../widgets/home/bm_hot_topics_section.dart';
 import '../match/matchList.dart';
 import '../news/newsList.dart';
+import '../news/bm_news_detail_page.dart';
 import '../community/topicList.dart';
 
 /// BMHomePage - 首页
@@ -319,7 +320,18 @@ class _BMHomePageState extends BMBasePageState<BMHomePage> {
   Widget _buildNewsContent() {
     return BMHotNewsSection(
       newsList: widget.viewModel.newsList,
-      onNewsTap: (BMNewsModel news) {},
+      onNewsTap: (BMNewsModel news) {
+        final int? id = int.tryParse(news.newsId);
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => BMNewsDetailPage(
+              newsId: id ?? 0,
+              newsTitle: news.title,
+            ),
+          ),
+        );
+      },
     );
   }
 

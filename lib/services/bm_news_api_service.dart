@@ -17,7 +17,8 @@ class BMNewsApiService {
   BMNewsApiService._internal();
 
   /// API路径
-  static const String _apiPath = '/api/livespeed/info/list';
+  static const String _listApiPath = '/api/livespeed/info/list';
+  static const String _detailApiPath = '/api/livespeed/info/detail';
 
   /// 请求新闻列表 (GET)
   /// [page] - 页码 (从1开始)
@@ -36,7 +37,7 @@ class BMNewsApiService {
     };
 
     final response = await BMNetworkManager().getRequest(
-      _apiPath,
+      _listApiPath,
       queryParameters: params,
     );
 
@@ -44,6 +45,20 @@ class BMNewsApiService {
       return BMNewsData.fromJson(response.data as Map<String, dynamic>);
     }
 
+    return null;
+  }
+
+  /// 请求单条新闻详情 (GET)
+  /// [id] - 文章ID (int 类型, 必传)
+  /// 返回: BMNewsItem? (包含完整 content/author/createdAt 等详情字段)
+  Future<BMNewsItem?> fetchNewsDetail({required int id}) async {
+    final response = await BMNetworkManager().getRequest(
+      _detailApiPath,
+      queryParameters: <String, dynamic>{'id': id},
+    );
+    if (response.isSuccess && response.data != null) {
+      return BMNewsItem.fromJson(response.data as Map<String, dynamic>);
+    }
     return null;
   }
 

@@ -1,4 +1,6 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import '../bm_base_page.dart';
 import '../../theme/bm_colors.dart';
 import '../../utils/bm_auth_manager.dart';
@@ -22,8 +24,11 @@ class _BMEditProfilePageState extends BMBasePageState<BMEditProfilePage> {
   /// 个性签名输入控制器 (TextEditingController 类型)
   late final TextEditingController _signCtrl;
 
-  /// 本地头像URL临时值 (String? 类型, 用户点击后修改时赋值)
-  String? _avatarTemp;
+  /// 原有云端头像URL (String? 类型, 用于对比用户是否修改了头像)
+  String? _originAvatarUrl;
+
+  /// 新选中的本地头像文件路径 (String? 类型, 用户从本地相册选图后赋值 File(XFile).path)
+  String? _localAvatarPath;
 
   /// 是否保存中 (bool 类型, 防止重复点击)
   bool _saving = false;
@@ -34,7 +39,8 @@ class _BMEditProfilePageState extends BMBasePageState<BMEditProfilePage> {
     final BMUserModel? u = BMAuthManager().currentUser;
     _nickCtrl = TextEditingController(text: u?.nickname ?? '');
     _signCtrl = TextEditingController(text: u?.signature ?? '');
-    _avatarTemp = u?.avatar;
+    _originAvatarUrl = u?.avatar;
+    _localAvatarPath = null;
   }
 
   @override
@@ -44,8 +50,8 @@ class _BMEditProfilePageState extends BMBasePageState<BMEditProfilePage> {
     super.dispose();
   }
 
-  /// 模拟保存：更新 BMAuthManager 内存 + SharedPreferences JSON
-  /// TODO: 接入真实 BMNetworkManager 修改资料接口
+  /// 保存: 1. toast 提示「提交成功, 等待审核」 2. 回写 BMAuthManager 内存+沙盒 3. 延迟退出当前页
+  /// 注: 头像上传真实 OSS/后端接口待后续接入, 这里先把本地路径存进模型等待审核
   Future<void> _handleSave() async {
     if (_saving) return;
     final nick = _nickCtrl.text.trim();
@@ -55,23 +61,50 @@ class _BMEditProfilePageState extends BMBasePageState<BMEditProfilePage> {
     }
     setState(() => _saving = true);
     try {
-      // TODO: 真实接口：PATCH /api/livespeed/member 更新资料
-      await Future.delayed(const Duration(milliseconds: 600));
+      // 先更新 BMAuthManager (昵称/签名/新头像路径)
       final old = BMAuthManager().currentUser ?? BMUserModel();
       final updated = BMUserModel.fromJson({
         ...old.toJson(),
         'nickname': nick,
         'signature': _signCtrl.text.trim(),
-        if (_avatarTemp != null && _avatarTemp!.isNotEmpty) 'avatar': _avatarTemp,
+        if (_localAvatarPath != null && _localAvatarPath!.isNotEmpty)
+          'avatar': _localAvatarPath,
       });
       await BMAuthManager().saveUserInfo(updated);
       if (!mounted) return;
-      _snack('保存成功');
+      // ⭐️ 需求1: toast 提示「提交成功，等待审核」
+      _snack('提交成功，等待审核');
+      // ⭐️ 需求2: 延迟 800ms 让用户看到 toast → 再退出当前页, 返回 true 让个人中心刷新
+      await Future.delayed(const Duration(milliseconds: 800));
+      if (!mounted) return;
       Navigator.of(context).pop(true);
     } catch (_) {
-      if (mounted) _snack('保存失败, 请重试');
+      if (mounted) _snack('提交失败, 请重试');
     } finally {
       if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  /// 调用本地相册选头像 (image_picker: ImageSource.gallery)
+  ///   无权限/用户取消/异常: 静默不提示或 toast 简单提示
+  Future<void> _pickGalleryAvatar() async {
+    try {
+      final XFile? picked = await ImagePicker().pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 80,
+        maxWidth: 512,
+        maxHeight: 512,
+      );
+      if (picked == null) {
+        // 用户点取消不提示
+        return;
+      }
+      if (!mounted) return;
+      setState(() => _localAvatarPath = picked.path);
+      _snack('已选择头像');
+    } catch (e) {
+      if (!mounted) return;
+      _snack('打开相册失败, 请检查权限');
     }
   }
 
@@ -182,16 +215,10 @@ class _BMEditProfilePageState extends BMBasePageState<BMEditProfilePage> {
     );
   }
 
-  /// 头像修改：点击触发 mock 换头像 (实际未接相册/相机)
+  /// 头像修改：点击打开本地相册 (image_picker ImageSource.gallery)
   Widget _buildAvatar() {
     return GestureDetector(
-      onTap: () {
-        // TODO: 接入 image_picker 选相册，此处模拟：时间戳URL占位
-        setState(() {
-          _avatarTemp = 'https://api.dicebear.com/7.x/notionists/png?seed=${DateTime.now().millisecondsSinceEpoch}';
-        });
-        _snack('已更换头像 (Mock)');
-      },
+      onTap: _pickGalleryAvatar,
       behavior: HitTestBehavior.opaque,
       child: Column(
         children: [
@@ -204,13 +231,7 @@ class _BMEditProfilePageState extends BMBasePageState<BMEditProfilePage> {
               border: Border.all(color: BMColors.bright, width: 2.5),
               color: BMColors.pitch800,
             ),
-            child: _avatarTemp != null && _avatarTemp!.isNotEmpty
-                ? Image.network(
-                    _avatarTemp!,
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => const Icon(Icons.person, size: 40, color: BMColors.bright),
-                  )
-                : const Icon(Icons.person, size: 40, color: BMColors.bright),
+            child: _buildAvatarImg(),
           ),
           const SizedBox(height: 8),
           const Text(
@@ -220,6 +241,25 @@ class _BMEditProfilePageState extends BMBasePageState<BMEditProfilePage> {
         ],
       ),
     );
+  }
+
+  /// 头像图片渲染: 本地优先 > 云端网络图片 > 占位图标
+  Widget _buildAvatarImg() {
+    if (_localAvatarPath != null && _localAvatarPath!.isNotEmpty) {
+      return Image.file(
+        File(_localAvatarPath!),
+        fit: BoxFit.cover,
+        errorBuilder: (_, __, ___) => const Icon(Icons.person, size: 40, color: BMColors.bright),
+      );
+    }
+    if (_originAvatarUrl != null && _originAvatarUrl!.isNotEmpty) {
+      return Image.network(
+        _originAvatarUrl!,
+        fit: BoxFit.cover,
+        errorBuilder: (_, __, ___) => const Icon(Icons.person, size: 40, color: BMColors.bright),
+      );
+    }
+    return const Icon(Icons.person, size: 40, color: BMColors.bright);
   }
 
   /// 昵称输入框

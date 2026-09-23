@@ -4,6 +4,7 @@ import '../bm_base_page.dart';
 import '../../theme/bm_colors.dart';
 import '../../models/bm_news_model.dart';
 import '../../services/bm_news_api_service.dart';
+import 'bm_news_detail_page.dart';
 
 /// BMNewsListPage - 资讯列表页 (首页第二段「查看全部」push 进来)
 /// 功能: 真实GET接口(/api/livespeed/info/list, 默认type=1) + 简化资讯卡片 + 下拉刷新 + 上拉加载
@@ -341,18 +342,32 @@ class _BMNewsListPageState extends BMBasePageState<BMNewsListPage> {
 
   /// 资讯列表卡片: 封面图(右) + 标题2行(左) + 底部发布时间/浏览量
   Widget _buildNewsCard(BMNewsModel news) {
-    return Container(
-      height: 112,
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: BMColors.pitch850,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: BMColors.pitch700.withValues(alpha: 0.5),
-          width: 0.5,
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () {
+        final int? id = int.tryParse(news.newsId);
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => BMNewsDetailPage(
+              newsId: id ?? 0,
+              newsTitle: news.title,
+            ),
+          ),
+        );
+      },
+      child: Container(
+        height: 112,
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: BMColors.pitch850,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: BMColors.pitch700.withValues(alpha: 0.5),
+            width: 0.5,
+          ),
         ),
-      ),
-      child: Row(
+        child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Expanded(
@@ -440,8 +455,9 @@ class _BMNewsListPageState extends BMBasePageState<BMNewsListPage> {
           ),
         ],
       ),
-    );
-  }
+    ),
+  );
+}
 
   /// 底部加载指示器
   Widget _buildFooter() {

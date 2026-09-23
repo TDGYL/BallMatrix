@@ -2,6 +2,28 @@
 
 
 
+
+
+首页点击足球卡片时候push到一个足球详情界面，足球详情命名为football_detail_page,参照/Users/guyilin/Desktop/FlutterProject/hanklive/lib/pages/match/match_detail_page.dart，我要参照的因素包括：
+1、功能完全参考
+2、接口完全参考，接口配置一模一样，就是一个替身
+3、界面做差异化，功能可以一样，但是界面不能长的一样，风格保持和现有风格一样
+4、指数列表跳转完全参考，界面做差异化
+5、历史交锋列表能跳转到比赛列表
+6、去掉Post菜单项，去掉阵容菜单项
+
+
+
+
+
+
+
+
+
+bm_edit_profile_page中，点击头像时候调用本地相册，当点击右上角保存的时候，toast提示，提交成功，等待审核，然后退出当前界面
+/api/livespeed/member，POST请求，保存用户信息
+
+
 修改bm_tool_page的Tactical Board功能：
 1、点击Arrow和Line无法在球场中绘制，结束拖动后，拖动的路径没有渲染在球场中
 
