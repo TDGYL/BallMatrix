@@ -2,6 +2,145 @@
 
 
 
+
+bm_football_detail_page的阵容菜单返回的数据结构为：
+{
+    "code": 0,
+    "data": {
+        "sub": {
+            "home": [
+                {
+                    "player_id": 0,
+                    "player_logo": "string",
+                    "player_name": "string",
+                    "position": "string",
+                    "x": 0,
+                    "y": 0,
+                    "rating": "string",
+                    "shirt_number": 0,
+                    "incidents": [
+                        {
+                            "type": 0,
+                            "time": "string"
+                        }
+                    ]
+                }
+            ],
+            "away": [
+                {
+                    "player_id": 0,
+                    "player_logo": "string",
+                    "player_name": "string",
+                    "position": "string",
+                    "x": 0,
+                    "y": 0,
+                    "rating": "string",
+                    "shirt_number": 0,
+                    "incidents": [
+                        {
+                            "type": 0,
+                            "time": "string"
+                        }
+                    ]
+                }
+            ]
+        },
+        "first": {
+            "home": [
+                {
+                    "player_id": 0,
+                    "player_logo": "string",
+                    "player_name": "string",
+                    "position": "string",
+                    "x": 0,
+                    "y": 0,
+                    "rating": "string",
+                    "shirt_number": 0,
+                    "incidents": [
+                        {
+                            "type": 0,
+                            "time": "string"
+                        }
+                    ]
+                }
+            ],
+            "away": [
+                {
+                    "player_id": 0,
+                    "player_logo": "string",
+                    "player_name": "string",
+                    "position": "string",
+                    "x": 0,
+                    "y": 0,
+                    "rating": "string",
+                    "shirt_number": 0,
+                    "incidents": [
+                        {
+                            "type": 0,
+                            "time": "string"
+                        }
+                    ]
+                }
+            ]
+        },
+        "injury": {
+            "home": [
+                {
+                    "player_id": 0,
+                    "player_logo": "string",
+                    "player_name": "string",
+                    "type": 0,
+                    "reason": "string",
+                    "position": "string"
+                }
+            ],
+            "away": [
+                {
+                    "player_id": 0,
+                    "player_logo": "string",
+                    "player_name": "string",
+                    "type": "string",
+                    "reason": "string",
+                    "position": "string"
+                }
+            ]
+        },
+        "away_coach": {
+            "id": 0,
+            "logo": "string",
+            "name": "string"
+        },
+        "home_coach": {
+            "id": 0,
+            "logo": "string",
+            "name": "string"
+        },
+        "away_formation": "string",
+        "home_formation": "string",
+        "away_market_value": 0,
+        "home_market_value": 0
+    },
+    "message": "string"
+}
+
+参数说明：data下的first里边的home和away是首发阵容，injury是伤停，sub是替补
+
+
+
+
+bm_football_detail_page的阵容菜单界面UI参考/Users/guyilin/Desktop/FlutterProject/hanklive/lib/widgets/match/match_detail_lineup_tab.dart
+
+bm_football_detail_page头部的球队名称要全部展示，可以换行
+
+bm_football_detail_page交锋菜单的主队、客队数据获取参照/Users/guyilin/Desktop/FlutterProject/hanklive/lib/widgets/match/match_detail_h2h_tab.dart
+
+
+bm_football_detail_page指数菜单的数据没有请求出来，参考/Users/guyilin/Desktop/FlutterProject/hanklive/lib/widgets/match/match_detail_odds_tab.dart,界面做差异化
+
+
+bm_football_detail_page顶部的卡片信息，要求客队的logo靠右约束对齐
+
+
 将bm_football_detail_page的交锋分为两段，一段是主队，一段是客队的数据，将交锋列表的卡片比分展示真数据
 
 
@@ -353,6 +492,17 @@ Push进去的话题里表的卡片和首页展示一样，数据取真实的
 第三段的信心85%删掉，替换成一个...更多的图片,点击更多出现菜单弹窗，有拉黑和举报功能
 
 =======================================比赛的状态
+
+/// 修改项目的比赛状态
+修改bm_match_model的displayStatusLabel返回的比赛状态：当statusId=1时候表示未开始
+
+当statusId=2 ｜ 3 ｜ 4 ｜ 5 ｜ 7 时候，表示进行时
+
+当statusId=8时候表示已结束
+
+当statusId=0 ｜ 9 ｜ 10 ｜ 11 ｜ 12 ｜ 13 时候，时候表示TBD
+
+
 修改第一段比赛的状态：
 足球是足球：
 比赛的状态都使用statusId来做判断，如果哪个比赛模型包含statusId这个属性，则用这个属性来判断比赛状态

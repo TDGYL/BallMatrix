@@ -18,11 +18,26 @@ class BMH2HMatch {
   /// 客队名 (String? 类型)
   final String? awayTeamName;
 
+  /// 主队球队 ID (int? 类型, 用于判断是否是当前主队: homeTeamId == currentHomeTeamId)
+  final int? homeTeamId;
+
+  /// 客队球队 ID (int? 类型, 用于判断是否是当前主队: awayTeamId == currentHomeTeamId)
+  final int? awayTeamId;
+
   /// 主队logo URL (String? 类型)
   final String? homeTeamLogo;
 
   /// 客队logo URL (String? 类型)
   final String? awayTeamLogo;
+
+  /// 联赛/杯赛 Logo (String? 类型, HankLive TopRow 左侧图标)
+  final String? leagueLogo;
+
+  /// 主队 90 分钟常规时间比分 (int? 类型, 不含加时/点球, 对应 Hank homeNormalScore)
+  final int? homeNormalScore;
+
+  /// 客队 90 分钟常规时间比分 (int? 类型, 对应 Hank awayNormalScore)
+  final int? awayNormalScore;
 
   /// 主队比分 (int? 类型, 含加时/点球总比分)
   final int? homeScore;
@@ -45,8 +60,13 @@ class BMH2HMatch {
     this.matchTime,
     this.homeTeamName,
     this.awayTeamName,
+    this.homeTeamId,
+    this.awayTeamId,
     this.homeTeamLogo,
     this.awayTeamLogo,
+    this.leagueLogo,
+    this.homeNormalScore,
+    this.awayNormalScore,
     this.homeScore,
     this.awayScore,
     this.homeHalfScore,
@@ -58,17 +78,27 @@ class BMH2HMatch {
     final mid = (json['match_id'] ?? json['matchId'] ?? '').toString();
     final ht = json['home_score'] ?? json['homeScore'];
     final at = json['away_score'] ?? json['awayScore'];
+    final hnt = json['home_normal_score'] ?? json['homeNormalScore'] ?? json['home_regular_score'] ?? json['homeRegularScore'] ?? ht;
+    final ant = json['away_normal_score'] ?? json['awayNormalScore'] ?? json['away_regular_score'] ?? json['awayRegularScore'] ?? at;
     final hh = json['home_half_score'] ?? json['homeHalfScore'];
     final aa = json['away_half_score'] ?? json['awayHalfScore'];
     final mt = json['match_time'] ?? json['matchTime'] ?? json['time'];
+    final hid = json['home_team_id'] ?? json['homeTeamId'] ?? json['homeId'];
+    final aid = json['away_team_id'] ?? json['awayTeamId'] ?? json['awayId'];
+    final ll = json['league_logo'] ?? json['leagueLogo'] ?? json['competition_logo'] ?? json['competitionLogo'];
     return BMH2HMatch(
       matchId: mid,
       leagueName: json['league_name'] ?? json['leagueName'] ?? json['competition_name'] ?? json['competitionName'],
+      leagueLogo: ll is String && ll.isNotEmpty ? ll : null,
       matchTime: (mt is num) ? mt.toInt() : int.tryParse(mt?.toString() ?? ''),
       homeTeamName: json['home_team_name'] ?? json['homeTeamName'] ?? json['homeName'],
       awayTeamName: json['away_team_name'] ?? json['awayTeamName'] ?? json['awayName'],
+      homeTeamId: (hid is num) ? hid.toInt() : int.tryParse(hid?.toString() ?? ''),
+      awayTeamId: (aid is num) ? aid.toInt() : int.tryParse(aid?.toString() ?? ''),
       homeTeamLogo: json['home_team_logo'] ?? json['homeTeamLogo'] ?? json['homeLogo'],
       awayTeamLogo: json['away_team_logo'] ?? json['awayTeamLogo'] ?? json['awayLogo'],
+      homeNormalScore: (hnt is num) ? hnt.toInt() : int.tryParse(hnt?.toString() ?? ''),
+      awayNormalScore: (ant is num) ? ant.toInt() : int.tryParse(ant?.toString() ?? ''),
       homeScore: (ht is num) ? ht.toInt() : int.tryParse(ht?.toString() ?? ''),
       awayScore: (at is num) ? at.toInt() : int.tryParse(at?.toString() ?? ''),
       homeHalfScore: (hh is num) ? hh.toInt() : int.tryParse(hh?.toString() ?? ''),
@@ -109,12 +139,20 @@ extension BMH2HMatchDisplayX on BMH2HMatch {
   BMMatchModel get toMatchModel {
     return BMMatchModel(
       matchId: matchId,
+      // Hank 对齐字段: 顶层 int homeTeamId / awayTeamId → 直接传给 BMMatchModel, 解决 H2H WDL 归属判断问题
+      homeTeamId: homeTeamId,
+      awayTeamId: awayTeamId,
       homeTeamName: homeTeamName,
       awayTeamName: awayTeamName,
       homeTeamLogo: homeTeamLogo,
       awayTeamLogo: awayTeamLogo,
       homeScore: homeScore,
       awayScore: awayScore,
+      // 4 段比分 (Hank 对齐 常规/半场/加时/点球)
+      homeNormalScore: homeNormalScore,
+      homeHalfScore: homeHalfScore,
+      awayNormalScore: awayNormalScore,
+      awayHalfScore: awayHalfScore,
       leagueName: leagueName ?? '',
       leagueColor: 0xFF12FF80,
       status: resolvedStatus,
@@ -126,10 +164,29 @@ extension BMH2HMatchDisplayX on BMH2HMatch {
               : resolvedStatus == BMMatchStatus.upcoming
                   ? '未开始'
                   : '待定',
+      // win 胜负结果 (1=主胜 2=平 3=客胜 Hank 对齐)
+      win: (homeScore != null && awayScore != null)
+          ? (homeScore! > awayScore! ? 1 : (homeScore! < awayScore! ? 3 : 2))
+          : null,
       sportType: BMMatchSportType.football,
       matchTime: formattedMatchTime,
       halfTimeScore: halfTimeScoreStr,
       round: '',
+      // 兼容原来的 homeTeam / awayTeam 结构化字段 (未直接传 teamId/teamLogo 时 H2H 顶部 fallback)
+      homeTeam: (homeTeamId != null || (homeTeamName?.isNotEmpty ?? false))
+          ? BMTeamModel(
+              teamId: homeTeamId?.toString(),
+              teamName: homeTeamName ?? '',
+              logoUrl: homeTeamLogo,
+            )
+          : null,
+      awayTeam: (awayTeamId != null || (awayTeamName?.isNotEmpty ?? false))
+          ? BMTeamModel(
+              teamId: awayTeamId?.toString(),
+              teamName: awayTeamName ?? '',
+              logoUrl: awayTeamLogo,
+            )
+          : null,
     );
   }
 }

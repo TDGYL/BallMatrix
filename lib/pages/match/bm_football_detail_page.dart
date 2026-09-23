@@ -67,14 +67,33 @@ class _BMFootballDetailPageState extends BMBasePageState<BMFootballDetailPage> {
   /// 是否加载中 Odds
   bool _loadingOdds = false;
 
-  /// H2H 交锋列表
-  List<BMH2HMatch> _h2hMatches = [];
+  /// 主队近期交锋列表
+  List<BMH2HMatch> _h2hHomeList = [];
+
+  /// 客队近期交锋列表
+  List<BMH2HMatch> _h2hAwayList = [];
 
   /// 是否加载中 H2H
   bool _loadingH2H = false;
 
   /// 是否已加载过 H2H (懒加载)
   bool _fetchedH2H = false;
+
+  // ======== H2H 主队段过滤器 ========
+  /// 主队近期比赛 - 显示数量限制 (10 / 6)
+  int _h2hHomeLimit = 10;
+  /// 主队近期比赛 - 是否只保留 当前主队是 home 且 当前客队是 away (同主客)
+  bool _h2hHomeSameSide = false;
+  /// 主队近期比赛 - 是否只保留联赛 (过滤杯赛 name 含 cup/Cup)
+  bool _h2hHomeLeagueOnly = false;
+
+  // ======== H2H 客队段过滤器 ========
+  /// 客队近期比赛 - 显示数量限制 (10 / 6)
+  int _h2hAwayLimit = 10;
+  /// 客队近期比赛 - 是否只保留同主客侧
+  bool _h2hAwaySameSide = false;
+  /// 客队近期比赛 - 是否只保留联赛
+  bool _h2hAwayLeagueOnly = false;
 
   /// 阵容数据 (lineup)
   BMLineupData? _lineupData;
@@ -161,16 +180,23 @@ class _BMFootballDetailPageState extends BMBasePageState<BMFootballDetailPage> {
     });
   }
 
-  /// 懒加载 H2H
+  /// 懒加载 H2H (拆分主队/客队两段)
   Future<void> _ensureH2H() async {
     if (_fetchedH2H || _loadingH2H) return;
     final matchId = int.tryParse(widget.match.matchId) ?? 0;
     if (matchId == 0) return;
     setState(() => _loadingH2H = true);
-    final List<BMH2HMatch> list = await _apiService.fetchH2HData(matchId: matchId);
+    final splited = await _apiService.fetchH2HSplitedData(matchId: matchId);
     if (!mounted) return;
     setState(() {
-      _h2hMatches = list;
+      _h2hHomeList = splited['home'] ?? [];
+      _h2hAwayList = splited['away'] ?? [];
+      // 兼容兜底：如果接口没有 home/away 字段，但有 vs，把 vs 平均分/合并到两个列表里兜底显示
+      if (_h2hHomeList.isEmpty && _h2hAwayList.isEmpty) {
+        final vs = splited['vs'] ?? [];
+        _h2hHomeList = vs;
+        _h2hAwayList = vs;
+      }
       _loadingH2H = false;
       _fetchedH2H = true;
     });
@@ -191,16 +217,16 @@ class _BMFootballDetailPageState extends BMBasePageState<BMFootballDetailPage> {
     });
   }
 
-  /// 指数历史跳转 (完全参考 hanklive odds_history_page)
-  void _gotoOddsHistory(String companyId, String companyName, BMOddsType type) {
+  /// 指数历史跳转 (完全参考 hanklive odds_history_page - 新入参: BMCompanyOdds 公司级对象)
+  void _gotoOddsHistory(BMCompanyOdds company) {
     Navigator.push(
       context,
       MaterialPageRoute(
         builder: (_) => BMOddsHistoryPage(
           matchId: int.tryParse(widget.match.matchId) ?? 0,
-          companyId: companyId,
-          companyName: companyName,
-          oddsType: type,
+          companyId: company.companyId,
+          companyName: company.companyName ?? '博彩公司',
+          oddsType: _oddsSel,
         ),
       ),
     );
@@ -360,16 +386,21 @@ class _BMFootballDetailPageState extends BMBasePageState<BMFootballDetailPage> {
           ),
           const SizedBox(height: 14),
           Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // 主队: 左对齐 + Flex 5
               Expanded(
-                child: _teamColumn(homeLogo, homeName),
+                flex: 5,
+                child: _teamHomeColumn(homeLogo, homeName),
               ),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 14),
+              // 中间比分: Flex 4 居中
+              Expanded(
+                flex: 4,
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
                         Text(
@@ -377,21 +408,23 @@ class _BMFootballDetailPageState extends BMBasePageState<BMFootballDetailPage> {
                           style: const TextStyle(
                             fontSize: 34,
                             fontWeight: FontWeight.w900,
-                            color: Colors.white,
+                            color: BMColors.bright,
                             height: 1.05,
+                            fontFamily: 'monospace',
                           ),
                         ),
                         const Padding(
                           padding: EdgeInsets.symmetric(horizontal: 10),
-                          child: Text(':', style: TextStyle(fontSize: 22, color: Color(0xFF6B7280))),
+                          child: Text(':', style: TextStyle(fontSize: 22, color: Color(0xFF6B7280), fontWeight: FontWeight.w900)),
                         ),
                         Text(
                           widget.match.awayScore?.toString() ?? '-',
                           style: const TextStyle(
                             fontSize: 34,
                             fontWeight: FontWeight.w900,
-                            color: Colors.white,
+                            color: Color(0xFF3B82F6),
                             height: 1.05,
+                            fontFamily: 'monospace',
                           ),
                         ),
                       ],
@@ -403,15 +436,17 @@ class _BMFootballDetailPageState extends BMBasePageState<BMFootballDetailPage> {
                         style: const TextStyle(
                           fontSize: 11,
                           color: BMColors.textTertiary,
-                          letterSpacing: 0.3,
+                          fontWeight: FontWeight.w600,
                         ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
                       ),
                   ],
                 ),
               ),
-              Expanded(child: _teamColumn(awayLogo, awayName, isHome: false)),
+              // 客队: 右对齐 + Flex 5
+              Expanded(
+                flex: 5,
+                child: _teamAwayColumn(awayLogo, awayName),
+              ),
             ],
           ),
           const SizedBox(height: 12),
@@ -420,40 +455,106 @@ class _BMFootballDetailPageState extends BMBasePageState<BMFootballDetailPage> {
     );
   }
 
-  Widget _teamColumn(String? logo, String name, {bool isHome = true}) {
+  /// 主队球队列: Logo + 名字, 左侧对齐
+  Widget _teamHomeColumn(String? logo, String name) {
     return Column(
       mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: isHome ? CrossAxisAlignment.start : CrossAxisAlignment.end,
-      textDirection: isHome ? TextDirection.ltr : TextDirection.rtl,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Container(
-          width: 46,
-          height: 46,
-          decoration: BoxDecoration(
-            color: BMColors.pitch800,
-            shape: BoxShape.circle,
-            border: Border.all(color: BMColors.pitch700.withValues(alpha: 0.6)),
+        Align(
+          alignment: Alignment.centerLeft,
+          child: Container(
+            width: 46,
+            height: 46,
+            decoration: BoxDecoration(
+              color: BMColors.pitch800,
+              shape: BoxShape.circle,
+              border: Border.all(color: BMColors.bright.withValues(alpha: 0.45), width: 1.1),
+              boxShadow: [
+                BoxShadow(
+                  color: BMColors.bright.withValues(alpha: 0.12),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            clipBehavior: Clip.antiAlias,
+            alignment: Alignment.center,
+            child: (logo != null && logo.isNotEmpty)
+                ? Image.network(
+                    logo,
+                    fit: BoxFit.contain,
+                    errorBuilder: (_, __, ___) => const Icon(Icons.sports_soccer, size: 22, color: BMColors.bright),
+                  )
+                : const Icon(Icons.sports_soccer, size: 22, color: BMColors.bright),
           ),
-          clipBehavior: Clip.antiAlias,
-          alignment: Alignment.center,
-          child: (logo != null && logo.isNotEmpty)
-              ? Image.network(
-                  logo,
-                  fit: BoxFit.contain,
-                  errorBuilder: (_, __, ___) => const Icon(Icons.sports_soccer, size: 22, color: BMColors.bright),
-                )
-              : const Icon(Icons.sports_soccer, size: 22, color: BMColors.bright),
         ),
         const SizedBox(height: 7),
         Text(
           name,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          textDirection: TextDirection.ltr,
+          maxLines: 3,
+          softWrap: true,
+          overflow: TextOverflow.visible,
+          textAlign: TextAlign.left,
           style: const TextStyle(
-            color: Colors.white,
+            color: BMColors.bright,
             fontSize: 13,
-            fontWeight: FontWeight.w700,
+            height: 1.25,
+            fontWeight: FontWeight.w800,
+            letterSpacing: 0.3,
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// 客队球队列: Logo + 名字, **右侧严格对齐** (用户需求点)
+  Widget _teamAwayColumn(String? logo, String name) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        Align(
+          alignment: Alignment.centerRight,
+          child: Container(
+            width: 46,
+            height: 46,
+            decoration: BoxDecoration(
+              color: BMColors.pitch800,
+              shape: BoxShape.circle,
+              border: Border.all(color: const Color(0xFF3B82F6).withValues(alpha: 0.45), width: 1.1),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFF3B82F6).withValues(alpha: 0.12),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            clipBehavior: Clip.antiAlias,
+            alignment: Alignment.center,
+            child: (logo != null && logo.isNotEmpty)
+                ? Image.network(
+                    logo,
+                    fit: BoxFit.contain,
+                    errorBuilder: (_, __, ___) => const Icon(Icons.sports_soccer, size: 22, color: Color(0xFF3B82F6)),
+                  )
+                : const Icon(Icons.sports_soccer, size: 22, color: Color(0xFF3B82F6)),
+          ),
+        ),
+        const SizedBox(height: 7),
+        Text(
+          name,
+          maxLines: 3,
+          softWrap: true,
+          overflow: TextOverflow.visible,
+          textAlign: TextAlign.right,
+          style: const TextStyle(
+            color: Color(0xFF3B82F6),
+            fontSize: 13,
+            height: 1.25,
+            fontWeight: FontWeight.w800,
+            letterSpacing: 0.3,
           ),
         ),
       ],
@@ -1242,139 +1343,358 @@ class _BMFootballDetailPageState extends BMBasePageState<BMFootballDetailPage> {
     );
   }
 
-  // =========== Odds Tab ===========
+  // =========== Odds Tab (数据获取参照 hanklive match_detail_odds_tab.dart，UI 深绿差异化) ===========
   BMOddsType _oddsSel = BMOddsType.asianHandicap;
 
   Widget _buildOddsTab() {
     _ensureOdds();
-    List<BMCompanyOdds> list;
-    switch (_oddsSel) {
-      case BMOddsType.asianHandicap:
-        list = _oddsData?.asianHandicap ?? [];
-        break;
-      case BMOddsType.matchResult:
-        list = _oddsData?.matchResult ?? [];
-        break;
-      case BMOddsType.overUnder:
-        list = _oddsData?.overUnder ?? [];
-        break;
-      case BMOddsType.corners:
-        list = _oddsData?.corners ?? [];
-        break;
-    }
+    final companies = _oddsData?.listBy(_oddsSel) ?? [];
+    final is1x2 = _oddsSel == BMOddsType.matchResult;
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        // ① 4 段 selector (对齐 hanklive Row + Expanded 4 等分,不再 Wrap)
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 14),
-          child: Wrap(
-            spacing: 8,
-            runSpacing: 6,
-            children: BMOddsType.values.map((t) {
-              final sel = _oddsSel == t;
-              return GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onTap: () => setState(() => _oddsSel = t),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
-                  decoration: BoxDecoration(
-                    color: sel ? BMColors.bright.withValues(alpha: 0.14) : BMColors.pitch850,
-                    borderRadius: BorderRadius.circular(18),
-                    border: Border.all(color: sel ? BMColors.bright.withValues(alpha: 0.6) : BMColors.pitch700.withValues(alpha: 0.5)),
-                  ),
-                  child: Text(
-                    t.label,
-                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: sel ? BMColors.bright : BMColors.textSecondary),
-                  ),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 5),
+            decoration: BoxDecoration(
+              color: BMColors.pitch850,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: BMColors.pitch700.withValues(alpha: 0.6)),
+              boxShadow: [
+                BoxShadow(
+                  color: BMColors.bright.withValues(alpha: 0.05),
+                  blurRadius: 10,
+                  offset: const Offset(0, 2),
                 ),
-              );
-            }).toList(),
-          ),
-        ),
-        const SizedBox(height: 14),
-        if (_loadingOdds && list.isEmpty)
-          _buildLoading(BMColors.bright)
-        else if (list.isEmpty)
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: 30),
-            child: Center(child: Text('暂无赔率数据', style: TextStyle(color: BMColors.textTertiary, fontSize: 12))),
-          )
-        else
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 14),
-            child: Column(
-              children: List.generate(list.length, (i) {
-                final co = list[i];
-                final needDraw = _oddsSel == BMOddsType.matchResult;
-                return GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onTap: () => _gotoOddsHistory(co.companyId, co.companyName ?? '博彩公司', _oddsSel),
-                  child: Container(
-                    margin: const EdgeInsets.only(bottom: 8),
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                    decoration: BoxDecoration(
-                      color: BMColors.pitch850,
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: BMColors.pitch700.withValues(alpha: 0.4)),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Text(
-                                co.companyName ?? '公司 ID:${co.companyId}',
-                                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 13),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                            Icon(Icons.chevron_right, size: 16, color: BMColors.textTertiary),
-                          ],
+              ],
+            ),
+            child: Row(
+              children: BMOddsType.values.map((t) {
+                final selected = _oddsSel == t;
+                return Expanded(
+                  child: GestureDetector(
+                    onTap: () => setState(() => _oddsSel = t),
+                    behavior: HitTestBehavior.opaque,
+                    child: Container(
+                      margin: const EdgeInsets.symmetric(horizontal: 2),
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      decoration: BoxDecoration(
+                        color: selected ? BMColors.bright.withValues(alpha: 0.16) : Colors.transparent,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        t.shortLabel,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
+                          color: selected ? BMColors.bright : BMColors.textSecondary,
                         ),
-                        const SizedBox(height: 8),
-                        Row(
-                          children: [
-                            Expanded(child: _oddsCell(co.home ?? '--', _oddsSel != BMOddsType.matchResult)),
-                            if (co.handicap != null && co.handicap!.isNotEmpty)
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                                margin: const EdgeInsets.symmetric(horizontal: 6),
-                                decoration: BoxDecoration(color: BMColors.pitch800, borderRadius: BorderRadius.circular(8)),
-                                child: Text(co.handicap!, style: const TextStyle(color: BMColors.bright, fontSize: 12, fontWeight: FontWeight.w800)),
-                              ),
-                            if (needDraw) Expanded(child: _oddsCell(co.draw ?? '--', false, isCenter: true)),
-                            Expanded(child: _oddsCell(co.away ?? '--', _oddsSel != BMOddsType.matchResult, isAway: true)),
-                          ],
-                        ),
-                      ],
+                      ),
                     ),
                   ),
                 );
-              }),
+              }).toList(),
             ),
           ),
+        ),
+        const SizedBox(height: 14),
+        // ② Loading / 空态 / 赔率数据卡片
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 14),
+          child: _loadingOdds && companies.isEmpty
+              ? _buildLoading(BMColors.bright)
+              : companies.isEmpty
+                  ? Container(
+                      padding: const EdgeInsets.symmetric(vertical: 40),
+                      decoration: BoxDecoration(
+                        color: BMColors.pitch850,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: BMColors.pitch700.withValues(alpha: 0.6)),
+                      ),
+                      child: const Center(
+                        child: Text('暂无赔率数据', style: TextStyle(fontSize: 13, color: BMColors.textTertiary, fontWeight: FontWeight.w600)),
+                      ),
+                    )
+                  : Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: BMColors.pitch850,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: BMColors.pitch700.withValues(alpha: 0.6)),
+                        boxShadow: [
+                          BoxShadow(
+                            color: BMColors.bright.withValues(alpha: 0.05),
+                            blurRadius: 10,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // 卡片标题行: 左 盘口类型名 / 右 LIVE 标识
+                          Row(
+                            children: [
+                              Text(
+                                _oddsSel.fullTitle,
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w800,
+                                  color: BMColors.textPrimary,
+                                ),
+                              ),
+                              const Spacer(),
+                              Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Container(
+                                    width: 7,
+                                    height: 7,
+                                    decoration: const BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      color: BMColors.bright,
+                                      boxShadow: [BoxShadow(color: BMColors.bright, blurRadius: 6)],
+                                    ),
+                                  ),
+                                  const SizedBox(width: 5),
+                                  const Text(
+                                    '即时盘口',
+                                    style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: BMColors.bright),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 10),
+                          // 表头(公司列 70px宽 + 阶段标签列 40px宽 + 3 或 4 栏 Expanded 表头)
+                          _oddsTableHeader(is1x2: is1x2),
+                          const SizedBox(height: 4),
+                          // 每家公司 3 阶段行
+                          ...companies.map((c) => _oddsCompanyRow(c, is1x2)),
+                        ],
+                      ),
+                    ),
+        ),
+        const SizedBox(height: 14),
       ],
     );
   }
 
-  Widget _oddsCell(String v, bool colored, {bool isCenter = false, bool isAway = false}) {
+  /// 表头行(Bookmaker / 阶段标签占位 + 3~4 栏表头)
+  Widget _oddsTableHeader({required bool is1x2}) {
+    final hdrs = _oddsSel.headers;
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      decoration: BoxDecoration(color: BMColors.pitch800, borderRadius: BorderRadius.circular(8)),
-      alignment: Alignment.center,
-      child: Text(
-        v,
-        style: TextStyle(
-          fontSize: 12,
-          fontWeight: FontWeight.w800,
-          color: colored ? (isAway ? const Color(0xFF3B82F6) : BMColors.bright) : Colors.white,
+      padding: const EdgeInsets.symmetric(vertical: 7),
+      decoration: BoxDecoration(
+        color: BMColors.pitch800.withValues(alpha: 0.85),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Row(
+        children: [
+          // Bookmaker 列宽 70
+          const SizedBox(
+            width: 70,
+            child: Text(
+              '博彩公司',
+              style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: BMColors.textTertiary),
+            ),
+          ),
+          // 阶段标签占位 40 (对应下面 rows 的阶段 label 列宽)
+          const SizedBox(width: 40),
+          // 3~4 栏 Expanded 表头(1X2 4栏;AH/OU/Corners 3栏)
+          ...hdrs.asMap().entries.map((e) => Expanded(
+                child: Text(
+                  e.value,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: BMColors.textSecondary),
+                ),
+              )),
+        ],
+      ),
+    );
+  }
+
+  /// 单家博彩公司的行(左侧公司名列 + 3 阶段 odds rows + 右箭头)
+  Widget _oddsCompanyRow(BMCompanyOdds company, bool is1x2) {
+    final hasIni = company.ini != null;
+    final hasPre = company.pre != null;
+    final hasSpot = company.spot != null;
+    return GestureDetector(
+      onTap: () => _gotoOddsHistory(company),
+      behavior: HitTestBehavior.opaque,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 10),
+        decoration: BoxDecoration(
+          border: Border(bottom: BorderSide(color: BMColors.pitch700.withValues(alpha: 0.4))),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // 公司名 70px 宽 2 行
+            SizedBox(
+              width: 70,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (company.companyLogo != null && company.companyLogo!.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 3),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(2),
+                        child: Image.network(
+                          company.companyLogo!,
+                          width: 16,
+                          height: 16,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                        ),
+                      ),
+                    ),
+                  Text(
+                    company.companyName ?? 'ID:${company.companyId}',
+                    style: const TextStyle(
+                      color: BMColors.textPrimary,
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.w800,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+            ),
+            // 阶段赔率列
+            Expanded(
+              child: Column(
+                children: [
+                  if (hasIni) ...[
+                    _oddsStageRow(company.ini!, stageLabel: '初盘', color: BMColors.textTertiary, is1x2: is1x2),
+                    const SizedBox(height: 8),
+                  ],
+                  if (hasPre) ...[
+                    _oddsStageRow(company.pre!, stageLabel: '早盘', color: const Color(0xFF3B82F6), is1x2: is1x2),
+                    const SizedBox(height: 8),
+                  ],
+                  if (hasSpot)
+                    _oddsStageRow(company.spot!, stageLabel: '即时', color: BMColors.bright, is1x2: is1x2),
+                ],
+              ),
+            ),
+            // 右箭头
+            Padding(
+              padding: const EdgeInsets.only(left: 6, top: 16),
+              child: Icon(Icons.chevron_right, size: 16, color: BMColors.pitch700.withValues(alpha: 0.9)),
+            ),
+          ],
         ),
       ),
     );
   }
 
+  /// 单阶段的赔率行(标签 40px 宽 + Expanded 3~4 列赔率值)
+  Widget _oddsStageRow(BMCompanyOddsDetail d, {required String stageLabel, required Color color, required bool is1x2}) {
+    return Row(
+      children: [
+        // 阶段标签 40 宽
+        SizedBox(
+          width: 40,
+          child: Text(
+            stageLabel,
+            style: TextStyle(fontSize: 10, color: color, fontWeight: FontWeight.w800),
+          ),
+        ),
+        // 第 1 列: home (主赢 / 主胜 / 大球)
+        Expanded(
+          child: _oddsStageCell(d.home, color),
+        ),
+        if (is1x2) ...[
+          // 第 2 列: 平局 (仅 1X2 有,背景高亮色 18%)
+          Expanded(
+            child: Container(
+              margin: const EdgeInsets.symmetric(horizontal: 3),
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              decoration: BoxDecoration(
+                color: BMColors.bright.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(5),
+              ),
+              child: Text(
+                d.draw ?? '-',
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: BMColors.textPrimary, fontFamily: 'monospace'),
+              ),
+            ),
+          ),
+        ] else ...[
+          // 第 2 列: 盘口 handicap (AH/OU/Corners:显示中间色 + 16% 背景胶囊)
+          Expanded(
+            child: Container(
+              margin: const EdgeInsets.symmetric(horizontal: 3),
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              decoration: BoxDecoration(
+                color: BMColors.pitch800,
+                borderRadius: BorderRadius.circular(5),
+                border: Border.all(color: BMColors.bright.withValues(alpha: 0.3)),
+              ),
+              child: Text(
+                d.handicap ?? '-',
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w800, color: BMColors.bright, fontFamily: 'monospace'),
+              ),
+            ),
+          ),
+        ],
+        // 最后一列: away (客赢 / 客胜 / 小球)
+        Expanded(
+          child: _oddsStageCell(d.away, color, isAway: true),
+        ),
+      ],
+    );
+  }
+
+  /// 赔率单元格 (值 + 颜色 + 对齐)
+  Widget _oddsStageCell(String? v, Color c, {bool isAway = false}) {
+    return Text(
+      v ?? '-',
+      textAlign: TextAlign.center,
+      style: TextStyle(
+        fontSize: 12,
+        fontWeight: FontWeight.w800,
+        color: c,
+        fontFamily: 'monospace',
+        letterSpacing: 0.2,
+      ),
+    );
+  }
+
+  /// 跳转到赔率历史详情页(入参改为公司级对象,保持跳转链路) - 旧签名清理,上面主方法使用
+  // 空实现: 主 _gotoOddsHistory 在 buildBody 前面定义,保证全局引用
+
   // =========== Lineup Tab (对齐 hanklive match_detail_lineup_tab.dart) ===========
+
+  /// 阵容 Tab 跳球员详情 (对齐 hanklive _navigateToPlayerDetail)
+  ///   - BallMatrix 当前暂无球员详情页,先 SnackBar 提示待开发,不中断用户
+  ///   - 未来有 BMPlayerDetailPage 时直接替换 Navigator.push 即可
+  void _navigateToLineupPlayerDetail(BMMatchLineupPlayer player) {
+    final idStr = player.playerId;
+    final pid = (idStr != null && idStr.isNotEmpty) ? int.tryParse(idStr) : null;
+    // 对齐 hanklive: playerId == 0 直接 return
+    if (pid == null || pid == 0) return;
+    final name = player.playerName?.trim();
+    if (name == null || name.isEmpty) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('球员详情开发中：$name'),
+        backgroundColor: BMColors.pitch850,
+        behavior: SnackBarBehavior.floating,
+        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        duration: const Duration(seconds: 1),
+      ),
+    );
+  }
 
   Widget _buildLineupTab() {
     if (_loadingLineup) return _buildLoading(BMColors.bright);
@@ -1416,53 +1736,131 @@ class _BMFootballDetailPageState extends BMBasePageState<BMFootballDetailPage> {
   }
 
   /// 阵型头部: HomeLogo+formation VS AwayLogo+formation (对齐 hanklive _buildLineupHeader)
+  ///   新增: 下一行主/客教练名 + 图标帽 (对齐真实后端 home_coach / away_coach 字段)
   Widget _buildLineupHeader(BMLineupData data) {
+    // 主客教练名 (优先 BMLineupData.homeCoach/awayCoach, fallback homeSide.coach)
+    final hCoachName = data.homeCoach?.name ?? data.home.coach?.name;
+    final aCoachName = data.awayCoach?.name ?? data.away.coach?.name;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
         color: BMColors.pitch850,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: BMColors.pitch700.withValues(alpha: 0.6)),
       ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      child: Column(
         children: [
+          // 第 1 行: Logo + 阵型 VS Logo + 阵型 (对齐 Hank 原版)
           Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              _buildLineupTeamLogo(widget.match.homeTeamLogo),
-              const SizedBox(width: 6),
-              Text(
-                data.homeFormation ?? '',
-                style: const TextStyle(
+              Row(
+                children: [
+                  _buildLineupTeamLogo(widget.match.homeTeamLogo),
+                  const SizedBox(width: 6),
+                  Text(
+                    data.homeFormation ?? '',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: BMColors.textPrimary,
+                    ),
+                  ),
+                ],
+              ),
+              const Text(
+                'VS',
+                style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w700,
-                  color: BMColors.textPrimary,
+                  color: BMColors.textTertiary,
                 ),
+              ),
+              Row(
+                children: [
+                  Text(
+                    data.awayFormation ?? '',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: BMColors.textPrimary,
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  _buildLineupTeamLogo(widget.match.awayTeamLogo),
+                ],
               ),
             ],
           ),
-          const Text(
-            'VS',
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w700,
-              color: BMColors.textTertiary,
+          // 第 2 行: 教练名 (有名字才显示, 保持紧凑, 不突兀)
+          if ((hCoachName != null && hCoachName.isNotEmpty) ||
+              (aCoachName != null && aCoachName.isNotEmpty)) ...[
+            const SizedBox(height: 10),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                // 主队教练: Icons.coffee (教练帽图标) + 名字, 左对齐
+                Expanded(
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(
+                        Icons.coffee_outlined,
+                        size: 12,
+                        color: BMColors.bright,
+                      ),
+                      const SizedBox(width: 4),
+                      Flexible(
+                        child: Text(
+                          hCoachName ?? '',
+                          maxLines: 2,
+                          softWrap: true,
+                          overflow: TextOverflow.visible,
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: BMColors.bright.withValues(alpha: 0.85),
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                // 中间占位, 不让主客教练重叠
+                const SizedBox(width: 24),
+                // 客队教练: Icons.coffee + 名字, 右对齐
+                Expanded(
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      Flexible(
+                        child: Text(
+                          aCoachName ?? '',
+                          maxLines: 2,
+                          softWrap: true,
+                          overflow: TextOverflow.visible,
+                          textAlign: TextAlign.right,
+                          style: const TextStyle(
+                            fontSize: 11,
+                            color: Color(0xFF3B82F6),
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      const Icon(
+                        Icons.coffee_outlined,
+                        size: 12,
+                        color: Color(0xFF3B82F6),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
-          ),
-          Row(
-            children: [
-              Text(
-                data.awayFormation ?? '',
-                style: const TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                  color: BMColors.textPrimary,
-                ),
-              ),
-              const SizedBox(width: 6),
-              _buildLineupTeamLogo(widget.match.awayTeamLogo),
-            ],
-          ),
+          ],
         ],
       ),
     );
@@ -1559,11 +1957,13 @@ class _BMFootballDetailPageState extends BMBasePageState<BMFootballDetailPage> {
   }
 
   /// 球员节点 (头像+号码+事件徽标+名字 Chip, 对齐 hanklive _buildPlayerNode)
+  /// 点击跳球员详情页 (对齐 hanklive _navigateToPlayerDetail)
   Widget _buildLineupPlayerNode(BMMatchLineupPlayer player, {required bool isHome}) {
     final teamColor = isHome ? const Color(0xFFE11D48) : const Color(0xFF3B82F6);
     final shirtNum = player.shirtNumber ?? 0;
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
+      onTap: () => _navigateToLineupPlayerDetail(player),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -1620,10 +2020,11 @@ class _BMFootballDetailPageState extends BMBasePageState<BMFootballDetailPage> {
             ],
           ),
           const SizedBox(height: 2),
+          // 球员名 Chip: 对齐 hanklive 白 85% 半透明 + 黑字 (深绿草皮背景对比度高)
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
             decoration: BoxDecoration(
-              color: BMColors.pitch850.withValues(alpha: 0.9),
+              color: Colors.white.withValues(alpha: 0.85),
               borderRadius: BorderRadius.circular(4),
             ),
             child: Text(
@@ -1632,7 +2033,7 @@ class _BMFootballDetailPageState extends BMBasePageState<BMFootballDetailPage> {
               overflow: TextOverflow.ellipsis,
               style: const TextStyle(
                 fontSize: 9,
-                color: BMColors.textPrimary,
+                color: Colors.black87,
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -1750,58 +2151,63 @@ class _BMFootballDetailPageState extends BMBasePageState<BMFootballDetailPage> {
   }
 
   /// 替补球员行: 号码 + Logo + Name (对齐 hanklive _buildSubPlayerChip)
+  /// 点击跳球员详情页 (对齐 hanklive onTap)
   Widget _buildLineupSubPlayerChip(BMMatchLineupPlayer player) {
     final shirtNum = player.shirtNumber ?? 0;
-    return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-      decoration: BoxDecoration(
-        color: BMColors.pitch900,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: BMColors.pitch700.withValues(alpha: 0.4)),
-      ),
-      child: Row(
-        children: [
-          Text(
-            '$shirtNum',
-            style: const TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w700,
-              color: BMColors.bright,
-            ),
-          ),
-          const SizedBox(width: 6),
-          Container(
-            width: 20,
-            height: 20,
-            decoration: BoxDecoration(
-              color: BMColors.pitch700,
-              shape: BoxShape.circle,
-            ),
-            child: (player.playerLogo != null && player.playerLogo!.isNotEmpty)
-                ? ClipOval(
-                    child: Image.network(
-                      player.playerLogo!,
-                      fit: BoxFit.cover,
-                      errorBuilder: (c, e, s) =>
-                          const Icon(Icons.person, size: 12, color: BMColors.textTertiary),
-                    ),
-                  )
-                : const Icon(Icons.person, size: 12, color: BMColors.textTertiary),
-          ),
-          const SizedBox(width: 6),
-          Expanded(
-            child: Text(
-              player.playerName ?? '',
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () => _navigateToLineupPlayerDetail(player),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+        decoration: BoxDecoration(
+          color: BMColors.pitch900,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: BMColors.pitch700.withValues(alpha: 0.4)),
+        ),
+        child: Row(
+          children: [
+            Text(
+              '$shirtNum',
               style: const TextStyle(
                 fontSize: 11,
-                color: BMColors.textPrimary,
+                fontWeight: FontWeight.w700,
+                color: BMColors.bright,
               ),
             ),
-          ),
-        ],
+            const SizedBox(width: 6),
+            Container(
+              width: 20,
+              height: 20,
+              decoration: BoxDecoration(
+                color: BMColors.pitch700,
+                shape: BoxShape.circle,
+              ),
+              child: (player.playerLogo != null && player.playerLogo!.isNotEmpty)
+                  ? ClipOval(
+                      child: Image.network(
+                        player.playerLogo!,
+                        fit: BoxFit.cover,
+                        errorBuilder: (c, e, s) =>
+                            const Icon(Icons.person, size: 12, color: BMColors.textTertiary),
+                      ),
+                    )
+                  : const Icon(Icons.person, size: 12, color: BMColors.textTertiary),
+            ),
+            const SizedBox(width: 6),
+            Expanded(
+              child: Text(
+                player.playerName ?? '',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontSize: 11,
+                  color: BMColors.textPrimary,
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -1925,7 +2331,18 @@ class _BMFootballDetailPageState extends BMBasePageState<BMFootballDetailPage> {
                     color: BMColors.textPrimary,
                   ),
                 ),
-                if (player.position != null && player.position!.isNotEmpty)
+                // 伤停原因 (HankLineupInjuryPlayer.reason 对齐, 优先显示; 缺 reason 才显示位置 fallback)
+                if (player.reason != null && player.reason!.isNotEmpty)
+                  Text(
+                    player.reason!,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 10,
+                      color: Color(0xFFF87171),
+                    ),
+                  )
+                else if (player.position != null && player.position!.isNotEmpty)
                   Text(
                     player.position!,
                     maxLines: 1,
@@ -1943,125 +2360,610 @@ class _BMFootballDetailPageState extends BMBasePageState<BMFootballDetailPage> {
     );
   }
 
-  // =========== H2H Tab ===========
+  // =========== H2H Tab (100% 对齐 hanklive 逻辑: WDL汇总 + 过滤器 + 胜负色条卡片) ===========
   Widget _buildH2HTab() {
     _ensureH2H();
     final homeName = widget.match.homeTeamName.isNotEmpty
         ? widget.match.homeTeamName
-        : widget.match.homeTeam?.teamName ?? '';
+        : widget.match.homeTeam?.teamName ?? '主队';
     final awayName = widget.match.awayTeamName.isNotEmpty
         ? widget.match.awayTeamName
-        : widget.match.awayTeam?.teamName ?? '';
+        : widget.match.awayTeam?.teamName ?? '客队';
+    // 当前主队的 teamId (从 BMMatchTeam.teamId 取 String -> int, 失败则 -1)
+    final curHomeTeamId = int.tryParse(widget.match.homeTeam?.teamId ?? '') ?? -1;
+    final curAwayTeamId = int.tryParse(widget.match.awayTeam?.teamId ?? '') ?? -2;
+
+    if (_loadingH2H && _h2hHomeList.isEmpty && _h2hAwayList.isEmpty) {
+      return _buildLoading(BMColors.bright);
+    }
+    final hasAny = _h2hHomeList.isNotEmpty || _h2hAwayList.isNotEmpty;
+    if (!hasAny) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: 30),
+        child: Center(child: Text('暂无交锋历史', style: TextStyle(color: BMColors.textTertiary, fontSize: 12))),
+      );
+    }
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
-          child: Row(
-            children: [
-              Expanded(child: Text(homeName, style: const TextStyle(color: BMColors.bright, fontWeight: FontWeight.w800, fontSize: 12), textAlign: TextAlign.center, maxLines: 1, overflow: TextOverflow.ellipsis)),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                decoration: BoxDecoration(color: BMColors.pitch850, borderRadius: BorderRadius.circular(10), border: Border.all(color: BMColors.pitch700.withValues(alpha: 0.5))),
-                child: const Text('历史交锋', style: TextStyle(color: BMColors.textSecondary, fontSize: 11, fontWeight: FontWeight.w700)),
+        const SizedBox(height: 4),
+        // ============ 主队段 ============
+        if (_h2hHomeList.isNotEmpty) ...[
+          _buildH2HSectionHeader(
+            title: homeName.isEmpty ? '主队近期比赛' : '$homeName · 近期比赛',
+            color: BMColors.bright,
+            icon: Icons.shield_rounded,
+          ),
+          const SizedBox(height: 8),
+          _h2hHomeSection(
+            list: _h2hHomeList,
+            currentTeamId: curHomeTeamId,
+            opponentTeamId: curAwayTeamId,
+            sideColor: BMColors.bright,
+            limit: _h2hHomeLimit,
+            sameSide: _h2hHomeSameSide,
+            leagueOnly: _h2hHomeLeagueOnly,
+            onLimitChanged: (v) => setState(() => _h2hHomeLimit = v),
+            onSameSideChanged: (v) => setState(() => _h2hHomeSameSide = v),
+            onLeagueOnlyChanged: (v) => setState(() => _h2hHomeLeagueOnly = v),
+            isHomeSection: true,
+          ),
+          const SizedBox(height: 18),
+        ],
+        // ============ 客队段 ============
+        if (_h2hAwayList.isNotEmpty) ...[
+          _buildH2HSectionHeader(
+            title: awayName.isEmpty ? '客队近期比赛' : '$awayName · 近期比赛',
+            color: const Color(0xFF3B82F6),
+            icon: Icons.travel_explore_rounded,
+          ),
+          const SizedBox(height: 8),
+          _h2hHomeSection(
+            list: _h2hAwayList,
+            currentTeamId: curAwayTeamId,
+            opponentTeamId: curHomeTeamId,
+            sideColor: const Color(0xFF3B82F6),
+            limit: _h2hAwayLimit,
+            sameSide: _h2hAwaySameSide,
+            leagueOnly: _h2hAwayLeagueOnly,
+            onLimitChanged: (v) => setState(() => _h2hAwayLimit = v),
+            onSameSideChanged: (v) => setState(() => _h2hAwaySameSide = v),
+            onLeagueOnlyChanged: (v) => setState(() => _h2hAwayLeagueOnly = v),
+            isHomeSection: false,
+          ),
+          const SizedBox(height: 16),
+        ],
+      ],
+    );
+  }
+
+  /// 交锋分段 Header (竖条 + 图标 + 标题)
+  Widget _buildH2HSectionHeader({required String title, required Color color, required IconData icon}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 14),
+      child: Row(
+        children: [
+          Container(
+            width: 3,
+            height: 16,
+            decoration: BoxDecoration(
+              color: color,
+              borderRadius: BorderRadius.circular(999),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Icon(icon, size: 15, color: color),
+          const SizedBox(width: 5),
+          Expanded(
+            child: Text(
+              title,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w800,
+                color: color,
+                letterSpacing: 0.3,
               ),
-              Expanded(child: Text(awayName, style: const TextStyle(color: Color(0xFF3B82F6), fontWeight: FontWeight.w800, fontSize: 12), textAlign: TextAlign.center, maxLines: 1, overflow: TextOverflow.ellipsis)),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 单段完整交锋区 (WDL汇总 + 过滤器 + 卡片列表) — 完全对齐 hanklive 逻辑
+  Widget _h2hHomeSection({
+    required List<BMH2HMatch> list,
+    required int currentTeamId,
+    required int opponentTeamId,
+    required Color sideColor,
+    required int limit,
+    required bool sameSide,
+    required bool leagueOnly,
+    required ValueChanged<int> onLimitChanged,
+    required ValueChanged<bool> onSameSideChanged,
+    required ValueChanged<bool> onLeagueOnlyChanged,
+    required bool isHomeSection,
+  }) {
+    // === 过滤器逻辑 (1:1 对齐 hanklive _filteredMatches) ===
+    var filtered = list.toList();
+    if (sameSide) {
+      filtered = filtered.where((m) =>
+          (m.homeTeamId == currentTeamId && m.awayTeamId == opponentTeamId) ||
+          (m.awayTeamId == currentTeamId && m.homeTeamId == opponentTeamId)).toList();
+    }
+    if (leagueOnly) {
+      filtered = filtered.where((m) {
+        final ln = m.leagueName ?? '';
+        return !ln.toLowerCase().contains('cup');
+      }).toList();
+    }
+    final display = filtered.take(limit).toList();
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // ① WDL 汇总卡 (对齐 hanklive _buildWDLSummary)
+          _buildWDLSummaryCard(display, currentTeamId, sideColor),
+          const SizedBox(height: 12),
+          // ② 过滤器胶囊 (对齐 hanklive _buildFilterChips)
+          _buildFilterRow(
+            sideColor: sideColor,
+            limit: limit,
+            sameSide: sameSide,
+            leagueOnly: leagueOnly,
+            onLimitChanged: onLimitChanged,
+            onSameSideChanged: onSameSideChanged,
+            onLeagueOnlyChanged: onLeagueOnlyChanged,
+          ),
+          const SizedBox(height: 14),
+          // ③ 卡片列表 (对齐 hanklive ...displayMatches.map)
+          if (display.isEmpty)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 20),
+              child: Center(
+                child: Text('筛选后无数据', style: TextStyle(fontSize: 12, color: BMColors.textTertiary)),
+              ),
+            )
+          else
+            ...display.map((m) => _buildH2HMatchCard(m, currentTeamId, sideColor, isHomeSection)),
+        ],
+      ),
+    );
+  }
+
+  /// WDL 汇总卡 (1:1 对齐 hanklive W/D/L 三栏 + 比例条 + 总进球/场均)
+  Widget _buildWDLSummaryCard(List<BMH2HMatch> display, int currentTeamId, Color sideColor) {
+    int curWin = 0;
+    int draw = 0;
+    int curLose = 0;
+    int curGoals = 0;
+    int oppGoals = 0;
+
+    for (final m in display) {
+      final hs = m.homeNormalScore ?? m.homeScore;
+      final as = m.awayNormalScore ?? m.awayScore;
+      if (hs == null || as == null) continue;
+      final isCurHome = m.homeTeamId == currentTeamId;
+      if (isCurHome) {
+        curGoals += hs;
+        oppGoals += as;
+        if (hs > as) {
+          curWin++;
+        } else if (hs < as) {
+          curLose++;
+        } else {
+          draw++;
+        }
+      } else {
+        curGoals += as;
+        oppGoals += hs;
+        if (as > hs) {
+          curWin++;
+        } else if (as < hs) {
+          curLose++;
+        } else {
+          draw++;
+        }
+      }
+    }
+
+    final total = display.length;
+    final winPct = total > 0 ? curWin / total : 0.0;
+    final drawPct = total > 0 ? draw / total : 0.0;
+    final losePct = total > 0 ? curLose / total : 0.0;
+    final avgGoals = total > 0 ? ((curGoals + oppGoals) / total).toStringAsFixed(1) : '0.0';
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: BMColors.pitch850,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: sideColor.withValues(alpha: 0.3), width: 0.9),
+      ),
+      child: Column(
+        children: [
+          // Row1: W D L 三个数字
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                '$curWin W',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w800,
+                  color: sideColor,
+                ),
+              ),
+              Text(
+                '$draw D',
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w800,
+                  color: BMColors.textTertiary,
+                ),
+              ),
+              Text(
+                '$curLose L',
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w800,
+                  color: Color(0xFFEF4444),
+                ),
+              ),
             ],
           ),
-        ),
-        const SizedBox(height: 8),
-        if (_loadingH2H && _h2hMatches.isEmpty)
-          _buildLoading(BMColors.bright)
-        else if (_h2hMatches.isEmpty)
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: 30),
-            child: Center(child: Text('暂无交锋历史', style: TextStyle(color: BMColors.textTertiary, fontSize: 12))),
-          )
-        else
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 14),
-            child: Column(
-              children: List.generate(_h2hMatches.length, (i) {
-                final h = _h2hMatches[i];
-                return GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => BMFootballDetailPage(match: h.toMatchModel),
-                      ),
-                    );
-                  },
-                  child: Container(
-                    margin: const EdgeInsets.only(bottom: 8),
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: BMColors.pitch850,
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: BMColors.pitch700.withValues(alpha: 0.4)),
+          const SizedBox(height: 10),
+          // Row2: 三栏比例条 (Win 主队色 / D 灰 / L 红)
+          ClipRRect(
+            borderRadius: BorderRadius.circular(4),
+            child: SizedBox(
+              height: 10,
+              child: Row(
+                children: [
+                  if (winPct > 0)
+                    Expanded(
+                      flex: (winPct * 100).round() > 0 ? (winPct * 100).round() : 1,
+                      child: Container(color: sideColor),
                     ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        if (h.leagueName != null && h.leagueName!.isNotEmpty)
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                            margin: const EdgeInsets.only(bottom: 8),
-                            decoration: BoxDecoration(color: BMColors.pitch800, borderRadius: BorderRadius.circular(6)),
-                            child: Text(h.leagueName!, style: const TextStyle(fontSize: 10, color: BMColors.textTertiary, fontWeight: FontWeight.w700)),
-                          ),
-                        Row(
-                          children: [
-                            Expanded(child: _miniTeam(h.homeTeamLogo, h.homeTeamName, BMColors.bright, TextAlign.right)),
-                            const SizedBox(width: 12),
-                            Text(
-                              "${h.homeScore ?? '-'} : ${h.awayScore ?? '-'}",
-                              style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w900),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(child: _miniTeam(h.awayTeamLogo, h.awayTeamName, const Color(0xFF3B82F6), TextAlign.left)),
-                          ],
-                        ),
-                        const SizedBox(height: 4),
-                        Align(
-                          alignment: Alignment.centerRight,
-                          child: Text(h.displayMatchTime, style: const TextStyle(fontSize: 10, color: BMColors.textTertiary)),
-                        ),
-                      ],
+                  if (drawPct > 0)
+                    Expanded(
+                      flex: (drawPct * 100).round() > 0 ? (drawPct * 100).round() : 1,
+                      child: Container(color: BMColors.pitch700),
                     ),
-                  ),
-                );
-              }),
+                  if (losePct > 0)
+                    Expanded(
+                      flex: (losePct * 100).round() > 0 ? (losePct * 100).round() : 1,
+                      child: Container(color: const Color(0xFFEF4444)),
+                    ),
+                ],
+              ),
             ),
+          ),
+          const SizedBox(height: 10),
+          // Row3: 进球汇总
+          Container(
+            padding: const EdgeInsets.only(top: 8),
+            decoration: BoxDecoration(
+              border: Border(top: BorderSide(color: BMColors.pitch700.withValues(alpha: 0.65))),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  '进球: $curGoals',
+                  style: TextStyle(fontSize: 10, color: sideColor, fontWeight: FontWeight.w700),
+                ),
+                Text(
+                  '场均进球: $avgGoals',
+                  style: const TextStyle(fontSize: 10, color: BMColors.textTertiary, fontWeight: FontWeight.w600),
+                ),
+                Text(
+                  '失球: $oppGoals',
+                  style: const TextStyle(fontSize: 10, color: Color(0xFFEF4444), fontWeight: FontWeight.w700),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 过滤器胶囊行 (对齐 hanklive Last 10/Last 6/HomeAway/LeagueOnly)
+  Widget _buildFilterRow({
+    required Color sideColor,
+    required int limit,
+    required bool sameSide,
+    required bool leagueOnly,
+    required ValueChanged<int> onLimitChanged,
+    required ValueChanged<bool> onSameSideChanged,
+    required ValueChanged<bool> onLeagueOnlyChanged,
+  }) {
+    return SizedBox(
+      height: 34,
+      child: ListView(
+        scrollDirection: Axis.horizontal,
+        physics: const BouncingScrollPhysics(),
+        children: [
+          _h2hChip('近 10 场', limit == 10, sideColor, () => onLimitChanged(10)),
+          _h2hChip('近 6 场', limit == 6, sideColor, () => onLimitChanged(6)),
+          _h2hChip('对阵双方', sameSide, sideColor, () => onSameSideChanged(!sameSide)),
+          _h2hChip('仅联赛', leagueOnly, sideColor, () => onLeagueOnlyChanged(!leagueOnly)),
+        ],
+      ),
+    );
+  }
+
+  /// 单颗过滤胶囊
+  Widget _h2hChip(String label, bool selected, Color sideColor, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Container(
+        margin: const EdgeInsets.only(right: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 5),
+        decoration: BoxDecoration(
+          color: selected ? sideColor.withValues(alpha: 0.18) : BMColors.pitch800,
+          borderRadius: BorderRadius.circular(999),
+          border: Border.all(
+            color: selected ? sideColor.withValues(alpha: 0.65) : BMColors.pitch700.withValues(alpha: 0.5),
+            width: selected ? 1.1 : 0.8,
+          ),
+        ),
+        child: Center(
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 11.5,
+              fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
+              color: selected ? sideColor : BMColors.textSecondary,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// 交锋比赛卡片 (1:1 对齐 hanklive: 左侧 4px 胜负色条 + TopRow + ScoreRow)
+  Widget _buildH2HMatchCard(BMH2HMatch m, int currentTeamId, Color sideColor, bool isHomeSection) {
+    final homeIsCur = m.homeTeamId == currentTeamId;
+    final awayIsCur = m.awayTeamId == currentTeamId;
+    final hs = m.homeNormalScore ?? m.homeScore;
+    final as = m.awayNormalScore ?? m.awayScore;
+
+    // 左侧 4px 胜负色条 (胜 side色 / 负 红 / 平 琥珀黄)
+    Color barColor;
+    if (hs != null && as != null) {
+      final curWin = (homeIsCur && hs > as) || (awayIsCur && as > hs);
+      final curLose = (homeIsCur && hs < as) || (awayIsCur && as < hs);
+      if (curWin) {
+        barColor = sideColor;
+      } else if (curLose) {
+        barColor = const Color(0xFFEF4444);
+      } else {
+        barColor = const Color(0xFFF59E0B);
+      }
+    } else {
+      barColor = BMColors.pitch700;
+    }
+
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => BMFootballDetailPage(match: m.toMatchModel)),
+        );
+      },
+      behavior: HitTestBehavior.opaque,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        decoration: BoxDecoration(
+          color: BMColors.pitch850,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: BMColors.pitch700.withValues(alpha: 0.45), width: 0.9),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: Row(
+          children: [
+            // 左侧胜负色条
+            Container(width: 4, height: 96, color: barColor),
+            // 内容
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
+                child: Column(
+                  children: [
+                    // Row1: 联赛Logo + 联赛名 + 日期 / 半场比分
+                    _h2hCardTopRow(m),
+                    const SizedBox(height: 10),
+                    // Row2: 主队 | 比分徽章 | 客队
+                    _h2hCardScoreRow(m, homeIsCur, awayIsCur, sideColor, hs, as, isHomeSection),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// H2H 卡片 TopRow (联赛Logo+名+日期 / 半场比分)
+  Widget _h2hCardTopRow(BMH2HMatch m) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Row(
+          children: [
+            if (m.leagueLogo != null && m.leagueLogo!.isNotEmpty)
+              ClipRRect(
+                borderRadius: BorderRadius.circular(2),
+                child: Image.network(
+                  m.leagueLogo!,
+                  width: 14,
+                  height: 14,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                ),
+              )
+            else
+              const Icon(Icons.emoji_events, size: 14, color: BMColors.textTertiary),
+            const SizedBox(width: 6),
+            Text(
+              m.leagueName ?? '',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: BMColors.textSecondary),
+            ),
+            const SizedBox(width: 8),
+            Text(
+              m.displayMatchTime,
+              style: const TextStyle(fontSize: 11, color: BMColors.textTertiary, fontWeight: FontWeight.w500),
+            ),
+          ],
+        ),
+        if (m.homeHalfScore != null && m.awayHalfScore != null)
+          Text(
+            '半场 ${m.homeHalfScore} - ${m.awayHalfScore}',
+            style: const TextStyle(fontSize: 10.5, color: BMColors.textTertiary, fontWeight: FontWeight.w600),
           ),
       ],
     );
   }
 
-  Widget _miniTeam(String? logo, String? name, Color c, TextAlign align) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: align == TextAlign.right ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+  /// H2H 卡片比分行 (主队 Logo+名 左对齐 | 中间比分徽章 | 客队名+Logo 右对齐)
+  Widget _h2hCardScoreRow(BMH2HMatch m, bool homeIsCur, bool awayIsCur, Color sideColor, int? hs, int? as, bool isHomeSection) {
+    final homeWin = hs != null && as != null && hs > as;
+    final awayWin = hs != null && as != null && as > hs;
+    return Row(
       children: [
-        Container(
-          width: 30,
-          height: 30,
-          decoration: BoxDecoration(color: BMColors.pitch800, shape: BoxShape.circle, border: Border.all(color: c.withValues(alpha: 0.35))),
-          clipBehavior: Clip.antiAlias,
-          alignment: Alignment.center,
-          child: (logo != null && logo.isNotEmpty)
-              ? Image.network(logo, fit: BoxFit.contain, errorBuilder: (_, __, ___) => Icon(Icons.sports_soccer, size: 14, color: c))
-              : Icon(Icons.sports_soccer, size: 14, color: c),
+        // 主队: 左对齐 Logo+Name
+        Expanded(
+          flex: 5,
+          child: Row(
+            children: [
+              _h2hLogo(m.homeTeamLogo, sideColor),
+              const SizedBox(width: 7),
+              Expanded(
+                child: Text(
+                  m.homeTeamName ?? '',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.left,
+                  style: TextStyle(
+                    fontSize: 12.5,
+                    fontWeight: homeIsCur ? FontWeight.w800 : FontWeight.w600,
+                    color: homeIsCur
+                        ? sideColor
+                        : homeWin
+                            ? BMColors.textPrimary
+                            : BMColors.textPrimary,
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
-        const SizedBox(height: 4),
-        Text(
-          name ?? '',
-          style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w700, height: 1.2),
-          textAlign: align,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
+        // 中间比分徽章 (对齐 hanklive _buildScoreBadge)
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 5),
+          margin: const EdgeInsets.symmetric(horizontal: 6),
+          decoration: BoxDecoration(
+            color: BMColors.pitch900.withValues(alpha: 0.9),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: sideColor.withValues(alpha: 0.3), width: 0.7),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                '${hs ?? '-'}',
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w900,
+                  color: homeWin ? sideColor : BMColors.textPrimary,
+                  fontFamily: 'monospace',
+                ),
+              ),
+              const SizedBox(width: 4),
+              const Text('-', style: TextStyle(fontSize: 12, color: BMColors.textTertiary)),
+              const SizedBox(width: 4),
+              Text(
+                '${as ?? '-'}',
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w900,
+                  color: awayWin ? const Color(0xFFEF4444) : BMColors.textPrimary,
+                  fontFamily: 'monospace',
+                ),
+              ),
+            ],
+          ),
+        ),
+        // 客队: 右对齐 Name+Logo
+        Expanded(
+          flex: 5,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              Expanded(
+                child: Text(
+                  m.awayTeamName ?? '',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.right,
+                  style: TextStyle(
+                    fontSize: 12.5,
+                    fontWeight: awayIsCur ? FontWeight.w800 : FontWeight.w600,
+                    color: awayIsCur
+                        ? (isHomeSection ? const Color(0xFF3B82F6) : sideColor)
+                        : BMColors.textPrimary,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 7),
+              _h2hLogo(m.awayTeamLogo, const Color(0xFF3B82F6)),
+            ],
+          ),
         ),
       ],
+    );
+  }
+
+  /// H2H Logo (24x24 圆角方)
+  Widget _h2hLogo(String? logo, Color placeholderColor) {
+    if (logo != null && logo.isNotEmpty) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(4),
+        child: Image.network(
+          logo,
+          width: 24,
+          height: 24,
+          fit: BoxFit.cover,
+          errorBuilder: (_, __, ___) => Container(
+            width: 24,
+            height: 24,
+            decoration: BoxDecoration(
+              color: placeholderColor.withValues(alpha: 0.14),
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: Icon(Icons.sports_soccer, size: 13, color: placeholderColor),
+          ),
+        ),
+      );
+    }
+    return Container(
+      width: 24,
+      height: 24,
+      decoration: BoxDecoration(
+        color: placeholderColor.withValues(alpha: 0.14),
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: Icon(Icons.sports_soccer, size: 13, color: placeholderColor),
     );
   }
 

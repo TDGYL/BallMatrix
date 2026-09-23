@@ -56,13 +56,13 @@ class _BMOddsHistoryPageState extends BMBasePageState<BMOddsHistoryPage> {
   List<BMOddsHistoryPoint> _points() {
     switch (widget.oddsType) {
       case BMOddsType.asianHandicap:
-        return _history?.asianHandicap ?? [];
+        return _history?.asia ?? [];
       case BMOddsType.matchResult:
-        return _history?.matchResult ?? [];
+        return _history?.eu ?? [];
       case BMOddsType.overUnder:
-        return _history?.overUnder ?? [];
+        return _history?.bs ?? [];
       case BMOddsType.corners:
-        return _history?.corners ?? [];
+        return _history?.cr ?? [];
     }
   }
 
@@ -107,7 +107,7 @@ class _BMOddsHistoryPageState extends BMBasePageState<BMOddsHistoryPage> {
             const SizedBox(width: 12),
             Expanded(
               child: Text(
-                '${widget.companyName ?? '赔率历史'} · ${widget.oddsType.label}',
+                '${widget.companyName ?? '赔率历史'} · ${widget.oddsType.shortLabel}',
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Colors.white),
@@ -154,18 +154,18 @@ class _BMOddsHistoryPageState extends BMBasePageState<BMOddsHistoryPage> {
               const SizedBox(height: 8),
               Row(
                 children: [
-                  Expanded(child: _cell(p.home, BMColors.bright)),
-                  if (p.handicap != null && p.handicap!.isNotEmpty) ...[
+                  Expanded(child: _cell(p.detail.home, BMColors.bright)),
+                  if (p.detail.handicap != null && p.detail.handicap!.isNotEmpty) ...[
                     const SizedBox(width: 6),
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                       decoration: BoxDecoration(color: BMColors.pitch800, borderRadius: BorderRadius.circular(8)),
-                      child: Text(p.handicap!, style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w800)),
+                      child: Text(p.detail.handicap!, style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w800)),
                     ),
                     const SizedBox(width: 6),
                   ],
-                  if (showDraw) Expanded(child: _cell(p.draw, BMColors.textSecondary, label: '平')),
-                  Expanded(child: _cell(p.away, const Color(0xFF3B82F6))),
+                  if (showDraw) Expanded(child: _cell(p.detail.draw, BMColors.textSecondary, label: '平')),
+                  Expanded(child: _cell(p.detail.away, const Color(0xFF3B82F6))),
                 ],
               ),
             ],

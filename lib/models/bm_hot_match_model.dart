@@ -147,19 +147,121 @@ class BMHotMatchModel {
     }
     return BMMatchModel(
       matchId: matchId?.toString() ?? '',
+      // Hank 对齐 52 字段填充
+      seasonId: null,
+      competitionId: null,
+      competitionLogo: null,
+      competitionPrimaryColor: null,
+      competitionSecondaryColor: null,
+      // 顶层 int teamId (对齐 Hank home_team_id / away_team_id)
+      homeTeamId: homeTeamId,
       homeTeamName: homeTeamName,
-      awayTeamName: awayTeamName,
       homeTeamLogo: homeTeamLogo,
+      awayTeamId: awayTeamId,
+      awayTeamName: awayTeamName,
       awayTeamLogo: awayTeamLogo,
+      statusId: (category == 1)
+          ? (status == BMMatchStatus.upcoming
+              ? 1
+              : status == BMMatchStatus.live
+                  ? 2
+                  : status == BMMatchStatus.ended
+                      ? 8
+                      : 0)
+          : (status == BMMatchStatus.upcoming
+              ? 1
+              : status == BMMatchStatus.live
+                  ? 2
+                  : 10),
+      statusName: status == BMMatchStatus.ended
+          ? '完场'
+          : status == BMMatchStatus.live
+              ? '进行中'
+              : status == BMMatchStatus.upcoming
+                  ? '未开始'
+                  : '待定',
+      // matchTimestamp: Hank match_time int秒 直接存原始值
+      matchTimestamp: matchTime,
+      neutral: null,
+      // 4 段比分 (BMHotMatchModel 只有总分, 填 homeNormalScore 兜底)
+      homeNormalScore: homeTeamScore,
+      homeHalfScore: null,
+      homeRed: null,
+      homeYellow: null,
+      homeCorn: null,
+      homeAddScore: null,
+      homePointScore: null,
+      awayNormalScore: awayTeamScore,
+      awayHalfScore: null,
+      awayRed: null,
+      awayYellow: null,
+      awayCorn: null,
+      awayAddScore: null,
+      awayPointScore: null,
+      lineup: null,
+      stageId: null,
+      subscribed: null,
+      homePosition: null,
+      awayPosition: null,
+      hasOt: null,
+      hasPenalty: null,
+      win: (homeTeamScore != null && awayTeamScore != null)
+          ? (homeTeamScore! > awayTeamScore! ? 1 : (homeTeamScore! < awayTeamScore! ? 3 : 2))
+          : null,
+      note: null,
+      minutes: null,
+      mlive: null,
+      mliveUrl: null,
+      liveVideo: null,
+      hasArticle: null,
+      stageName: null,
+      groupNum: null,
+      roundNum: null,
+      schemeCount: null,
+      countdown: null,
+      isWorldCup: null,
+      categoryId: category, // Hank category int, 1=足球 2=篮球
+      // ---- BM 扩展字段 ----
+      homeTeam: (homeTeamId != null || (homeTeamName?.isNotEmpty ?? false))
+          ? BMTeamModel(
+              teamId: homeTeamId?.toString(),
+              teamName: homeTeamName ?? '',
+              logoUrl: homeTeamLogo,
+            )
+          : null,
+      awayTeam: (awayTeamId != null || (awayTeamName?.isNotEmpty ?? false))
+          ? BMTeamModel(
+              teamId: awayTeamId?.toString(),
+              teamName: awayTeamName ?? '',
+              logoUrl: awayTeamLogo,
+            )
+          : null,
       homeScore: homeTeamScore,
       awayScore: awayTeamScore,
       leagueName: competitionName ?? '',
+      leagueColor: category == 1 ? 0xFF12FF80 : 0xFFF97316,
+      matchTag: null,
+      round: '',
       status: status,
       sportType: category == 2
           ? BMMatchSportType.basketball
           : BMMatchSportType.football,
       matchTime: formattedMatchTime,
-      round: '',
+      liveMinute: null,
+      halfTimeScore: null,
+      goalEvents: const [],
+      aiWinRate: 0,
+      homeWinRate: 0,
+      drawRate: 0,
+      awayWinRate: 0,
+      homeXG: 0,
+      awayXG: 0,
+      momentumPercent: 0,
+      modelMatchRate: null,
+      prediction: null,
+      aiInsight: null,
+      isFeatured: false,
+      isFollowed: null,
     );
   }
 }

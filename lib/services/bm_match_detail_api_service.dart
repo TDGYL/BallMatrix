@@ -86,9 +86,15 @@ class BMMatchDetailApiService {
     return null;
   }
 
-  /// 请求历史交锋 (H2H)
-  ///   GET /api/livespeed/football/match/analysis -> data.history.vs
-  Future<List<BMH2HMatch>> fetchH2HData({required int matchId}) async {
+  /// 请求足球比赛 H2H 历史交锋 (拆分：两队直接交锋 vs / 主队历史 / 客队历史)
+  ///   GET /api/livespeed/football/match/analysis?match_id=
+  ///   返回 Map: { 'vs': 两队对战列表, 'home': 主队近期比赛, 'away': 客队近期比赛 }
+  Future<Map<String, List<BMH2HMatch>>> fetchH2HSplitedData({required int matchId}) async {
+    final result = <String, List<BMH2HMatch>>{
+      'vs': <BMH2HMatch>[],
+      'home': <BMH2HMatch>[],
+      'away': <BMH2HMatch>[],
+    };
     try {
       final resp = await BMNetworkManager().getRequest(
         '/api/livespeed/football/match/analysis',
@@ -98,17 +104,25 @@ class BMMatchDetailApiService {
         final Map<String, dynamic> data = resp.data as Map<String, dynamic>;
         final history = data['history'];
         if (history is Map<String, dynamic>) {
-          final vs = history['vs'];
-          if (vs is List) {
-            return vs
-                .whereType<Map<String, dynamic>>()
-                .map((e) => BMH2HMatch.fromJson(e))
-                .toList();
+          List<BMH2HMatch> parseList(dynamic raw) {
+            if (raw is! List) return const [];
+            try {
+              return raw
+                  .whereType<Map<String, dynamic>>()
+                  .map((e) => BMH2HMatch.fromJson(e))
+                  .toList();
+            } catch (_) {
+              return const [];
+            }
           }
+
+          result['vs'] = parseList(history['vs'] ?? history['h2h']);
+          result['home'] = parseList(history['home'] ?? history['home_team'] ?? history['homeRecent']);
+          result['away'] = parseList(history['away'] ?? history['away_team'] ?? history['awayRecent']);
         }
       }
     } catch (_) {}
-    return const [];
+    return result;
   }
 
   // ================ 篮球详情接口 ================
