@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../bm_base_page.dart';
 import '../../theme/bm_colors.dart';
-import '../../viewmodels/home/bm_home_view_model.dart' show BMHomeViewModel;
+import '../../viewmodels/home/bm_home_view_model.dart' show BMHomeViewModel, BMSportType;
 import '../../models/bm_match_model.dart';
 import '../../models/bm_news_model.dart';
 import '../../models/bm_topic_model.dart';
@@ -11,6 +11,8 @@ import '../../widgets/home/bm_match_spotlight_card.dart';
 import '../../widgets/home/bm_hot_news_section.dart';
 import '../../widgets/home/bm_hot_topics_section.dart';
 import '../match/matchList.dart';
+import '../match/bm_football_detail_page.dart';
+import '../match/bm_basketball_detail_page.dart';
 import '../news/newsList.dart';
 import '../news/bm_news_detail_page.dart';
 import '../community/topicList.dart';
@@ -135,7 +137,17 @@ class _BMHomePageState extends BMBasePageState<BMHomePage> {
             : (match != null
                 ? BMMatchSpotlightCard(
                     match: match,
-                    onTap: () {},
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => widget.viewModel.currentSport ==
+                                  BMSportType.football
+                              ? BMFootballDetailPage(match: match)
+                              : BMBasketballDetailPage(match: match),
+                        ),
+                      );
+                    },
                   )
                 : const SizedBox.shrink()),
       ],

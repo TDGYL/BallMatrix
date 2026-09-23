@@ -5,6 +5,8 @@ import '../../theme/bm_colors.dart';
 import '../../models/bm_match_model.dart';
 import '../../viewmodels/home/bm_home_view_model.dart' show BMSportType;
 import '../../services/bm_match_api_service.dart';
+import 'bm_football_detail_page.dart';
+import 'bm_basketball_detail_page.dart';
 
 ///////-比赛列表-------废弃的文件---卡死几次了，ai自己解决不了问题--用matchList代替
 class BMMatchPage extends BMBasePage {
@@ -402,43 +404,56 @@ class _BMMatchPageState extends BMBasePageState<BMMatchPage> {
   Widget _buildFlatMatchItem(BMMatchModel match) {
     final homeLogo = match.homeTeam?.logoUrl ?? match.homeTeamLogo;
     final awayLogo = match.awayTeam?.logoUrl ?? match.awayTeamLogo;
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Color(0xD9143328), Color(0xF00E261E)],
-        ),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: BMColors.pitch600.withValues(alpha: 0.4)),
-      ),
-      child: Row(
-        children: [
-          _buildMatchTimeOrStatus(match),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              children: [
-                _buildTeamLine(
-                  homeLogo,
-                  match.homeTeamName,
-                  match.homeScore ?? 0,
-                  match.status == BMMatchStatus.live,
-                ),
-                const SizedBox(height: 6),
-                _buildTeamLine(
-                  awayLogo,
-                  match.awayTeamName,
-                  match.awayScore ?? 0,
-                  false,
-                ),
-              ],
-            ),
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => widget.sportType == BMSportType.football
+                ? BMFootballDetailPage(match: match)
+                : BMBasketballDetailPage(match: match),
           ),
-          const SizedBox(width: 8),
-          _buildStatusChip(match),
-        ],
+        );
+      },
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [Color(0xD9143328), Color(0xF00E261E)],
+          ),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: BMColors.pitch600.withValues(alpha: 0.4)),
+        ),
+        child: Row(
+          children: [
+            _buildMatchTimeOrStatus(match),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                children: [
+                  _buildTeamLine(
+                    homeLogo,
+                    match.homeTeamName,
+                    match.homeScore ?? 0,
+                    match.status == BMMatchStatus.live,
+                  ),
+                  const SizedBox(height: 6),
+                  _buildTeamLine(
+                    awayLogo,
+                    match.awayTeamName,
+                    match.awayScore ?? 0,
+                    false,
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            _buildStatusChip(match),
+          ],
+        ),
       ),
     );
   }

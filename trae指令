@@ -2,6 +2,38 @@
 
 
 
+将bm_football_detail_page的交锋分为两段，一段是主队，一段是客队的数据，将交锋列表的卡片比分展示真数据
+
+
+将bm_football_detail_page中的统计菜单去掉，然后将菜单统计里展示的数据和UI搬迁到事件菜单的顶部，然后下边再追加球员事件
+
+
+bm_football_detail_page中，优化事件菜单的UI
+1、把筛选的菜单去掉，
+2、下边的菜单列表UI做差异化
+
+
+在bm_football_detail_page的统计后边加一个阵容的菜单，功能和界面数据和接口完全参照
+/Users/guyilin/Desktop/FlutterProject/hanklive/lib/widgets/match/match_detail_lineup_tab.dart
+
+让bm_football_detail_page的事件按照/Users/guyilin/Desktop/FlutterProject/hanklive/lib/widgets/match/match_detail_live_tab.dart把 时间、事件类型、球员、比分的逻辑展示出来
+
+
+
+
+
+个人中心的热门比赛，判断数据的category=1就跳转到足球详情，否则跳转到篮球详情
+
+首页的赛事菜单，点击足球列表或者篮球列表的数据跳转到相应的比赛详情
+
+
+
+如果点击的是篮球卡片，创建一个bm_baseket_detail.page,push到这个界面，matchList是篮球数据也push到bm_baseket_detail，url=api/v1/livespeed/match/detail,请求方式为get请求，入参是match_id篮球比赛id,篮球界面下方的菜单只保留 事件
+
+
+足球比赛详情的历史交锋列表push到足球比赛详情
+
+
 
 
 首页点击足球卡片时候push到一个足球详情界面，足球详情命名为football_detail_page,参照/Users/guyilin/Desktop/FlutterProject/hanklive/lib/pages/match/match_detail_page.dart，我要参照的因素包括：

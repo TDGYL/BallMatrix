@@ -10,6 +10,8 @@ import '../../utils/bm_auth_manager.dart';
 import '../../network/bm_network_manager.dart';
 import '../../models/bm_user_model.dart';
 import '../../models/bm_hot_match_model.dart';
+import '../match/bm_football_detail_page.dart';
+import '../match/bm_basketball_detail_page.dart';
 
 /// BMMinePage - 我的页面
 /// 功能: 展示用户信息、热门比赛、设置、退出登录
@@ -719,131 +721,146 @@ class _HotMatchCard extends StatelessWidget {
     final Color scoreColor = hasStarted ? BMColors.bright : BMColors.textTertiary;
     final FontWeight scoreWeight =
         hasStarted ? FontWeight.w900 : FontWeight.w700;
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Color(0xD9143328), Color(0xF00E261E)],
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () {
+        final m = match.toMatchModel;
+        if (m.matchId.isEmpty) return;
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => match.category == 1
+                ? BMFootballDetailPage(match: m)
+                : BMBasketballDetailPage(match: m),
+          ),
+        );
+      },
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [Color(0xD9143328), Color(0xF00E261E)],
+          ),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: BMColors.pitch600.withValues(alpha: 0.4)),
         ),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: BMColors.pitch600.withValues(alpha: 0.4)),
-      ),
-      child: Column(
-        children: [
-          // 顶部: 联赛名 + 项目小标签
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
-                decoration: BoxDecoration(
-                  color: BMColors.pitch800,
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                child: Text(
-                  match.categoryLabel,
-                  style: const TextStyle(
-                    fontSize: 9,
-                    fontWeight: FontWeight.w800,
-                    color: BMColors.bright,
+        child: Column(
+          children: [
+            // 顶部: 联赛名 + 项目小标签
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
+                  decoration: BoxDecoration(
+                    color: BMColors.pitch800,
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Text(
+                    match.categoryLabel,
+                    style: const TextStyle(
+                      fontSize: 9,
+                      fontWeight: FontWeight.w800,
+                      color: BMColors.bright,
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(width: 6),
-              Expanded(
-                child: Text(
-                  match.competitionName ?? '联赛',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    match.competitionName ?? '联赛',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 10,
+                      color: BMColors.textSecondary,
+                    ),
+                  ),
+                ),
+                Text(
+                  match.formattedMatchTime,
                   style: const TextStyle(
                     fontSize: 10,
-                    color: BMColors.textSecondary,
-                  ),
-                ),
-              ),
-              Text(
-                match.formattedMatchTime,
-                style: const TextStyle(
-                  fontSize: 10,
-                  color: BMColors.textTertiary,
-                  fontFamily: 'monospace',
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          // 中间: 主队logo + VS/比分 + 客队logo
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              // 主队
-              Expanded(
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    Flexible(
-                      child: Text(
-                        match.homeTeamName ?? '主队',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        textAlign: TextAlign.right,
-                        style: const TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w800,
-                          color: Color(0xFFE2E8F0),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    _TeamLogo(url: match.homeTeamLogo),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 10),
-              Container(
-                constraints: const BoxConstraints(minWidth: 56),
-                alignment: Alignment.center,
-                child: Text(
-                  score,
-                  style: TextStyle(
-                    fontSize: 15,
-                    letterSpacing: 1.5,
+                    color: BMColors.textTertiary,
                     fontFamily: 'monospace',
-                    color: scoreColor,
-                    fontWeight: scoreWeight,
                   ),
                 ),
-              ),
-              const SizedBox(width: 10),
-              // 客队
-              Expanded(
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  mainAxisAlignment: MainAxisAlignment.start,
-                  children: [
-                    _TeamLogo(url: match.awayTeamLogo),
-                    const SizedBox(width: 8),
-                    Flexible(
-                      child: Text(
-                        match.awayTeamName ?? '客队',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        textAlign: TextAlign.left,
-                        style: const TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w800,
-                          color: Color(0xFFE2E8F0),
+              ],
+            ),
+            const SizedBox(height: 10),
+            // 中间: 主队logo + VS/比分 + 客队logo
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                // 主队
+                Expanded(
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      Flexible(
+                        child: Text(
+                          match.homeTeamName ?? '主队',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          textAlign: TextAlign.right,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w800,
+                            color: Color(0xFFE2E8F0),
+                          ),
                         ),
                       ),
-                    ),
-                  ],
+                      const SizedBox(width: 8),
+                      _TeamLogo(url: match.homeTeamLogo),
+                    ],
+                  ),
                 ),
-              ),
-            ],
-          ),
-        ],
+                const SizedBox(width: 10),
+                Container(
+                  constraints: const BoxConstraints(minWidth: 56),
+                  alignment: Alignment.center,
+                  child: Text(
+                    score,
+                    style: TextStyle(
+                      fontSize: 15,
+                      letterSpacing: 1.5,
+                      fontFamily: 'monospace',
+                      color: scoreColor,
+                      fontWeight: scoreWeight,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                // 客队
+                Expanded(
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    mainAxisAlignment: MainAxisAlignment.start,
+                    children: [
+                      _TeamLogo(url: match.awayTeamLogo),
+                      const SizedBox(width: 8),
+                      Flexible(
+                        child: Text(
+                          match.awayTeamName ?? '客队',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          textAlign: TextAlign.left,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w800,
+                            color: Color(0xFFE2E8F0),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }

@@ -6,6 +6,8 @@ import '../../models/bm_match_api_model.dart';
 import '../../models/bm_basketball_match_model.dart';
 import '../../viewmodels/home/bm_home_view_model.dart' show BMSportType;
 import '../../services/bm_match_api_service.dart';
+import 'bm_football_detail_page.dart';
+import 'bm_basketball_detail_page.dart';
 
 /// _MatchPageState - 单组（sport+tab+timestamp）独立分页缓存状态
 /// 作用: 每个 (sport, tab, timestamp) 组合保存自己的列表/分页状态, 足球篮球互不影响
@@ -931,28 +933,41 @@ class _BMMatchTabPageState extends BMBasePageState<BMMatchTabPage> {
 
   /// 构建单行比赛卡片 (背景色与 TopicPostCard 完全一致)
   Widget _buildMatchRow(BMMatchModel match) {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: BMColors.pitch850,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: BMColors.pitch700.withValues(alpha: 0.5)),
-      ),
-      child: Row(
-        children: [
-          _buildMatchTime(match),
-          const SizedBox(width: 12),
-          Expanded(child: _buildMatchTeams(match)),
-          Container(
-            padding: const EdgeInsets.only(left: 12),
-            decoration: const BoxDecoration(
-              border: Border(
-                left: BorderSide(color: Color(0x601C4537)),
-              ),
-            ),
-            child: _buildMatchExtra(match),
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => _currentSport == BMSportType.football
+                ? BMFootballDetailPage(match: match)
+                : BMBasketballDetailPage(match: match),
           ),
-        ],
+        );
+      },
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: BMColors.pitch850,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: BMColors.pitch700.withValues(alpha: 0.5)),
+        ),
+        child: Row(
+          children: [
+            _buildMatchTime(match),
+            const SizedBox(width: 12),
+            Expanded(child: _buildMatchTeams(match)),
+            Container(
+              padding: const EdgeInsets.only(left: 12),
+              decoration: const BoxDecoration(
+                border: Border(
+                  left: BorderSide(color: Color(0x601C4537)),
+                ),
+              ),
+              child: _buildMatchExtra(match),
+            ),
+          ],
+        ),
       ),
     );
   }

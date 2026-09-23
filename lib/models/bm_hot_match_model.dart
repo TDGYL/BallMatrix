@@ -1,3 +1,5 @@
+import 'bm_match_model.dart';
+
 /// BMHotMatchModel - 热门比赛模型
 /// 作用范围: 映射 /api/livespeed/index/search/match/hot GET 返回的热门比赛列表
 /// 字段包含: 比赛ID、开赛时间、项目分类、联赛名、主客队信息、当前比分
@@ -117,5 +119,47 @@ class BMHotMatchModel {
     final hh = dt.hour.toString().padLeft(2, '0');
     final mi = dt.minute.toString().padLeft(2, '0');
     return '$mm/$dd $hh:$mi';
+  }
+
+  /// 转为 BMMatchModel (用于 push 比赛详情页, 详情页 initState 会重新请求 detail 覆盖)
+  BMMatchModel get toMatchModel {
+    final BMMatchStatus status;
+    if (category == 1) {
+      // 足球状态: 未开赛=1 进行中=2..7 已结束=8
+      final hasStarted = (homeTeamScore ?? 0) > 0 || (awayTeamScore ?? 0) > 0;
+      if (!hasStarted) {
+        status = BMMatchStatus.upcoming;
+      } else if ((matchTime ?? 0) == 0) {
+        status = BMMatchStatus.live;
+      } else {
+        status = BMMatchStatus.ended;
+      }
+    } else {
+      // 篮球: 开赛且有比分=ended or live, 否则upcoming
+      final hasStarted = (homeTeamScore ?? 0) > 0 || (awayTeamScore ?? 0) > 0;
+      if (!hasStarted) {
+        status = BMMatchStatus.upcoming;
+      } else if ((matchTime ?? 0) == 0) {
+        status = BMMatchStatus.live;
+      } else {
+        status = BMMatchStatus.ended;
+      }
+    }
+    return BMMatchModel(
+      matchId: matchId?.toString() ?? '',
+      homeTeamName: homeTeamName,
+      awayTeamName: awayTeamName,
+      homeTeamLogo: homeTeamLogo,
+      awayTeamLogo: awayTeamLogo,
+      homeScore: homeTeamScore,
+      awayScore: awayTeamScore,
+      leagueName: competitionName ?? '',
+      status: status,
+      sportType: category == 2
+          ? BMMatchSportType.basketball
+          : BMMatchSportType.football,
+      matchTime: formattedMatchTime,
+      round: '',
+    );
   }
 }

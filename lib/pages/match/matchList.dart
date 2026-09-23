@@ -5,6 +5,8 @@ import '../../models/bm_match_model.dart';
 import '../../viewmodels/home/bm_home_view_model.dart' show BMSportType;
 import '../../widgets/home/bm_match_spotlight_card.dart';
 import '../../services/bm_match_api_service.dart';
+import 'bm_football_detail_page.dart';
+import 'bm_basketball_detail_page.dart';
 
 /// BMMatchListPage - 赛事列表页 (首页「查看全部」push 进来)
 /// 功能: 真实POST接口请求(tab=0/当天timestamp) + 复用首页卡片 + 下拉刷新 + 上拉加载
@@ -379,7 +381,26 @@ class _BMMatchListPageState extends BMBasePageState<BMMatchListPage> {
           final match = _matchList[index];
           return Padding(
             padding: const EdgeInsets.only(bottom: 12),
-            child: BMMatchSpotlightCard(match: match),
+            child: BMMatchSpotlightCard(
+              match: match,
+              onTap: () {
+                if (widget.sportType == BMSportType.football) {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => BMFootballDetailPage(match: match),
+                    ),
+                  );
+                } else {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => BMBasketballDetailPage(match: match),
+                    ),
+                  );
+                }
+              },
+            ),
           );
         },
       ),

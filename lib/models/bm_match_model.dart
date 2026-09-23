@@ -290,3 +290,48 @@ class BMMatchModel {
     );
   }
 }
+
+/// BMMatchModel 扩展：显示相关 getter
+///   - displayStatusLabel: 显示状态字符串 (LIVE/FT/未开始/待定)
+///   - kickoffText: 开赛时间字符串 (matchTime/liveMinute 任一个有值就展示, 用于判空非空串)
+///   - displayMatchTime: 格式化开赛/轮次或时间 合并显示
+extension BMMatchModelDisplayX on BMMatchModel {
+  /// 显示状态字符串 (String 类型, 用于 scoreboard LIVE 胶囊)
+  ///   live: "LIVE 75'"
+  ///   ended: "完场"
+  ///   upcoming: "未开始"
+  ///   tbd: "待定"
+  String get displayStatusLabel {
+    switch (status) {
+      case BMMatchStatus.live:
+        final min = (liveMinute != null && liveMinute!.isNotEmpty)
+            ? liveMinute!.replaceAll("'", '')
+            : null;
+        if (min != null && min.isNotEmpty) return 'LIVE $min\'';
+        return 'LIVE';
+      case BMMatchStatus.ended:
+        return '完场';
+      case BMMatchStatus.upcoming:
+        return '未开始';
+      case BMMatchStatus.tbd:
+        return '待定';
+    }
+  }
+
+  /// 开赛时间非空串 (String 类型, 用于判断 "开赛时间/轮次至少一个有值吗")
+  ///   liveMinute 非空优先, 否则 matchTime, 否则 round
+  String get kickoffText =>
+      (liveMinute != null && liveMinute!.isNotEmpty)
+          ? liveMinute!
+          : (matchTime.isNotEmpty ? matchTime : round);
+
+  /// 显示合并信息: matchTime + round 组合
+  ///   例: '2026/10/01 03:00 · 第 5 轮'
+  String get displayMatchTime {
+    final List<String> parts = [];
+    if (matchTime.isNotEmpty) parts.add(matchTime);
+    if (round.isNotEmpty) parts.add(round);
+    return parts.join(' · ');
+  }
+}
+
