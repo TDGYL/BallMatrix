@@ -18,6 +18,7 @@ import '../news/newsList.dart';
 import '../news/bm_news_detail_page.dart';
 import '../community/topicList.dart';
 import '../community/bm_topic_detail_page.dart';
+import 'bm_home_search_page.dart';
 
 /// BMHomePage - 首页
 /// 功能: 展示焦点赛事、热门资讯、热门话题
@@ -59,7 +60,7 @@ class _BMHomePageState extends BMBasePageState<BMHomePage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 BMHomeHeader(
-                  onSearchTap: () {},
+                  onSearchTap: _onSearchTap,
                 ),
                 const SizedBox(height: 20),
                 BMSportSwitcher(
@@ -579,6 +580,15 @@ class _BMHomePageState extends BMBasePageState<BMHomePage> {
     if (deleted == true && mounted) {
       widget.viewModel.removeTopic(topic.topicId);
     }
+  }
+
+  /// 顶部搜索按钮点击 push 搜索页 (含搜索历史缓存 + 比赛详情跳转)
+  void _onSearchTap() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => const BMHomeSearchPage(),
+      ),
+    );
   }
 
   /// 首页热门话题内嵌比赛卡跳转 (按球类型分流: basketball -> 篮球详情 / 其他 -> 足球详情)

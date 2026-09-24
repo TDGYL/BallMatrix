@@ -806,7 +806,7 @@ extension BMMatchModelDisplayX on BMMatchModel {
       }
     }
 
-    return '--${id}--${sportType}';
+    return '-';
   }
 
   /// 开赛时间非空串 (String 类型, 用于判断 "开赛时间/轮次至少一个有值吗")

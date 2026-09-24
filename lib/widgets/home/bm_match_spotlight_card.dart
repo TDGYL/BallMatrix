@@ -30,11 +30,7 @@ class BMMatchSpotlightCard extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [Color(0x0D10B981), Color(0xF00E261E)],
-          ),
+          color: const Color(0x0D10B981),
           borderRadius: BorderRadius.circular(16),
           border: Border.all(color: BMColors.pitch600.withValues(alpha: 0.4)),
           boxShadow: [
