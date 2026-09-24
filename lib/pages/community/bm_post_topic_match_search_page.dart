@@ -366,6 +366,17 @@ class _BMPostTopicMatchSearchPageState
   /// 单场比赛条目 (深色卡片: 联赛名顶部 + 左右队名/队标 + 中间比分)
   /// 差异化: 参照页为白底居中布局, 本页为深色 + 比分居中替代 VS 胶囊
   /// [m] - 搜索结果比赛 (BMSearchMatch 类型)
+  /// 格式化比赛时间为 yyyy/MM/dd
+  /// [matchTime] - 秒级时间戳 (int? 类型)
+  /// 返回: 格式化日期串, 无时间返回空串 (不渲染)
+  String _formatMatchDate(int? matchTime) {
+    if (matchTime == null || matchTime <= 0) return '';
+    final dt = DateTime.fromMillisecondsSinceEpoch(matchTime * 1000);
+    return '${dt.year}/${dt.month.toString().padLeft(2, '0')}/${dt.day.toString().padLeft(2, '0')}';
+  }
+
+  /// 构建单个比赛卡片 (左上角时间 + 右侧联赛 + 主客队比分行)
+  /// [m] - 搜索比赛模型 (BMSearchMatch 类型)
   Widget _buildMatchItem(BMSearchMatch m) {
     return GestureDetector(
       onTap: () => Navigator.pop(context, m),
@@ -381,19 +392,42 @@ class _BMPostTopicMatchSearchPageState
           ),
         ),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // 联赛名 (顶部小字)
-            if ((m.competitionName ?? '').isNotEmpty)
+            // 顶部行: 左上角比赛时间 + 右侧联赛名 (垂直居中, 时间与主队头像左对齐)
+            if (_formatMatchDate(m.matchTime).isNotEmpty ||
+                (m.competitionName ?? '').isNotEmpty)
               Padding(
                 padding: const EdgeInsets.only(bottom: 8),
-                child: Text(
-                  m.competitionName!,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontSize: 10,
-                    color: BMColors.textTertiary,
-                  ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    // 左上角比赛时间 (yyyy/MM/dd)
+                    Text(
+                      _formatMatchDate(m.matchTime),
+                      style: const TextStyle(
+                        fontSize: 10,
+                        fontFamily: 'monospace',
+                        color: BMColors.textTertiary,
+                      ),
+                    ),
+                    // 右侧联赛名
+                    if ((m.competitionName ?? '').isNotEmpty) ...[
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          m.competitionName!,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          textAlign: TextAlign.right,
+                          style: const TextStyle(
+                            fontSize: 10,
+                            color: BMColors.textTertiary,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
               ),
             // 主队 + 比分 + 客队

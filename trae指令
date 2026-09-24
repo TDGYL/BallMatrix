@@ -2,8 +2,15 @@
 
 
 
+
+在bm_post_topic_match_search_page和bm_home_search_page的热门比赛列表的卡片左上角加上比赛时间，左边主队头像对齐，和联赛垂直居中
+
+
 在bm_fan_goods_page点击球星鞋库时候，表格卡片出现bottom overflowed by pixels,给我修复
 
+
+
+=======================================周边
 
 在首页工具箱菜单的底部金刚页部分增加第四个菜单名字叫做：球迷好物，点击push到一个球迷周边界面，数据来源是
 把/Users/guyilin/Desktop/goodsList.xlsx复制到项目，然后解析这个表格附件的数据，根据数据结构给我做一个球迷周边

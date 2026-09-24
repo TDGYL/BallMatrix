@@ -291,7 +291,20 @@ class _BMFootballDetailPageState extends BMBasePageState<BMFootballDetailPage> {
               ),
             ),
             const SizedBox(width: 12),
-            const Expanded(child: SizedBox()),
+            // 导航中间标题 (足球详情)
+            const Expanded(
+              child: Text(
+                'Football Detail',
+                textAlign: TextAlign.center,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ),
             const SizedBox(width: 12),
             GestureDetector(
               onTap: _toggleSubscribe,

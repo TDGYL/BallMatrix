@@ -280,7 +280,20 @@ class _BMBasketballDetailPageState extends BMBasePageState<BMBasketballDetailPag
                   size: 16, color: BMColors.textPrimary),
             ),
           ),
-          const Spacer(),
+          // 导航中间标题 (篮球详情)
+          const Expanded(
+            child: Text(
+              'Basketball Detail',
+              textAlign: TextAlign.center,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 15,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ),
           GestureDetector(
             behavior: HitTestBehavior.opaque,
             onTap: _toggleSubscribe,
