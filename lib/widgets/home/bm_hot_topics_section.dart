@@ -12,6 +12,9 @@ class TopicPostCard extends StatelessWidget {
   /// 点击卡片回调 (VoidCallback 类型, 可空)
   final VoidCallback? onTap;
 
+  /// 点击内嵌比赛卡回调 (VoidCallback 类型, 可空, 按球类型跳转对应比赛详情)
+  final VoidCallback? onMatchTap;
+
   /// 更多操作回调 (action 为 'block'/'report', topicId 为话题ID)
   final void Function(String action, String topicId)? onMoreAction;
 
@@ -19,6 +22,7 @@ class TopicPostCard extends StatelessWidget {
     super.key,
     required this.topic,
     this.onTap,
+    this.onMatchTap,
     this.onMoreAction,
   });
 
@@ -47,7 +51,12 @@ class TopicPostCard extends StatelessWidget {
             _buildContentText(),
             if (topic.embeddedMatch != null) ...[
               const SizedBox(height: 10),
-              _buildEmbeddedMatch(topic.embeddedMatch!),
+              // 内嵌比赛卡 (点击按球类型跳转对应比赛详情, 与外层卡片点击隔离)
+              GestureDetector(
+                onTap: onMatchTap,
+                behavior: HitTestBehavior.opaque,
+                child: _buildEmbeddedMatch(topic.embeddedMatch!),
+              ),
             ],
             const SizedBox(height: 10),
             _buildActionBar(),
@@ -578,6 +587,9 @@ class BMHotTopicsSection extends StatelessWidget {
   /// 话题点击回调 (ValueChanged<BMTopicModel> 类型, 可空)
   final ValueChanged<BMTopicModel>? onTopicTap;
 
+  /// 内嵌比赛卡点击回调 (ValueChanged<BMTopicModel> 类型, 可空, 按球类型跳转比赛详情)
+  final ValueChanged<BMTopicModel>? onMatchTap;
+
   /// 更多菜单拉黑回调 (ValueChanged<BMTopicModel> 类型, 可空)
   /// 功能: 调用方处理二次确认弹窗 + 拉黑接口 + 本地删除
   final ValueChanged<BMTopicModel>? onBlockTopic;
@@ -589,6 +601,7 @@ class BMHotTopicsSection extends StatelessWidget {
     super.key,
     required this.topicList,
     this.onTopicTap,
+    this.onMatchTap,
     this.onBlockTopic,
     this.onViewAll,
   });
@@ -603,6 +616,9 @@ class BMHotTopicsSection extends StatelessWidget {
               child: TopicPostCard(
                 topic: topic,
                 onTap: () => onTopicTap?.call(topic),
+                onMatchTap: (topic.embeddedMatch != null)
+                    ? () => onMatchTap?.call(topic)
+                    : null,
                 onMoreAction: (action, topicId) {
                   if (action == 'block') {
                     onBlockTopic?.call(topic);

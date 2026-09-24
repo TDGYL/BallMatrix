@@ -17,6 +17,7 @@ import '../match/bm_basketball_detail_page.dart';
 import '../news/newsList.dart';
 import '../news/bm_news_detail_page.dart';
 import '../community/topicList.dart';
+import '../community/bm_topic_detail_page.dart';
 
 /// BMHomePage - 首页
 /// 功能: 展示焦点赛事、热门资讯、热门话题
@@ -461,7 +462,8 @@ class _BMHomePageState extends BMBasePageState<BMHomePage> {
         else
           BMHotTopicsSection(
             topicList: topics,
-            onTopicTap: (BMTopicModel topic) {},
+            onTopicTap: _onTopicTap,
+            onMatchTap: _onTopicMatchTap,
             onBlockTopic: _onBlockTopic,
             onViewAll: _navigateToTopicList,
           ),
@@ -559,6 +561,36 @@ class _BMHomePageState extends BMBasePageState<BMHomePage> {
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (context) => const BMTopicListPage(),
+      ),
+    );
+  }
+
+  /// 首页热门话题卡片点击跳转话题详情页
+  /// [topic] - 当前话题模型 (BMTopicModel 类型, topicId 即帖子ID)
+  /// 返回 true 表示帖子被删除, 通知 ViewModel 本地移除
+  Future<void> _onTopicTap(BMTopicModel topic) async {
+    final int postId = int.tryParse(topic.topicId) ?? 0;
+    if (postId == 0) return;
+    final deleted = await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => BMTopicDetailPage(postId: postId),
+      ),
+    );
+    if (deleted == true && mounted) {
+      widget.viewModel.removeTopic(topic.topicId);
+    }
+  }
+
+  /// 首页热门话题内嵌比赛卡跳转 (按球类型分流: basketball -> 篮球详情 / 其他 -> 足球详情)
+  /// [topic] - 当前话题模型 (BMTopicModel 类型, 取 embeddedMatch)
+  void _onTopicMatchTap(BMTopicModel topic) {
+    final match = topic.embeddedMatch;
+    if (match == null) return;
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => match.sportType == BMMatchSportType.basketball
+            ? BMBasketballDetailPage(match: match)
+            : BMFootballDetailPage(match: match),
       ),
     );
   }

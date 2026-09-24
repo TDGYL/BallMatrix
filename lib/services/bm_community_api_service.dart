@@ -4,6 +4,7 @@ import '../models/bm_post_api_model.dart';
 import '../models/bm_topic_model.dart';
 import '../models/bm_match_model.dart';
 import '../models/bm_search_match_model.dart';
+import '../models/bm_comment_model.dart';
 
 /// BMCommunityTab - 社区列表Tab类型枚举
 /// 映射到API type参数: 推荐=1, 最新=2, 关注=3
@@ -155,6 +156,10 @@ class BMCommunityApiService {
       predictionResult: _buildPredictionResult(item),
       confidence: 85,
       embeddedMatch: embeddedMatch,
+      hashtags: hashtags,
+      likeCount: item.likeCount ?? 0,
+      commentCount: item.commentCount ?? 0,
+      isLiked: item.isLike ?? false,
       authorName: item.author?.name,
       authorAvatarUrl: item.author?.avatar,
       publishTimeDesc: _formatPublishTime(item.createTime),
@@ -377,6 +382,132 @@ class BMCommunityApiService {
       '/api/livespeed/community/block_post',
       data: {
         'post_id': postId,
+        'type': type,
+      },
+    );
+    return response.isSuccess;
+  }
+
+  /// 帖子详情 (GET /api/livespeed/community/detail)
+  /// 功能: 话题详情页顶部数据源 (内容/作者/关联比赛/点赞评论数)
+  /// [postId] - 帖子ID (int 类型)
+  /// 返回: BMPostItem? 详情数据 (null=失败)
+  Future<BMPostItem?> fetchPostDetail({required int postId}) async {
+    final response = await BMNetworkManager().getRequest(
+      '/api/livespeed/community/detail',
+      queryParameters: {'id': postId},
+    );
+    if (response.isSuccess && response.data is Map<String, dynamic>) {
+      return BMPostItem.fromJson(response.data as Map<String, dynamic>);
+    }
+    return null;
+  }
+
+  /// 评论列表 (GET /api/livespeed/community/comment/list)
+  /// 功能: 话题详情页底部评论列表数据源
+  /// [objectId] - 帖子ID (int 类型)
+  /// 返回: BMCommentData? 评论列表 (null=失败)
+  Future<BMCommentData?> fetchComments({required int objectId}) async {
+    final response = await BMNetworkManager().getRequest(
+      '/api/livespeed/community/comment/list',
+      queryParameters: {'object_id': objectId},
+    );
+    if (response.isSuccess && response.data is Map<String, dynamic>) {
+      return BMCommentData.fromJson(response.data as Map<String, dynamic>);
+    }
+    return null;
+  }
+
+  /// 发表评论/回复 (POST /api/livespeed/community/comment/add)
+  /// 功能: 话题详情页底部评论入口提交
+  /// [objectId] - 帖子ID (int 类型)
+  /// [words] - 评论内容 (String 类型)
+  /// [commentId] - 回复时一级评论ID (int? 类型, 直接评论帖子时null)
+  /// 返回: BMCommentItem? 新评论数据 (null=失败)
+  Future<BMCommentItem?> addComment({
+    required int objectId,
+    required String words,
+    int? commentId,
+  }) async {
+    final params = <String, dynamic>{
+      'object_id': objectId,
+      'words': words,
+    };
+    if (commentId != null) {
+      params['comment_id'] = commentId;
+    }
+    final response = await BMNetworkManager().postRequest(
+      '/api/livespeed/community/comment/add',
+      data: params,
+    );
+    if (response.isSuccess && response.data is Map<String, dynamic>) {
+      final data = response.data as Map<String, dynamic>;
+      final commentJson = data['comment'];
+      if (commentJson is Map<String, dynamic>) {
+        return BMCommentItem.fromJson(commentJson);
+      }
+    }
+    return null;
+  }
+
+  /// 评论点赞/取消 (POST /api/livespeed/support)
+  /// [objectId] - 评论ID (int 类型)
+  /// [isSupport] - true=点赞 false=取消 (bool 类型)
+  /// 返回: bool 是否成功
+  Future<bool> supportComment({
+    required int objectId,
+    required bool isSupport,
+  }) async {
+    final response = await BMNetworkManager().postRequest(
+      '/api/livespeed/support',
+      data: {
+        'object_id': objectId,
+        'object_type': 3,
+        'is_support': isSupport,
+      },
+    );
+    return response.isSuccess;
+  }
+
+  /// 帖子点赞/取消 (POST /api/livespeed/community/like)
+  /// [postId] - 帖子ID (int 类型)
+  /// [type] - 1=点赞 2=取消 (int 类型)
+  /// 返回: bool 是否成功
+  Future<bool> likePost({required int postId, required int type}) async {
+    final response = await BMNetworkManager().postRequest(
+      '/api/livespeed/community/like',
+      data: {
+        'post_id': postId,
+        'type': type,
+      },
+    );
+    return response.isSuccess;
+  }
+
+  /// 删除帖子 (POST /api/livespeed/community/delete)
+  /// 功能: 自己发布的帖子在详情页导航替换关注按钮的删除操作
+  /// [postId] - 帖子ID (int 类型)
+  /// 返回: bool 是否成功
+  Future<bool> deletePost({required int postId}) async {
+    final response = await BMNetworkManager().postRequest(
+      '/api/livespeed/community/delete',
+      data: {'id': postId},
+    );
+    return response.isSuccess;
+  }
+
+  /// 关注/取消关注作者 (POST /api/livespeed/imchat/subscribe)
+  /// [targetId] - 作者用户ID (int 类型)
+  /// [type] - 1=关注 2=取消 (int 类型)
+  /// 返回: bool 是否成功
+  Future<bool> toggleFollowAuthor({
+    required int targetId,
+    required int type,
+  }) async {
+    final response = await BMNetworkManager().postRequest(
+      '/api/livespeed/imchat/subscribe',
+      data: {
+        'target_id': targetId,
         'type': type,
       },
     );

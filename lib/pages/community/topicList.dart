@@ -8,6 +8,7 @@ import '../../models/bm_post_api_model.dart';
 import '../../services/bm_community_api_service.dart';
 import '../../widgets/home/bm_hot_topics_section.dart' show TopicPostCard;
 import 'bm_post_topic_page.dart';
+import 'bm_topic_detail_page.dart';
 
 /// BMTopicListPage - 话题列表页 (首页第三段「查看全部」push 进来)
 /// 功能: 真实GET接口(/api/livespeed/community/list, type='2') + 复用首页话题卡片 + 下拉刷新 + 上拉加载
@@ -161,12 +162,19 @@ class _BMTopicListPageState extends BMBasePageState<BMTopicListPage> {
     });
   }
 
+  /// 原始帖子数据缓存 (Map<String, BMPostItem> 类型, topicId -> BMPostItem, 详情页预传数据)
+  final Map<String, BMPostItem> _postCache = {};
+
   /// 话题转换逻辑（复刻 BMCommunityApiService._convertToTopicModel）
   /// 数据源对齐:
   ///   1. content -> 话题内容 (aiInsight)
   ///   2. image 逗号切割 + 过滤 com/ 前缀 -> 多个话题 (hashtags)
   ///   3. match 有数据 -> 内嵌比赛卡片 (embeddedMatch)
   BMTopicModel _convertToTopic(BMPostItem item) {
+    final topicId = _safeS(item.id?.toString(), '');
+    if (topicId.isNotEmpty) {
+      _postCache[topicId] = item; // 缓存原始数据供详情页预传
+    }
     final hashtags = _parseHashtags(_safeString(item.image));
     final content = _safeS(item.content, '深度数据分析与洞察，提供独家视角。');
     final BMPostMatch? m = item.match;
@@ -512,7 +520,7 @@ class _BMTopicListPageState extends BMBasePageState<BMTopicListPage> {
             padding: const EdgeInsets.only(bottom: 12),
             child: TopicPostCard(
               topic: t,
-              onTap: () {},
+              onTap: () => _navigateToDetail(t),
               onMoreAction: (action, topicId) =>
                   _onMoreAction(action, t),
             ),
@@ -520,6 +528,28 @@ class _BMTopicListPageState extends BMBasePageState<BMTopicListPage> {
         },
       ),
     );
+  }
+
+  /// 跳转话题详情页 (携带原始帖子数据预传)
+  /// [topic] - 点击的话题模型 (BMTopicModel 类型)
+  /// 返回 true 表示帖子被删除, 本地移除该卡片
+  Future<void> _navigateToDetail(BMTopicModel topic) async {
+    final int postId = int.tryParse(topic.topicId) ?? 0;
+    if (postId == 0) return;
+    final deleted = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => BMTopicDetailPage(
+          postId: postId,
+          initialPost: _postCache[topic.topicId],
+        ),
+      ),
+    );
+    if (deleted == true && mounted) {
+      setState(() {
+        _topicList.removeWhere((t) => t.topicId == topic.topicId);
+      });
+    }
   }
 
   /// 更多菜单点击处理 (举报/拉黑)
