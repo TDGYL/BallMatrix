@@ -158,7 +158,9 @@ class _BMBasketballDetailPageState extends BMBasePageState<BMBasketballDetailPag
     });
   }
 
-  /// 切换订阅状态 (未登录先跳登录页)
+  /// 切换关注状态 (未登录先跳登录页)
+  ///   subscribe:   POST /api/livespeed/basketball/match/subscribe     data:{match_id}
+  ///   unsubscribe: POST /api/livespeed/basketball/match/unsubscribe   data:{match_id}
   Future<void> _toggleSubscribe() async {
     if (!BMAuthManager().isLoggedIn) {
       final ok = await Navigator.push<bool>(
@@ -167,12 +169,23 @@ class _BMBasketballDetailPageState extends BMBasePageState<BMBasketballDetailPag
       );
       if (ok != true) return;
     }
+    final matchId = int.tryParse(_match.matchId) ?? 0;
+    if (matchId == 0) return;
+    final willSub = !_isSubscribed;
+    final bool success = willSub
+        ? await _apiService.subscribeBasketballMatch(matchId: matchId)
+        : await _apiService.unsubscribeBasketballMatch(matchId: matchId);
     if (!mounted) return;
-    setState(() => _isSubscribed = !_isSubscribed);
+    if (success) {
+      setState(() => _isSubscribed = willSub);
+    }
+    if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
-          _isSubscribed ? '已订阅' : '已取消订阅',
+          success
+              ? (willSub ? '已关注' : '已取消关注')
+              : '操作失败, 请重试',
           style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
         ),
         backgroundColor: BMColors.pitch800,

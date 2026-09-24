@@ -2,6 +2,29 @@
 
 
 
+
+
+在篮球和足球比赛增加关注和取消关注请求功能：
+
+足球详情和篮球比赛导航右边的按钮，根据请求比赛详情返回的关注字段判断状态，只有用户登录了才可以点击，否则跳转登录界面
+
+2、足球关注请求url=/api/livespeed/football/match/subscribe，POST请求
+  请求参数:{"match_id":24234},match_id是比赛ID
+
+3、足球取消关注请求url=/api/livespeed/football/match/unsubscribe，POST请求
+  请求参数:{"match_id":24234},match_id是比赛ID
+
+4、篮球关注请求url=/api/livespeed/basketball/match/subscribe，POST请求
+  请求参数:{"match_id":24234},match_id是比赛ID
+
+5、篮球取消关注请求url=/api/livespeed/basketball/match/unsubscribe，POST请求
+  请求参数:{"match_id":24234},match_id是比赛ID
+
+
+
+
+=======================首页搜索
+
 首页导航右上角的搜索按钮push到一个界面，界面的ui和功能和bm_post_topic_match_search_page一样，但是多一个缓存搜索关键字缓存，能缓存10个，搜索到的比赛刷新列表，点击类表的比赛卡片push到相关的比赛详情
 
 

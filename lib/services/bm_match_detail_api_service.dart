@@ -280,4 +280,65 @@ class BMMatchDetailApiService {
     }
     return null;
   }
+
+  // ================ 比赛关注/取消关注接口 ================
+
+  /// 足球比赛关注
+  ///   POST /api/livespeed/football/match/subscribe  data: {match_id}
+  /// [matchId] - 足球比赛ID (int 类型, 必传)
+  /// 返回: bool 是否关注成功
+  Future<bool> subscribeFootballMatch({required int matchId}) async {
+    return _postSubscribe(
+      '/api/livespeed/football/match/subscribe',
+      matchId: matchId,
+    );
+  }
+
+  /// 足球比赛取消关注
+  ///   POST /api/livespeed/football/match/unsubscribe  data: {match_id}
+  /// [matchId] - 足球比赛ID (int 类型, 必传)
+  /// 返回: bool 是否取消关注成功
+  Future<bool> unsubscribeFootballMatch({required int matchId}) async {
+    return _postSubscribe(
+      '/api/livespeed/football/match/unsubscribe',
+      matchId: matchId,
+    );
+  }
+
+  /// 篮球比赛关注
+  ///   POST /api/livespeed/basketball/match/subscribe  data: {match_id}
+  /// [matchId] - 篮球比赛ID (int 类型, 必传)
+  /// 返回: bool 是否关注成功
+  Future<bool> subscribeBasketballMatch({required int matchId}) async {
+    return _postSubscribe(
+      '/api/livespeed/basketball/match/subscribe',
+      matchId: matchId,
+    );
+  }
+
+  /// 篮球比赛取消关注
+  ///   POST /api/livespeed/basketball/match/unsubscribe  data: {match_id}
+  /// [matchId] - 篮球比赛ID (int 类型, 必传)
+  /// 返回: bool 是否取消关注成功
+  Future<bool> unsubscribeBasketballMatch({required int matchId}) async {
+    return _postSubscribe(
+      '/api/livespeed/basketball/match/unsubscribe',
+      matchId: matchId,
+    );
+  }
+
+  /// 关注/取消关注通用 POST 请求
+  /// [url] - 请求地址 (String 类型)
+  /// [matchId] - 比赛ID (int 类型, 必传)
+  /// 返回: bool 请求是否成功
+  Future<bool> _postSubscribe(String url, {required int matchId}) async {
+    if (matchId == 0) return false;
+    try {
+      final resp =
+          await BMNetworkManager().postRequest(url, data: {'match_id': matchId});
+      return resp.isSuccess;
+    } catch (_) {
+      return false;
+    }
+  }
 }

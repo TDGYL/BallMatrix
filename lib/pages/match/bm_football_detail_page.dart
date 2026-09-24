@@ -9,7 +9,6 @@ import '../../models/bm_lineup_model.dart';
 import '../../models/bm_player_info_model.dart';
 import '../../models/bm_team_info_model.dart';
 import '../../services/bm_match_detail_api_service.dart';
-import '../../network/bm_network_manager.dart';
 import '../../utils/bm_auth_manager.dart';
 import '../login/bm_login_page.dart';
 import 'bm_odds_history_page.dart';
@@ -147,9 +146,9 @@ class _BMFootballDetailPageState extends BMBasePageState<BMFootballDetailPage> {
     });
   }
 
-  /// 切换订阅 (未登录先去登录)
-  ///   subscribe: POST /api/livespeed/football/match/subscribe     data:{match_id}
-  ///   unsub:     POST /api/livespeed/football/match/unsubscribe   data:{match_id}
+  /// 切换关注 (未登录先去登录)
+  ///   subscribe:   POST /api/livespeed/football/match/subscribe     data:{match_id}
+  ///   unsubscribe: POST /api/livespeed/football/match/unsubscribe   data:{match_id}
   Future<void> _toggleSubscribe() async {
     if (!BMAuthManager().isLoggedIn) {
       final ok = await Navigator.push<bool>(
@@ -161,20 +160,15 @@ class _BMFootballDetailPageState extends BMBasePageState<BMFootballDetailPage> {
     final matchId = int.tryParse(widget.match.matchId) ?? 0;
     if (matchId == 0) return;
     final willSub = !_isSubscribed;
-    final String url = willSub
-        ? '/api/livespeed/football/match/subscribe'
-        : '/api/livespeed/football/match/unsubscribe';
-    try {
-      final resp = await BMNetworkManager().postRequest(url, data: {'match_id': matchId});
-      if (!mounted) return;
-      if (resp.isSuccess) {
-        setState(() => _isSubscribed = willSub);
-        _snack(willSub ? '已订阅' : '已取消订阅');
-      } else {
-        _snack(resp.message ?? '操作失败, 请重试');
-      }
-    } catch (_) {
-      if (mounted) _snack('网络错误, 请重试');
+    final bool success = willSub
+        ? await _apiService.subscribeFootballMatch(matchId: matchId)
+        : await _apiService.unsubscribeFootballMatch(matchId: matchId);
+    if (!mounted) return;
+    if (success) {
+      setState(() => _isSubscribed = willSub);
+      _snack(willSub ? '已关注' : '已取消关注');
+    } else {
+      _snack('操作失败, 请重试');
     }
   }
 
