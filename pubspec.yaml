@@ -56,6 +56,9 @@ dependencies:
   # 从本地相册/相机选图 (编辑资料头像上传)
   image_picker: ^1.0.0
 
+  # 保存图片到系统相册 (战术板导出, iOS 原生 PHPhotoLibrary)
+  gal: ^2.3.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

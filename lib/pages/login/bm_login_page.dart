@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
 import 'package:captcha_plugin_flutter/captcha_plugin_flutter.dart';
 import '../bm_base_page.dart';
+import '../common/bm_webview_page.dart';
 import '../../theme/bm_colors.dart';
 import '../../network/bm_network_manager.dart';
 import '../../utils/bm_auth_manager.dart';
@@ -598,6 +599,17 @@ class _BMLoginPageState extends BMBasePageState<BMLoginPage> {
     );
   }
 
+  /// 跳转协议 Web 页 (与个人中心设置页一致)
+  /// [htmlFileName] - 本地 HTML 文件名 (String 类型, 'user-agreement.html' / 'privacy-agreement.html')
+  void _openAgreement(String htmlFileName) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => BMWebViewPage(htmlFileName: htmlFileName),
+      ),
+    );
+  }
+
   Widget _buildAgreement() {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -639,7 +651,7 @@ class _BMLoginPageState extends BMBasePageState<BMLoginPage> {
                     fontWeight: FontWeight.w700,
                   ),
                   recognizer: TapGestureRecognizer()
-                    ..onTap = () => debugPrint('📄 用户协议'),
+                    ..onTap = () => _openAgreement('user-agreement.html'),
                 ),
                 const TextSpan(text: ' 与 '),
                 TextSpan(
@@ -649,7 +661,7 @@ class _BMLoginPageState extends BMBasePageState<BMLoginPage> {
                     fontWeight: FontWeight.w700,
                   ),
                   recognizer: TapGestureRecognizer()
-                    ..onTap = () => debugPrint('📄 隐私政策'),
+                    ..onTap = () => _openAgreement('privacy-agreement.html'),
                 ),
               ],
             ),

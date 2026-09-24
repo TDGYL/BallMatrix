@@ -24,6 +24,9 @@
 	<string>????</string>
 	<key>CFBundleVersion</key>
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
+	<!-- 保存战术板图片到相册权限描述 -->
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>需要访问相册以保存战术板图片</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>UIApplicationSceneManifest</key>

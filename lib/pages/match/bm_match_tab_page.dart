@@ -1039,8 +1039,8 @@ class _BMMatchTabPageState extends BMBasePageState<BMMatchTabPage> {
             ),
           ),
           Positioned(
-            top: 16,
-            right: 4,
+            top: 24,
+            right: 10,
             child: _buildFollowButton(match),
           ),
         ],

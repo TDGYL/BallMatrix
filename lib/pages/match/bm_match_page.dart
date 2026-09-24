@@ -419,11 +419,7 @@ class _BMMatchPageState extends BMBasePageState<BMMatchPage> {
       child: Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [Color(0xD9143328), Color(0xF00E261E)],
-          ),
+          color: BMColors.pitch850,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(color: BMColors.pitch600.withValues(alpha: 0.4)),
         ),

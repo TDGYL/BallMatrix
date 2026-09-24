@@ -9,6 +9,8 @@ import '../../services/bm_community_api_service.dart';
 import '../../widgets/home/bm_hot_topics_section.dart' show TopicPostCard;
 import 'bm_post_topic_page.dart';
 import 'bm_topic_detail_page.dart';
+import '../login/bm_login_page.dart';
+import '../../utils/bm_auth_manager.dart';
 
 /// BMTopicListPage - 话题列表页 (首页第三段「查看全部」push 进来)
 /// 功能: 真实GET接口(/api/livespeed/community/list, type='2') + 复用首页话题卡片 + 下拉刷新 + 上拉加载
@@ -379,8 +381,18 @@ class _BMTopicListPageState extends BMBasePageState<BMTopicListPage> {
   }
 
   /// 跳转发布话题页 (右上角发布按钮)
+  /// 发布需要登录, 未登录跳转登录界面
   /// 发布成功 (pop true) 后刷新列表展示新话题
   Future<void> _gotoPostTopic() async {
+    // 未登录先跳登录页 (登录成功返回后继续发布流程)
+    if (!BMAuthManager().isLoggedIn) {
+      final ok = await Navigator.push<bool>(
+        context,
+        MaterialPageRoute(builder: (_) => const BMLoginPage()),
+      );
+      if (ok != true) return;
+      if (!mounted) return;
+    }
     final ok = await Navigator.push<bool>(
       context,
       MaterialPageRoute(builder: (_) => const BMPostTopicPage()),
@@ -557,6 +569,15 @@ class _BMTopicListPageState extends BMBasePageState<BMTopicListPage> {
   /// [topic] - 当前话题模型 (BMTopicModel 类型, 用于取 postId 与本地删除)
   Future<void> _onMoreAction(String action, BMTopicModel topic) async {
     if (action != 'block') return; // 举报 toast 由卡片内部处理
+    // 拉黑需要登录, 未登录跳转登录界面 (登录成功返回后继续拉黑流程)
+    if (!BMAuthManager().isLoggedIn) {
+      final ok = await Navigator.push<bool>(
+        context,
+        MaterialPageRoute(builder: (_) => const BMLoginPage()),
+      );
+      if (ok != true) return;
+      if (!mounted) return;
+    }
     final int postId = int.tryParse(topic.topicId) ?? 0;
     if (postId == 0) return;
 

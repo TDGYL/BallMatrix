@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+
 import '../bm_base_page.dart';
 import '../../theme/bm_colors.dart';
-import '../../viewmodels/home/bm_home_view_model.dart' show BMHomeViewModel, BMSportType;
+import '../../viewmodels/home/bm_home_view_model.dart'
+    show BMHomeViewModel, BMSportType;
 import '../../services/bm_community_api_service.dart';
 import '../../models/bm_match_model.dart';
 import '../../models/bm_news_model.dart';
@@ -18,6 +20,8 @@ import '../news/newsList.dart';
 import '../news/bm_news_detail_page.dart';
 import '../community/topicList.dart';
 import '../community/bm_topic_detail_page.dart';
+import '../login/bm_login_page.dart';
+import '../../utils/bm_auth_manager.dart';
 import 'bm_home_search_page.dart';
 
 /// BMHomePage - 首页
@@ -59,13 +63,12 @@ class _BMHomePageState extends BMBasePageState<BMHomePage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                BMHomeHeader(
-                  onSearchTap: _onSearchTap,
-                ),
+                BMHomeHeader(onSearchTap: _onSearchTap),
                 const SizedBox(height: 20),
                 BMSportSwitcher(
                   currentSport: widget.viewModel.currentSport,
-                  onSportChanged: (sport) => widget.viewModel.switchSport(sport),
+                  onSportChanged: (sport) =>
+                      widget.viewModel.switchSport(sport),
                 ),
                 const SizedBox(height: 20),
                 _buildFeaturedMatchSection(),
@@ -138,21 +141,22 @@ class _BMHomePageState extends BMBasePageState<BMHomePage> {
         loading
             ? _buildMatchSkeleton()
             : (match != null
-                ? BMMatchSpotlightCard(
-                    match: match,
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => widget.viewModel.currentSport ==
-                                  BMSportType.football
-                              ? BMFootballDetailPage(match: match)
-                              : BMBasketballDetailPage(match: match),
-                        ),
-                      );
-                    },
-                  )
-                : const SizedBox.shrink()),
+                  ? BMMatchSpotlightCard(
+                      match: match,
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) =>
+                                widget.viewModel.currentSport ==
+                                    BMSportType.football
+                                ? BMFootballDetailPage(match: match)
+                                : BMBasketballDetailPage(match: match),
+                          ),
+                        );
+                      },
+                    )
+                  : const SizedBox.shrink()),
       ],
     );
   }
@@ -163,14 +167,7 @@ class _BMHomePageState extends BMBasePageState<BMHomePage> {
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            Color(0xFF1B3A2E),
-            Color(0xFF0E2620),
-          ],
-        ),
+        color: BMColors.pitch850,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: BMColors.pitch700.withValues(alpha: 0.5)),
       ),
@@ -236,11 +233,32 @@ class _BMHomePageState extends BMBasePageState<BMHomePage> {
                 children: [
                   Row(
                     children: [
-                      Container(width: 26, height: 28, decoration: BoxDecoration(color: BMColors.pitch800, borderRadius: BorderRadius.circular(4))),
+                      Container(
+                        width: 26,
+                        height: 28,
+                        decoration: BoxDecoration(
+                          color: BMColors.pitch800,
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                      ),
                       const SizedBox(width: 8),
-                      Container(width: 10, height: 16, decoration: BoxDecoration(color: BMColors.pitch800, borderRadius: BorderRadius.circular(2))),
+                      Container(
+                        width: 10,
+                        height: 16,
+                        decoration: BoxDecoration(
+                          color: BMColors.pitch800,
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
                       const SizedBox(width: 8),
-                      Container(width: 26, height: 28, decoration: BoxDecoration(color: BMColors.pitch800, borderRadius: BorderRadius.circular(4))),
+                      Container(
+                        width: 26,
+                        height: 28,
+                        decoration: BoxDecoration(
+                          color: BMColors.pitch800,
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                      ),
                     ],
                   ),
                 ],
@@ -286,7 +304,11 @@ class _BMHomePageState extends BMBasePageState<BMHomePage> {
           children: [
             Row(
               children: [
-                const Icon(Icons.local_fire_department, size: 16, color: BMColors.bright),
+                const Icon(
+                  Icons.local_fire_department,
+                  size: 16,
+                  color: BMColors.bright,
+                ),
                 const SizedBox(width: 6),
                 const Text(
                   '热门资讯',
@@ -340,10 +362,8 @@ class _BMHomePageState extends BMBasePageState<BMHomePage> {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (_) => BMNewsDetailPage(
-              newsId: id ?? 0,
-              newsTitle: news.title,
-            ),
+            builder: (_) =>
+                BMNewsDetailPage(newsId: id ?? 0, newsTitle: news.title),
           ),
         );
       },
@@ -397,7 +417,14 @@ class _BMHomePageState extends BMBasePageState<BMHomePage> {
           const SizedBox(height: 10),
           Row(
             children: [
-              Container(width: 48, height: 10, decoration: BoxDecoration(color: BMColors.pitch800, borderRadius: BorderRadius.circular(4))),
+              Container(
+                width: 48,
+                height: 10,
+                decoration: BoxDecoration(
+                  color: BMColors.pitch800,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+              ),
             ],
           ),
         ],
@@ -500,35 +527,90 @@ class _BMHomePageState extends BMBasePageState<BMHomePage> {
               Container(
                 width: 32,
                 height: 32,
-                decoration: const BoxDecoration(shape: BoxShape.circle, color: BMColors.pitch700),
+                decoration: const BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: BMColors.pitch700,
+                ),
               ),
               const SizedBox(width: 8),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Container(width: 100, height: 12, decoration: BoxDecoration(color: BMColors.pitch800, borderRadius: BorderRadius.circular(6))),
+                    Container(
+                      width: 100,
+                      height: 12,
+                      decoration: BoxDecoration(
+                        color: BMColors.pitch800,
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                    ),
                     const SizedBox(height: 4),
-                    Container(width: 60, height: 10, decoration: BoxDecoration(color: BMColors.pitch800, borderRadius: BorderRadius.circular(5))),
+                    Container(
+                      width: 60,
+                      height: 10,
+                      decoration: BoxDecoration(
+                        color: BMColors.pitch800,
+                        borderRadius: BorderRadius.circular(5),
+                      ),
+                    ),
                   ],
                 ),
               ),
-              Container(width: 26, height: 26, decoration: BoxDecoration(color: BMColors.pitch800, borderRadius: BorderRadius.circular(8))),
+              Container(
+                width: 26,
+                height: 26,
+                decoration: BoxDecoration(
+                  color: BMColors.pitch800,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 10),
-          Container(width: 100, height: 22, decoration: BoxDecoration(color: BMColors.pitch800, borderRadius: BorderRadius.circular(12))),
+          Container(
+            width: 100,
+            height: 22,
+            decoration: BoxDecoration(
+              color: BMColors.pitch800,
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
           const SizedBox(height: 8),
-          Container(width: double.infinity, height: 10, decoration: BoxDecoration(color: BMColors.pitch800, borderRadius: BorderRadius.circular(4))),
+          Container(
+            width: double.infinity,
+            height: 10,
+            decoration: BoxDecoration(
+              color: BMColors.pitch800,
+              borderRadius: BorderRadius.circular(4),
+            ),
+          ),
           const SizedBox(height: 4),
-          Container(width: double.infinity, height: 10, decoration: BoxDecoration(color: BMColors.pitch800, borderRadius: BorderRadius.circular(4))),
+          Container(
+            width: double.infinity,
+            height: 10,
+            decoration: BoxDecoration(
+              color: BMColors.pitch800,
+              borderRadius: BorderRadius.circular(4),
+            ),
+          ),
           const SizedBox(height: 10),
           Container(
             padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(color: BMColors.pitch800, borderRadius: BorderRadius.circular(10)),
+            decoration: BoxDecoration(
+              color: BMColors.pitch800,
+              borderRadius: BorderRadius.circular(10),
+            ),
             child: Row(
               children: [
-                Container(width: 160, height: 10, decoration: BoxDecoration(color: BMColors.pitch700, borderRadius: BorderRadius.circular(4))),
+                Container(
+                  width: 160,
+                  height: 10,
+                  decoration: BoxDecoration(
+                    color: BMColors.pitch700,
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                ),
               ],
             ),
           ),
@@ -541,29 +623,22 @@ class _BMHomePageState extends BMBasePageState<BMHomePage> {
   void _navigateToMatchList() {
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (context) => BMMatchListPage(
-          sportType: widget.viewModel.currentSport,
-        ),
+        builder: (context) =>
+            BMMatchListPage(sportType: widget.viewModel.currentSport),
       ),
     );
   }
 
   /// 跳转到资讯列表页 (第二段「查看全部」跳转)
   void _navigateToNewsList() {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (context) => const BMNewsListPage(),
-      ),
-    );
+    Navigator.of(context)
+        .push(MaterialPageRoute(builder: (context) => const BMNewsListPage()));
   }
 
   /// 跳转到话题列表页 (第三段「查看全部」跳转, type=2 最新)
   void _navigateToTopicList() {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (context) => const BMTopicListPage(),
-      ),
-    );
+    Navigator.of(context)
+        .push(MaterialPageRoute(builder: (context) => const BMTopicListPage()));
   }
 
   /// 首页热门话题卡片点击跳转话题详情页
@@ -584,11 +659,9 @@ class _BMHomePageState extends BMBasePageState<BMHomePage> {
 
   /// 顶部搜索按钮点击 push 搜索页 (含搜索历史缓存 + 比赛详情跳转)
   void _onSearchTap() {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (context) => const BMHomeSearchPage(),
-      ),
-    );
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (context) => const BMHomeSearchPage()));
   }
 
   /// 首页热门话题内嵌比赛卡跳转 (按球类型分流: basketball -> 篮球详情 / 其他 -> 足球详情)
@@ -609,6 +682,15 @@ class _BMHomePageState extends BMBasePageState<BMHomePage> {
   /// [topic] - 当前话题模型 (BMTopicModel 类型)
   /// 链路: 二次确认弹窗 -> POST block_post -> 成功后 ViewModel 本地删除
   Future<void> _onBlockTopic(BMTopicModel topic) async {
+    // 拉黑需要登录, 未登录跳转登录界面 (登录成功返回后继续拉黑流程)
+    if (!BMAuthManager().isLoggedIn) {
+      final ok = await Navigator.push<bool>(
+        context,
+        MaterialPageRoute(builder: (_) => const BMLoginPage()),
+      );
+      if (ok != true) return;
+      if (!mounted) return;
+    }
     final int postId = int.tryParse(topic.topicId) ?? 0;
     if (postId == 0) return;
 
@@ -654,8 +736,10 @@ class _BMHomePageState extends BMBasePageState<BMHomePage> {
     if (confirmed != true || !mounted) return;
 
     // 拉黑: 调接口成功后 ViewModel 本地删除该话题
-    final bool ok =
-        await BMCommunityApiService().blockPost(postId: postId, type: 1);
+    final bool ok = await BMCommunityApiService().blockPost(
+      postId: postId,
+      type: 1,
+    );
     if (!mounted) return;
     if (ok) {
       widget.viewModel.removeTopic(topic.topicId);
