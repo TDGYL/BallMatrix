@@ -1,8 +1,35 @@
 
 
 
+1、足球/篮球比赛详情实时中文判断
+2、
 
-4、将项目的本底中文修改成英文
+
+将足球比赛详情菜单event第一段事件文案取的name替换成如下：
+  String get typeName {
+    switch (type) {
+      case 25:
+        return 'Possession';
+      case 21:
+        return 'On Target';
+      case 22:
+        return 'shot off target';
+      case 23:
+        return 'Attacks';
+      case 24:
+        return 'DangerousAttacks';
+      case 2:
+        return 'Corners';
+      case 4:
+        return 'Red Cards';
+      case 3:
+        return 'Yellow Cards';
+      case 1:
+        return 'Goals';
+      default:
+        return 'unknownstats';
+    }
+  }
 
 
 ❌：football/info球员信息. 请求头只支持x-version=1.0.0，如果这样其他接口会请求到中文的文案

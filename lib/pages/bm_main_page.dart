@@ -7,9 +7,9 @@ import 'tool/bm_tool_page.dart';
 import 'mine/bm_mine_page.dart';
 import '../viewmodels/home/bm_home_view_model.dart';
 
-/// BMMainPage - 主框架页面
-/// 功能: 底部导航Tab框架, 管理首页/赛事/工具/我的四个Tab页面
-/// 架构: MVVM View层, 持有全局 ViewModel
+/// BMMainPage - homeframeworkpage
+/// feature: bottomnavigationTabframework, home/competition/tool/my of fouritemsTabpage
+/// architecture: MVVM Viewlayer, hasfullgame ViewModel
 class BMMainPage extends StatefulWidget {
   const BMMainPage({super.key});
 
@@ -18,25 +18,25 @@ class BMMainPage extends StatefulWidget {
 }
 
 class _BMMainPageState extends State<BMMainPage> {
-  /// 当前选中的Tab索引 - ValueNotifier (便于子页面监听Tab切换事件)
-  ///   作用: 当 _currentIndex=3 切换到"我的"页面时, BMMinePage 监听到后可刷新个人信息
+  /// currentselected of Tabindex - ValueNotifier (subpagelistenerTabswitchevent)
+  /// purpose: when _currentIndex=3 switchto"my of "pagewhen, BMMinePage listenertolatercanrefreshprofileinfo
   final ValueNotifier<int> currentTabNotifier = ValueNotifier<int>(0);
 
-  /// 当前选中的Tab索引 (int 类型, 0-3)
+  /// currentselected of Tabindex (int type, 0-3)
   int get _currentIndex => currentTabNotifier.value;
 
-  /// 首页ViewModel (BMHomeViewModel 类型, 懒加载)
+  /// homeViewModel (BMHomeViewModel type, lazy load)
   late final BMHomeViewModel _homeViewModel;
 
-  /// 页面列表 (List<Widget> 类型, 懒加载)
+  /// pagelist (List<Widget> type, lazy load)
   late final List<Widget> _pages;
 
   @override
   void initState() {
     super.initState();
-    // 懒加载初始化ViewModel
+    // lazy loadinitializeViewModel
     _homeViewModel = BMHomeViewModel();
-    // 懒加载初始化页面: BMMinePage 接收 currentTabNotifier
+    // lazy loadinitializepage: BMMinePage receive currentTabNotifier
     _pages = [
       BMHomePage(viewModel: _homeViewModel),
       const BMMatchTabPage(),
@@ -61,7 +61,7 @@ class _BMMainPageState extends State<BMMainPage> {
     );
   }
 
-  /// 构建底部导航栏
+  /// buildbottomapp bar
   Widget _buildBottomNav() {
     return Container(
       height: 64,
@@ -72,22 +72,22 @@ class _BMMainPageState extends State<BMMainPage> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
-          _buildNavItem(0, Icons.stadium, '首页'),
-          _buildNavItem(1, Icons.flag_outlined, '赛事'),
+          _buildNavItem(0, Icons.stadium, 'home'),
+          _buildNavItem(1, Icons.flag_outlined, 'competition'),
           _buildCenterNavItem(),
-          _buildNavItem(3, Icons.manage_accounts_outlined, '我的'),
+          _buildNavItem(3, Icons.manage_accounts_outlined, 'mine'),
         ],
       ),
     );
   }
 
-  /// 构建普通导航项
-  /// 参数: [index] 索引, [icon] 图标, [label] 文本
+  /// buildgeneralcommonnavigationitem
+  /// argument: [index] index, [icon] icon, [label] text
   Widget _buildNavItem(int index, IconData icon, String label) {
     final bool isSelected = _currentIndex == index;
     return GestureDetector(
       onTap: () {
-        // 优先更新 ValueNotifier (子页面如 BMMinePage 能第一时间监听 Tab 切换事件)
+        // priorityupdate ValueNotifier (subpagelike BMMinePage abilityNo. onetimelistener Tab switchevent)
         currentTabNotifier.value = index;
         setState(() {});
       },
@@ -113,7 +113,7 @@ class _BMMainPageState extends State<BMMainPage> {
     );
   }
 
-  /// 构建中间凸起导航项 (智算工具)
+  /// buildmiddlenavigationitem (calctool)
   Widget _buildCenterNavItem() {
     final bool isSelected = _currentIndex == 2;
     return GestureDetector(
@@ -153,7 +153,7 @@ class _BMMainPageState extends State<BMMainPage> {
             ),
           ),
           Text(
-            '藏宝盒',
+            '',
             style: TextStyle(
               fontSize: 10,
               fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,

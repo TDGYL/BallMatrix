@@ -4,110 +4,110 @@ import '../../theme/bm_colors.dart';
 import '../../models/bm_odds_model.dart';
 import '../../services/bm_match_detail_api_service.dart';
 
-/// BMOddsHistoryPage - 指数历史详情页
-/// 完全参考 hanklive odds_history_page (API GET /api/livespeed/football/match/odd-histories)
-/// 差异化 UI (vs hanklive 紫色): 深绿 pitch900 背景 + 亮绿主色 + 时间轴卡片
+/// BMOddsHistoryPage - indexhistorydetailpage
+/// completefullreference hanklive odds_history_page (API GET /api/livespeed/football/match/odd-histories)
+/// differentiation UI (vs hanklive purple): dark green pitch900 background + bright greenhomecolor + timecard
 class BMOddsHistoryPage extends BMBasePage {
-  /// 比赛ID (int 类型, 必传)
-  final int matchId;
-  /// 博彩公司ID (String 类型, 必传)
-  final String companyId;
-  /// 博彩公司名 (String? 类型, 顶部展示)
-  final String? companyName;
-  /// 盘口类型 (BMOddsType, 展示 让球/胜平负/大小球/角球)
-  final BMOddsType oddsType;
+ /// matchID (int type, required)
+ final int matchId;
+ /// ID (String type, required)
+ final String companyId;
+ /// name (String? type, topshow)
+ final String? companyName;
+ /// handicaptype (BMOddsType, show handicap/1X2/sizeball/corner)
+ final BMOddsType oddsType;
 
-  const BMOddsHistoryPage({
-    super.key,
-    required this.matchId,
-    required this.companyId,
-    this.companyName,
-    required this.oddsType,
-  });
+ const BMOddsHistoryPage({
+ super.key,
+ required this.matchId,
+ required this.companyId,
+ this.companyName,
+ required this.oddsType,
+ });
 
-  @override
-  State<BMOddsHistoryPage> createState() => _BMOddsHistoryPageState();
+ @override
+ State<BMOddsHistoryPage> createState() => _BMOddsHistoryPageState();
 }
 
 class _BMOddsHistoryPageState extends BMBasePageState<BMOddsHistoryPage> {
-  /// 历史数据 (BMOddsHistoryData? 类型)
-  BMOddsHistoryData? _history;
+ /// historydata (BMOddsHistoryData? type)
+ BMOddsHistoryData? _history;
 
-  /// 加载状态
-  bool _loading = true;
+ /// loadingstate
+ bool _loading = true;
 
-  final BMMatchDetailApiService _api = BMMatchDetailApiService();
+ final BMMatchDetailApiService _api = BMMatchDetailApiService();
 
-  @override
-  void initState() {
-    super.initState();
-    _fetch();
-  }
+ @override
+ void initState() {
+ super.initState();
+ _fetch();
+ }
 
-  Future<void> _fetch() async {
-    final d = await _api.fetchOddsHistory(matchId: widget.matchId, companyId: widget.companyId);
-    if (!mounted) return;
-    setState(() {
-      _history = d;
-      _loading = false;
-    });
-  }
+ Future<void> _fetch() async {
+ final d = await _api.fetchOddsHistory(matchId: widget.matchId, companyId: widget.companyId);
+ if (!mounted) return;
+ setState(() {
+ _history = d;
+ _loading = false;
+ });
+ }
 
-  List<BMOddsHistoryPoint> _points() {
-    switch (widget.oddsType) {
-      case BMOddsType.asianHandicap:
-        return _history?.asia ?? [];
-      case BMOddsType.matchResult:
-        return _history?.eu ?? [];
-      case BMOddsType.overUnder:
-        return _history?.bs ?? [];
-      case BMOddsType.corners:
-        return _history?.cr ?? [];
-    }
-  }
+ List<BMOddsHistoryPoint> _points() {
+ switch (widget.oddsType) {
+ case BMOddsType.asianHandicap:
+ return _history?.asia ?? [];
+ case BMOddsType.matchResult:
+ return _history?.eu ?? [];
+ case BMOddsType.overUnder:
+ return _history?.bs ?? [];
+ case BMOddsType.corners:
+ return _history?.cr ?? [];
+ }
+ }
 
-  @override
-  Widget buildBody(BuildContext context) {
-    return Scaffold(
-      backgroundColor: BMColors.pitch900,
-      body: Column(
-        children: [
-          _buildAppBar(),
-          Expanded(child: _buildBody()),
-        ],
-      ),
-    );
-  }
+ @override
+ Widget buildBody(BuildContext context) {
+ return Scaffold(
+ backgroundColor: BMColors.pitch900,
+ body: Column(
+ children: [
+ _buildAppBar(),
+ Expanded(child: _buildBody()),
+ ],
+),
+);
+ }
 
-  Widget _buildAppBar() {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(12, 0, 12, 10),
-      decoration: BoxDecoration(
-        color: BMColors.pitch900,
-        border: Border(bottom: BorderSide(color: BMColors.pitch700.withValues(alpha: 0.3), width: 0.5)),
-      ),
-      child: SafeArea(
-        bottom: false,
-        child: Row(
-          children: [
-            GestureDetector(
-              onTap: () => Navigator.pop(context),
-              behavior: HitTestBehavior.opaque,
-              child: Container(
-                width: 34,
-                height: 34,
-                decoration: BoxDecoration(
-                  color: BMColors.pitch850,
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: BMColors.pitch700.withValues(alpha: 0.5)),
-                ),
-                child: const Icon(Icons.chevron_left, size: 18, color: Colors.white),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                '${widget.companyName ?? '赔率历史'} · ${widget.oddsType.shortLabel}',
+ Widget _buildAppBar() {
+ return Container(
+ padding: const EdgeInsets.fromLTRB(12, 0, 12, 10),
+ decoration: BoxDecoration(
+ color: BMColors.pitch900,
+ border: Border(bottom: BorderSide(color: BMColors.pitch700.withValues(alpha: 0.3), width: 0.5)),
+),
+ child: SafeArea(
+ bottom: false,
+ child: Row(
+ children: [
+ GestureDetector(
+ onTap: () => Navigator.pop(context),
+ behavior: HitTestBehavior.opaque,
+ child: Container(
+ width: 34,
+ height: 34,
+ decoration: BoxDecoration(
+ color: BMColors.pitch850,
+ borderRadius: BorderRadius.circular(10),
+ border: Border.all(color: BMColors.pitch700.withValues(alpha: 0.5)),
+),
+ child: const Icon(Icons.chevron_left, size: 18, color: Colors.white),
+),
+),
+ const SizedBox(width: 12),
+ Expanded(
+ child: Text(
+ '${widget.companyName ?? 'oddshistory'} · ${widget.oddsType.shortLabel}',
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Colors.white),
@@ -126,7 +126,7 @@ class _BMOddsHistoryPageState extends BMBasePageState<BMOddsHistoryPage> {
     }
     final list = _points();
     if (list.isEmpty) {
-      return const Center(child: Text('暂无历史赔率', style: TextStyle(color: BMColors.textTertiary, fontSize: 12)));
+      return const Center(child: Text('No historyodds', style: TextStyle(color: BMColors.textTertiary, fontSize: 12)));
     }
     final showDraw = widget.oddsType == BMOddsType.matchResult;
     return ListView.separated(
@@ -164,7 +164,7 @@ class _BMOddsHistoryPageState extends BMBasePageState<BMOddsHistoryPage> {
                     ),
                     const SizedBox(width: 6),
                   ],
-                  if (showDraw) Expanded(child: _cell(p.detail.draw, BMColors.textSecondary, label: '平')),
+                  if (showDraw) Expanded(child: _cell(p.detail.draw, BMColors.textSecondary, label: 'D')),
                   Expanded(child: _cell(p.detail.away, const Color(0xFF3B82F6))),
                 ],
               ),

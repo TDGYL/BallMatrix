@@ -1,49 +1,49 @@
-/// 安全工具: 从json动态值提取int? (兼容int/String/num/null, 提取失败返回null)
+/// securitytool: fromjsonstatevaluetakeint? (compatibleint/String/num/null, extract failure returns null)
 int? safeInt(dynamic v) {
-  if (v == null) return null;
-  if (v is int) return v;
-  if (v is num) return v.toInt();
-  if (v is String) return int.tryParse(v);
-  return null;
+ if (v == null) return null;
+ if (v is int) return v;
+ if (v is num) return v.toInt();
+ if (v is String) return int.tryParse(v);
+ return null;
 }
 
-/// 安全工具: 从json动态值提取String? (兼容String/num/null, 提取失败返回null)
+/// securitytool: fromjsonstatevaluetakeString? (compatibleString/num/null, extract failure returns null)
 String? safeString(dynamic v) {
-  if (v == null) return null;
-  if (v is String) return v;
-  return v.toString();
+ if (v == null) return null;
+ if (v is String) return v;
+ return v.toString();
 }
 
-/// 安全工具: 从json动态值提取bool? (兼容bool/int/null, 提取失败返回null)
+/// securitytool: fromjsonstatevaluetakebool? (compatiblebool/int/null, extract failure returns null)
 bool? safeBool(dynamic v) {
-  if (v == null) return null;
-  if (v is bool) return v;
-  if (v is int) return v != 0;
-  if (v is String) {
-    final s = v.toLowerCase().trim();
-    if (s == 'true' || s == '1' || s == 'yes') return true;
+ if (v == null) return null;
+ if (v is bool) return v;
+ if (v is int) return v != 0;
+ if (v is String) {
+ final s = v.toLowerCase().trim();
+ if (s == 'true' || s == '1' || s == 'yes') return true;
     if (s == 'false' || s == '0' || s == 'no') return false;
-  }
-  return null;
+ }
+ return null;
 }
 
-/// BMMatchData - 足球比赛列表API响应数据体
-/// 作用范围: /api/livespeed/football/matches 接口响应data字段
+/// BMMatchData - footballmatchlistAPIresponsedatabody
+/// purposescope: /api/livespeed/football/matches APIresponsedatafield
 class BMMatchData {
-  /// 数据总数 (int? 类型)
-  final int? total;
+ /// datatotal (int? type)
+ final int? total;
 
-  /// 请求时间戳 (int? 类型, 秒)
-  final int? timestamp;
+ /// requesttimestamp (int? type, second)
+ final int? timestamp;
 
-  /// 比赛项目列表 (List<BMMatchItem> 类型)
-  final List<BMMatchItem> results;
+ /// matchitem list (List<BMMatchItem> type)
+ final List<BMMatchItem> results;
 
-  BMMatchData({this.total, this.timestamp, this.results = const []});
+ BMMatchData({this.total, this.timestamp, this.results = const []});
 
-  /// 从 JSON 解析 (全字段安全提取, 不抛错)
-  factory BMMatchData.fromJson(Map<String, dynamic> json) {
-    final list = json['results'] is List ? json['results'] as List : null;
+ /// from JSON parse (fullfieldsecuritytake, no throw)
+ factory BMMatchData.fromJson(Map<String, dynamic> json) {
+ final list = json['results'] is List ? json['results'] as List : null;
     final List<BMMatchItem> items = [];
     if (list != null) {
       for (final e in list) {
@@ -52,236 +52,236 @@ class BMMatchData {
             items.add(BMMatchItem.fromJson(e));
           }
         } catch (ex) {
-          debugPrintSafe('BMMatchData results单项解析跳过: $ex');
+          debugPrintSafe('BMMatchData resultssingleitemparseskip: $ex');
         }
       }
     }
     return BMMatchData(
       total: safeInt(json['total']),
       timestamp: safeInt(json['timestamp']),
-      results: items,
-    );
-  }
+ results: items,
+);
+ }
 }
 
-/// BMMatchItem - 单场足球比赛数据项
-/// 作用范围: /api/livespeed/football/matches 接口 results 子项
+/// BMMatchItem - singlecourtfootballmatchdataitem
+/// purposescope: /api/livespeed/football/matches API results sub item
 class BMMatchItem {
-  /// 比赛唯一ID (int? 类型)
-  final int? matchId;
+ /// matchuniqueID (int? type)
+ final int? matchId;
 
-  /// 赛季ID (int? 类型)
-  final int? seasonId;
+ /// season ID (int? type)
+ final int? seasonId;
 
-  /// 联赛ID (int? 类型)
-  final int? competitionId;
+ /// leagueID (int? type)
+ final int? competitionId;
 
-  /// 联赛LogoURL (String? 类型)
-  final String? competitionLogo;
+ /// leagueLogoURL (String? type)
+ final String? competitionLogo;
 
-  /// 联赛名称 (String? 类型)
-  final String? competitionName;
+ /// league namename (String? type)
+ final String? competitionName;
 
-  /// 联赛主题色(主) (String? 类型, 十六进制色字符串可选)
-  final String? competitionPrimaryColor;
+ /// leagueaccent color(home) (String? type, tensixmakecolorstringoptional)
+ final String? competitionPrimaryColor;
 
-  /// 联赛主题色(副) (String? 类型)
-  final String? competitionSecondaryColor;
+ /// leagueaccent color(copy) (String? type)
+ final String? competitionSecondaryColor;
 
-  /// 主队ID (int? 类型)
-  final int? homeTeamId;
+ /// home teamID (int? type)
+ final int? homeTeamId;
 
-  /// 主队名称 (String? 类型)
-  final String? homeTeamName;
+ /// home teamname (String? type)
+ final String? homeTeamName;
 
-  /// 主队LogoURL (String? 类型)
-  final String? homeTeamLogo;
+ /// home teamLogoURL (String? type)
+ final String? homeTeamLogo;
 
-  /// 客队ID (int? 类型)
-  final int? awayTeamId;
+ /// away teamID (int? type)
+ final int? awayTeamId;
 
-  /// 客队名称 (String? 类型)
-  final String? awayTeamName;
+ /// away teamname (String? type)
+ final String? awayTeamName;
 
-  /// 客队LogoURL (String? 类型)
-  final String? awayTeamLogo;
+ /// away teamLogoURL (String? type)
+ final String? awayTeamLogo;
 
-  /// 状态ID (int? 类型: 0/1=未开始, 2/3/4=进行中, 8=完场)
-  final int? statusId;
+ /// stateID (int? type: 0/1=NS, 2/3/4=in progress, 8=FT)
+ final int? statusId;
 
-  /// 状态名称 (String? 类型)
-  final String? statusName;
+ /// statename (String? type)
+ final String? statusName;
 
-  /// 开赛时间戳 (int? 类型, 秒)
-  final int? matchTime;
+ /// kickoff timestamp (int? type, second)
+ final int? matchTime;
 
-  /// 是否中立场地 (int? 类型)
-  final int? neutral;
+ /// whetherininstantlycourt (int? type)
+ final int? neutral;
 
-  /// 主队常规比分 (int? 类型)
-  final int? homeNormalScore;
+ /// home teamregular score (int? type)
+ final int? homeNormalScore;
 
-  /// 主队半场比分 (int? 类型)
-  final int? homeHalfScore;
+ /// home teamHT score (int? type)
+ final int? homeHalfScore;
 
-  /// 主队红牌 (int? 类型)
-  final int? homeRed;
+ /// home teamred card (int? type)
+ final int? homeRed;
 
-  /// 主队黄牌 (int? 类型)
-  final int? homeYellow;
+ /// home teamyellow card (int? type)
+ final int? homeYellow;
 
-  /// 主队角球 (int? 类型)
-  final int? homeCorn;
+ /// home teamcorner (int? type)
+ final int? homeCorn;
 
-  /// 主队加时比分 (int? 类型)
-  final int? homeAddScore;
+ /// home teamextra timescore (int? type)
+ final int? homeAddScore;
 
-  /// 主队点球比分 (int? 类型)
-  final int? homePointScore;
+ /// home teampenaltyscore (int? type)
+ final int? homePointScore;
 
-  /// 客队常规比分 (int? 类型)
-  final int? awayNormalScore;
+ /// away teamregular score (int? type)
+ final int? awayNormalScore;
 
-  /// 客队半场比分 (int? 类型)
-  final int? awayHalfScore;
+ /// away teamHT score (int? type)
+ final int? awayHalfScore;
 
-  /// 客队红牌 (int? 类型)
-  final int? awayRed;
+ /// away teamred card (int? type)
+ final int? awayRed;
 
-  /// 客队黄牌 (int? 类型)
-  final int? awayYellow;
+ /// away teamyellow card (int? type)
+ final int? awayYellow;
 
-  /// 客队角球 (int? 类型)
-  final int? awayCorn;
+ /// away teamcorner (int? type)
+ final int? awayCorn;
 
-  /// 客队加时比分 (int? 类型)
-  final int? awayAddScore;
+ /// away teamextra timescore (int? type)
+ final int? awayAddScore;
 
-  /// 客队点球比分 (int? 类型)
-  final int? awayPointScore;
+ /// away teampenaltyscore (int? type)
+ final int? awayPointScore;
 
-  /// 是否有阵容 (int? 类型)
-  final int? lineup;
+ /// whetherhaslineup (int? type)
+ final int? lineup;
 
-  /// 阶段ID (int? 类型)
-  final int? stageId;
+ /// sectionID (int? type)
+ final int? stageId;
 
-  /// 是否关注 (bool? 类型)
-  final bool? subscribed;
+ /// whetherfollow (bool? type)
+ final bool? subscribed;
 
-  /// 主队排名 (String? 类型)
-  final String? homePosition;
+ /// home teamrank (String? type)
+ final String? homePosition;
 
-  /// 客队排名 (String? 类型)
-  final String? awayPosition;
+ /// away teamrank (String? type)
+ final String? awayPosition;
 
-  /// 是否有加时 (bool? 类型)
-  final bool? hasOt;
+ /// whetherhasextra time (bool? type)
+ final bool? hasOt;
 
-  /// 是否有点球 (bool? 类型)
-  final bool? hasPenalty;
+ /// whetherhaspenalty (bool? type)
+ final bool? hasPenalty;
 
-  /// 胜负 (int? 类型: 1=主胜, 2=平, 3=客胜)
-  final int? win;
+ /// WL (int? type: 1=home win, 2=D, 3=away win)
+ final int? win;
 
-  /// 备注 (String? 类型)
-  final String? note;
+ /// remark (String? type)
+ final String? note;
 
-  /// 进行中分钟数 (String? 类型, 如 "78'")
-  final String? minutes;
+ /// in progressminutecount (String? type, like "78'")
+ final String? minutes;
 
-  /// 动画直播 (int? 类型)
-  final int? mlive;
+ /// animationlive (int? type)
+ final int? mlive;
 
-  /// 动画直播URL (String? 类型)
-  final String? mliveUrl;
+ /// animationliveURL (String? type)
+ final String? mliveUrl;
 
-  /// 视频直播 (int? 类型)
-  final int? liveVideo;
+ /// viewlive (int? type)
+ final int? liveVideo;
 
-  /// 是否有文章 (int? 类型)
-  final int? hasArticle;
+ /// whetherhastextchapter (int? type)
+ final int? hasArticle;
 
-  /// 阶段名称 (String? 类型)
-  final String? stageName;
+ /// stage section name (String? type)
+ final String? stageName;
 
-  /// 小组编号 (String? 类型)
-  final String? groupNum;
+ /// smallgroupNo. (String? type)
+ final String? groupNum;
 
-  /// 轮次编号 (int? 类型)
-  final int? roundNum;
+ /// roundtimeNo. (int? type)
+ final int? roundNum;
 
-  /// 方案数 (int? 类型)
-  final int? schemeCount;
+ /// solutioncount (int? type)
+ final int? schemeCount;
 
-  /// 开赛倒计时 (int? 类型, 秒)
-  final int? countdown;
+ /// openmatchcountwhen (int? type, second)
+ final int? countdown;
 
-  /// 是否世界杯 (int? 类型)
-  final int? isWorldCup;
+ /// whetherboundary (int? type)
+ final int? isWorldCup;
 
-  /// 运动分类 (int? 类型)
-  final int? categoryId;
+ /// sportsplit classes (int? type)
+ final int? categoryId;
 
-  BMMatchItem({
-    this.matchId,
-    this.seasonId,
-    this.competitionId,
-    this.competitionLogo,
-    this.competitionName,
-    this.competitionPrimaryColor,
-    this.competitionSecondaryColor,
-    this.homeTeamId,
-    this.homeTeamName,
-    this.homeTeamLogo,
-    this.awayTeamId,
-    this.awayTeamName,
-    this.awayTeamLogo,
-    this.statusId,
-    this.statusName,
-    this.matchTime,
-    this.neutral,
-    this.homeNormalScore,
-    this.homeHalfScore,
-    this.homeRed,
-    this.homeYellow,
-    this.homeCorn,
-    this.homeAddScore,
-    this.homePointScore,
-    this.awayNormalScore,
-    this.awayHalfScore,
-    this.awayRed,
-    this.awayYellow,
-    this.awayCorn,
-    this.awayAddScore,
-    this.awayPointScore,
-    this.lineup,
-    this.stageId,
-    this.subscribed,
-    this.homePosition,
-    this.awayPosition,
-    this.hasOt,
-    this.hasPenalty,
-    this.win,
-    this.note,
-    this.minutes,
-    this.mlive,
-    this.mliveUrl,
-    this.liveVideo,
-    this.hasArticle,
-    this.stageName,
-    this.groupNum,
-    this.roundNum,
-    this.schemeCount,
-    this.countdown,
-    this.isWorldCup,
-    this.categoryId,
-  });
+ BMMatchItem({
+ this.matchId,
+ this.seasonId,
+ this.competitionId,
+ this.competitionLogo,
+ this.competitionName,
+ this.competitionPrimaryColor,
+ this.competitionSecondaryColor,
+ this.homeTeamId,
+ this.homeTeamName,
+ this.homeTeamLogo,
+ this.awayTeamId,
+ this.awayTeamName,
+ this.awayTeamLogo,
+ this.statusId,
+ this.statusName,
+ this.matchTime,
+ this.neutral,
+ this.homeNormalScore,
+ this.homeHalfScore,
+ this.homeRed,
+ this.homeYellow,
+ this.homeCorn,
+ this.homeAddScore,
+ this.homePointScore,
+ this.awayNormalScore,
+ this.awayHalfScore,
+ this.awayRed,
+ this.awayYellow,
+ this.awayCorn,
+ this.awayAddScore,
+ this.awayPointScore,
+ this.lineup,
+ this.stageId,
+ this.subscribed,
+ this.homePosition,
+ this.awayPosition,
+ this.hasOt,
+ this.hasPenalty,
+ this.win,
+ this.note,
+ this.minutes,
+ this.mlive,
+ this.mliveUrl,
+ this.liveVideo,
+ this.hasArticle,
+ this.stageName,
+ this.groupNum,
+ this.roundNum,
+ this.schemeCount,
+ this.countdown,
+ this.isWorldCup,
+ this.categoryId,
+ });
 
-  /// 从 JSON 解析 (snake_case → camelCase, 全安全提取不抛错)
-  factory BMMatchItem.fromJson(Map<String, dynamic> json) {
-    return BMMatchItem(
-      matchId: safeInt(json['match_id']),
+ /// from JSON parse (snake_case → camelCase, fullsecuritytakeno throw)
+ factory BMMatchItem.fromJson(Map<String, dynamic> json) {
+ return BMMatchItem(
+ matchId: safeInt(json['match_id']),
       seasonId: safeInt(json['season_id']),
       competitionId: safeInt(json['competition_id']),
       competitionLogo: safeString(json['competition_logo']),
@@ -333,12 +333,12 @@ class BMMatchItem {
       countdown: safeInt(json['countdown']),
       isWorldCup: safeInt(json['is_world_cup']),
       categoryId: safeInt(json['category_id']) ?? safeInt(json['category']),
-    );
-  }
+);
+ }
 }
 
-/// debugPrint安全壳 (避免foundation导入缺失, 统一封装)
+/// debugPrintsecurity (foundationinputmissing, unified)
 void debugPrintSafe(String msg) {
-  // ignore: avoid_print
-  print('[BallMatrix Safe] $msg');
+ // ignore: avoid_print
+ print('[BallMatrix Safe] $msg');
 }

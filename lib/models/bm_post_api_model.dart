@@ -22,24 +22,24 @@ bool? _safeBool(dynamic v) {
     final s = v.toLowerCase();
     if (s == 'true' || s == '1' || s == 'yes') return true;
     if (s == 'false' || s == '0' || s == 'no') return false;
-  }
-  return null;
+ }
+ return null;
 }
 
-/// BMPostData - 社区话题列表API响应数据体
-/// 作用范围: /api/livespeed/community/list 接口响应data字段
+/// BMPostData - communitytopiclistAPIresponsedatabody
+/// purposescope: /api/livespeed/community/list APIresponsedatafield
 class BMPostData {
-  /// 数据总数 (int? 类型)
-  final int? total;
+ /// datatotal (int? type)
+ final int? total;
 
-  /// 话题项目列表 (List<BMPostItem> 类型)
-  final List<BMPostItem> results;
+ /// topicitem list (List<BMPostItem> type)
+ final List<BMPostItem> results;
 
-  BMPostData({this.total, this.results = const []});
+ BMPostData({this.total, this.results = const []});
 
-  /// 从 JSON 解析
-  factory BMPostData.fromJson(Map<String, dynamic> json) {
-    final list = json['results'] as List?;
+ /// from JSON parse
+ factory BMPostData.fromJson(Map<String, dynamic> json) {
+ final list = json['results'] as List?;
     List<BMPostItem> items = [];
     if (list != null) {
       for (int i = 0; i < list.length; i++) {
@@ -49,66 +49,66 @@ class BMPostData {
             items.add(BMPostItem.fromJson(e));
           }
         } catch (e) {
-          debugPrint('BMPostData.fromJson 单条解析跳过 i=$i: $e');
+          debugPrint('BMPostData.fromJson singleparseskip i=$i: $e');
         }
       }
     }
     return BMPostData(
       total: _safeInt(json['total']),
-      results: items,
-    );
-  }
+ results: items,
+);
+ }
 }
 
-/// BMPostItem - 单条社区话题数据项
-/// 作用范围: /api/livespeed/community/list 接口 results 子项
+/// BMPostItem - singlecommunitytopicdataitem
+/// purposescope: /api/livespeed/community/list API results sub item
 class BMPostItem {
-  /// 话题唯一ID (int? 类型)
-  final int? id;
+ /// topicuniqueID (int? type)
+ final int? id;
 
-  /// 话题内容 (String? 类型)
-  final String? content;
+ /// topiccontent (String? type)
+ final String? content;
 
-  /// 话题标签 (逗号分隔, 可能含 com/ 前缀)
-  final String? image;
+ /// topictag (comma No.min, canabilityincludes com/ first)
+ final String? image;
 
-  /// 图片列表 (List<String>? 类型)
-  final List<String>? images;
+ /// imagelist (List<String>? type)
+ final List<String>? images;
 
-  /// 点赞数 (int? 类型)
-  final int? likeCount;
+ /// likecount (int? type)
+ final int? likeCount;
 
-  /// 评论数 (int? 类型)
-  final int? commentCount;
+ /// commentcount (int? type)
+ final int? commentCount;
 
-  /// 创建时间戳 (int? 类型, 秒)
-  final int? createTime;
+ /// createtimestamp (int? type, second)
+ final int? createTime;
 
-  /// 作者信息 (BMPostAuthor? 类型)
-  final BMPostAuthor? author;
+ /// authorinfo (BMPostAuthor? type)
+ final BMPostAuthor? author;
 
-  /// 关联比赛信息 (BMPostMatch? 类型)
-  final BMPostMatch? match;
+ /// related matchinfo (BMPostMatch? type)
+ final BMPostMatch? match;
 
-  /// 是否已点赞 (bool? 类型)
-  final bool? isLike;
+ /// liked or not (bool? type)
+ final bool? isLike;
 
-  BMPostItem({
-    this.id,
-    this.content,
-    this.image,
-    this.images,
-    this.likeCount,
-    this.commentCount,
-    this.createTime,
-    this.author,
-    this.match,
-    this.isLike,
-  });
+ BMPostItem({
+ this.id,
+ this.content,
+ this.image,
+ this.images,
+ this.likeCount,
+ this.commentCount,
+ this.createTime,
+ this.author,
+ this.match,
+ this.isLike,
+ });
 
-  /// 从 JSON 解析 (snake_case → camelCase)
-  factory BMPostItem.fromJson(Map<String, dynamic> json) {
-    dynamic authorRaw = json['author'];
+ /// from JSON parse (snake_case → camelCase)
+ factory BMPostItem.fromJson(Map<String, dynamic> json) {
+ dynamic authorRaw = json['author'];
     dynamic matchRaw = json['match'];
     BMPostAuthor? author;
     BMPostMatch? match;
@@ -142,116 +142,116 @@ class BMPostItem {
       author: author,
       match: match,
       isLike: _safeBool(json['is_like']),
-    );
-  }
+);
+ }
 }
 
-/// BMPostAuthor - 话题作者信息
+/// BMPostAuthor - topicauthorinfo
 class BMPostAuthor {
-  /// 作者ID (int? 类型)
-  final int? id;
+ /// authorID (int? type)
+ final int? id;
 
-  /// 作者昵称 (String? 类型)
-  final String? name;
+ /// authornickname (String? type)
+ final String? name;
 
-  /// 是否已关注 (bool? 类型)
-  final bool? isSubscribe;
+ /// whetherfollowed (bool? type)
+ final bool? isSubscribe;
 
-  /// 作者头像URL (String? 类型)
-  final String? avatar;
+ /// authoravatarURL (String? type)
+ final String? avatar;
 
-  /// 会员ID (int? 类型)
-  final int? memberId;
+ /// willmemberID (int? type)
+ final int? memberId;
 
-  BMPostAuthor({
-    this.id,
-    this.name,
-    this.isSubscribe,
-    this.avatar,
-    this.memberId,
-  });
+ BMPostAuthor({
+ this.id,
+ this.name,
+ this.isSubscribe,
+ this.avatar,
+ this.memberId,
+ });
 
-  /// 从 JSON 解析
-  factory BMPostAuthor.fromJson(Map<String, dynamic> json) {
-    return BMPostAuthor(
-      id: _safeInt(json['id']),
+ /// from JSON parse
+ factory BMPostAuthor.fromJson(Map<String, dynamic> json) {
+ return BMPostAuthor(
+ id: _safeInt(json['id']),
       name: _safeString(json['name']),
       isSubscribe: _safeBool(json['is_subscribe']),
       avatar: _safeString(json['avatar']),
       memberId: _safeInt(json['member_id']),
-    );
-  }
+);
+ }
 }
 
-/// BMPostMatch - 话题关联比赛信息
+/// BMPostMatch - topicrelated matchinfo
 class BMPostMatch {
-  /// 比赛类型 (int? 类型: 1=足球, 2=篮球)
-  final int? matchType;
+ /// matchtype (int? type: 1=football, 2=basketball)
+ final int? matchType;
 
-  /// 比赛ID (int? 类型)
-  final int? matchId;
+ /// matchID (int? type)
+ final int? matchId;
 
-  /// 联赛ID (int? 类型)
-  final int? competitionId;
+ /// leagueID (int? type)
+ final int? competitionId;
 
-  /// 开始时间戳 (int? 类型, 秒)
-  final int? startTime;
+ /// starttimestamp (int? type, second)
+ final int? startTime;
 
-  /// 状态ID (int? 类型)
-  final int? statusId;
+ /// stateID (int? type)
+ final int? statusId;
 
-  /// 状态名称 (String? 类型)
-  final String? statusName;
+ /// statename (String? type)
+ final String? statusName;
 
-  /// 联赛名称 (String? 类型)
-  final String? competitionName;
+ /// league namename (String? type)
+ final String? competitionName;
 
-  /// 主队ID (int? 类型)
-  final int? homeTeamId;
+ /// home teamID (int? type)
+ final int? homeTeamId;
 
-  /// 主队名称 (String? 类型)
-  final String? homeTeamName;
+ /// home teamname (String? type)
+ final String? homeTeamName;
 
-  /// 主队LogoURL (String? 类型)
-  final String? homeTeamLogo;
+ /// home teamLogoURL (String? type)
+ final String? homeTeamLogo;
 
-  /// 客队ID (int? 类型)
-  final int? awayTeamId;
+ /// away teamID (int? type)
+ final int? awayTeamId;
 
-  /// 客队名称 (String? 类型)
-  final String? awayTeamName;
+ /// away teamname (String? type)
+ final String? awayTeamName;
 
-  /// 客队LogoURL (String? 类型)
-  final String? awayTeamLogo;
+ /// away teamLogoURL (String? type)
+ final String? awayTeamLogo;
 
-  /// 主队比分 (int? 类型)
-  final int? homeScore;
+ /// home teamscore (int? type)
+ final int? homeScore;
 
-  /// 客队比分 (int? 类型)
-  final int? awayScore;
+ /// away teamscore (int? type)
+ final int? awayScore;
 
-  BMPostMatch({
-    this.matchType,
-    this.matchId,
-    this.competitionId,
-    this.startTime,
-    this.statusId,
-    this.statusName,
-    this.competitionName,
-    this.homeTeamId,
-    this.homeTeamName,
-    this.homeTeamLogo,
-    this.awayTeamId,
-    this.awayTeamName,
-    this.awayTeamLogo,
-    this.homeScore,
-    this.awayScore,
-  });
+ BMPostMatch({
+ this.matchType,
+ this.matchId,
+ this.competitionId,
+ this.startTime,
+ this.statusId,
+ this.statusName,
+ this.competitionName,
+ this.homeTeamId,
+ this.homeTeamName,
+ this.homeTeamLogo,
+ this.awayTeamId,
+ this.awayTeamName,
+ this.awayTeamLogo,
+ this.homeScore,
+ this.awayScore,
+ });
 
-  /// 从 JSON 解析
-  factory BMPostMatch.fromJson(Map<String, dynamic> json) {
-    return BMPostMatch(
-      matchType: _safeInt(json['match_type']),
+ /// from JSON parse
+ factory BMPostMatch.fromJson(Map<String, dynamic> json) {
+ return BMPostMatch(
+ matchType: _safeInt(json['match_type']),
       matchId: _safeInt(json['match_id']),
       competitionId: _safeInt(json['competition_id']),
       startTime: _safeInt(json['start_time']),

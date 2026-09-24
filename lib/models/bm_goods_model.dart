@@ -1,87 +1,87 @@
-/// BMGoodsModel - 球迷周边商品数据模型
-/// 数据来源: assets/data/goodsList.xlsx (本地表格解析)
-/// 架构: MVVM Model层
+/// BMGoodsModel - fansmerchandisedatamodel
+/// datasource: assets/data/goodsList.xlsx (localsheetparse)
+/// architecture: MVVM Modellayer
 class BMGoodsModel {
-  /// 序号 (int 类型, 表格第一列)
-  final int index;
+ /// index (int type, sheetNo. onecolumn)
+ final int index;
 
-  /// 一级分类 (String 类型, 如: 球衣装备库/球星球鞋库/球迷文创周边)
-  final String category;
+ /// primary category (String type, e.g.: jerseybackupstorage/star playerbootsstorage/fanscreative merchandisemerchandise)
+ final String category;
 
-  /// 二级分类 (String 类型, 如: 球队主客场球衣/复古球衣/足球战靴)
-  final String subCategory;
+ /// secondary category (String type, e.g.: home and away jerseys/retro jerseys/football boots)
+ final String subCategory;
 
-  /// 商品名称 (String 类型, 如: 皇马 2024-25 主场球衣)
-  final String name;
+ /// product name (String type, e.g.: 2024-25 homecourtjersey)
+ final String name;
 
-  /// 适用运动 (String 类型, 如: 足球/篮球/足球篮球)
-  final String sport;
+ /// applicable sport (String type, e.g.: football/basketball/footballbasketball)
+ final String sport;
 
-  /// 球队/球星 (String 类型, 如: 皇家马德里, '-' 表示无)
-  final String team;
+ /// team/star player (String type, e.g.: , '-' means none)
+ final String team;
 
-  /// 品牌 (String 类型, 如: Adidas/Nike/Puma, '-' 表示无)
-  final String brand;
+ /// brand (String type, e.g.: Adidas/Nike/Puma, '-' means none)
+ final String brand;
 
-  /// 规格/材质 (String 类型, 如: 球迷版/棉涤混纺)
-  final String spec;
+ /// spec/material (String type, e.g.: fan edition/)
+ final String spec;
 
-  /// 参考价格, 单位元 (double 类型, 0 表示未知)
-  final double price;
+ /// reference price, singlepositionelement (double type, 0 meansnot yetknow)
+ final double price;
 
-  /// 收藏状态 (String 类型, 如: 想入手/观望/已拥有)
-  final String status;
+ /// collection status (String type, e.g.: Want/Watching/Owned)
+ final String status;
 
-  /// 备注 (String 类型, '-' 表示无)
-  final String remark;
+ /// remark (String type, '-' means none)
+ final String remark;
 
-  /// 配图URL (String 类型, 商品图片网络地址)
-  final String imageUrl;
+ /// URL (String type, imagenetwork)
+ final String imageUrl;
 
-  /// 构造函数
-  const BMGoodsModel({
-    required this.index,
-    required this.category,
-    required this.subCategory,
-    required this.name,
-    required this.sport,
-    required this.team,
-    required this.brand,
-    required this.spec,
-    required this.price,
-    required this.status,
-    required this.remark,
-    required this.imageUrl,
-  });
+ /// constructor
+ const BMGoodsModel({
+ required this.index,
+ required this.category,
+ required this.subCategory,
+ required this.name,
+ required this.sport,
+ required this.team,
+ required this.brand,
+ required this.spec,
+ required this.price,
+ required this.status,
+ required this.remark,
+ required this.imageUrl,
+ });
 
-  /// 队伍/品牌展示文案 (getter, '-' 替换为空串, 用于卡片顶部胶囊)
-  String get teamOrBrand => team == '-' ? brand : team;
+ /// team/brandshowtext (getter, '-' swapasemptystring, forcardtoppill)
+ String get teamOrBrand => team == '-' ? brand: team;
 
-  /// 品牌展示文案 (getter, '-' 替换为 '无品牌')
-  String get brandDisplay => brand == '-' ? '通用' : brand;
+ /// brandshowtext (getter, '-' swapas 'no brand')
+  String get brandDisplay => brand == '-' ? 'common': brand;
 
-  /// 状态对应颜色 (getter, 想入手=亮绿 / 观望=琥珀 / 已拥有=青色)
-  int get statusColorValue {
-    switch (status) {
-      case '想入手':
+ /// statecorrespondingcolor (getter, Want=bright green / Watching= / Owned=color)
+ int get statusColorValue {
+ switch (status) {
+ case 'Want':
         return 0xFF10B981;
-      case '观望':
+      case 'Watching':
         return 0xFFFBBF24;
-      case '已拥有':
-        return 0xFF22D3EE;
-      default:
-        return 0xFF94A3B8;
-    }
-  }
+      case 'Owned':
+ return 0xFF22D3EE;
+ default:
+ return 0xFF94A3B8;
+ }
+ }
 
-  /// 价格展示文案 (getter, 如: '¥599' / '价格待定')
-  String get priceText => price > 0 ? '¥${price.toStringAsFixed(0)}' : '价格待定';
+ /// gridshowtext (getter, e.g.: '¥599' / 'Price TBD')
+  String get priceText => price > 0 ? '¥${price.toStringAsFixed(0)}' : 'Price TBD';
 
-  /// 从表格行数据构建模型
-  /// [row] - 单行单元格数组 (List<String> 类型, 12列, 第0行为表头)
-  /// 返回: BMGoodsModel 实例, 异常行返回默认空模型
-  factory BMGoodsModel.fromRow(List<String> row) {
-    String cell(int i) => i < row.length ? row[i].trim() : '';
+ /// fromsheetlinedatabuild model
+ /// [row] - singlelinecellarray (List<String> type, 12column, No. 0lineastableheader)
+ /// returns: BMGoodsModel instance, exceptionlinereturnsdefaultemptymodel
+ factory BMGoodsModel.fromRow(List<String> row) {
+ String cell(int i) => i < row.length ? row[i].trim(): '';
     return BMGoodsModel(
       index: int.tryParse(cell(0)) ?? 0,
       category: cell(1),

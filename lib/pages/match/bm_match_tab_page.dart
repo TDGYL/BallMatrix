@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../bm_base_page.dart';
 import '../../theme/bm_colors.dart';
 import '../../models/bm_match_model.dart';
@@ -12,33 +13,33 @@ import '../login/bm_login_page.dart';
 import 'bm_football_detail_page.dart';
 import 'bm_basketball_detail_page.dart';
 
-/// _MatchPageState - 单组（sport+tab+timestamp）独立分页缓存状态
-/// 作用: 每个 (sport, tab, timestamp) 组合保存自己的列表/分页状态, 足球篮球互不影响
+/// _MatchPageState - singlegroup（sport+tab+timestamp）independentpaginationcachestate
+/// purpose: per item (sport, tab, timestamp) groupmergesaveown of list/paginationstate, footballbasketballnotimpact
 class _MatchPageState {
-  /// 比赛列表 (List<BMMatchModel> 类型)
+  /// matchlist (List<BMMatchModel> type)
   List<BMMatchModel> list = [];
 
-  /// 当前页 (int 类型, 从1开始)
+  /// current page (int type, starting from 1)
   int page = 1;
 
-  /// 是否到底 (bool 类型)
+  /// whethertobottom (bool type)
   bool hasNoMore = false;
 
-  /// 请求锁 (bool 类型, 防重入)
+  /// request (bool type, heavyinput)
   bool isFetching = false;
 
-  /// 下拉刷新或首屏Loading中 (bool 类型)
+  /// pull downrefreshorfirst screenLoadingin (bool type)
   bool isRefreshing = true;
 
-  /// 上拉加载中 (bool 类型)
+  /// pull uploadingin (bool type)
   bool isLoadingMore = false;
 
-  /// 服务端返回的总数 (int? 类型, 用于精准判断hasNoMore)
+  /// servicesidereturns of total (int? type, forcheckhasNoMore)
   int? serverTotal;
 }
 
-/// BMMatchTabPage - 底部导航 赛事 Tab 页
-/// 功能: 足球/篮球独立切换 + 状态过滤(0/1/2/3) + 快捷日期条 + 按联赛分组列表 + 下拉刷新/上拉加载 + 多维度缓存
+/// BMMatchTabPage - bottomnavigation competition Tab page
+/// feature: football/basketballindependentswitch + statefilter(0/1/2/3) + fastdateitems + byleaguegrouplist + pull downrefresh/pull uploading + moredegreecache
 class BMMatchTabPage extends BMBasePage {
   const BMMatchTabPage({super.key});
 
@@ -47,48 +48,48 @@ class BMMatchTabPage extends BMBasePage {
 }
 
 class _BMMatchTabPageState extends BMBasePageState<BMMatchTabPage> {
-  /// 当前运动类型 (BMSportType 枚举, 默认足球)
+  /// currentsport type (BMSportType enum, defaultfootball)
   BMSportType _currentSport = BMSportType.football;
 
-  /// 每个运动类型当前选中的状态tab (Map<BMSportType, int> 类型, 0/1/2/3 = 全部/进行中/即将开赛/完场复盘, 足球篮球独立)
+  /// per itemsport typecurrentselected of statetab (Map<BMSportType, int> type, 0/1/2/3 = all/in progress/i.e.willopenmatch/FTrepeatodds, footballbasketballindependent)
   final Map<BMSportType, int> _currentTabs = {
     BMSportType.football: 0,
     BMSportType.basketball: 0,
   };
 
-  /// 每个运动类型当前选中的快捷日期索引 (Map<BMSportType, int> 类型, 足球篮球独立, 默认1=今天)
+  /// per itemsport typecurrentselected of fastdateindex (Map<BMSportType, int> type, footballbasketballindependent, default1=today)
   final Map<BMSportType, int> _selectedDateIndices = {
     BMSportType.football: 1,
     BMSportType.basketball: 1,
   };
 
-  /// 状态过滤器显示文字 (与 tab值0/1/2/3对应, 0=关注(接口入参改传4))
+  /// statefilterdevicedisplaytext (and tabvalue0/1/2/3corresponding, 0=follow(APIinputmodifypass4))
   final List<(int, String)> _filterLabels = const [
-    (0, '关注'),
-    (1, '进行中'),
-    (2, '即将开赛'),
-    (3, '完场复盘'),
+    (0, 'Follow'),
+    (1, 'In progress'),
+    (2, 'UnStart'),
+    (3, 'Finished'),
   ];
 
-  /// API 服务实例 (BMMatchApiService 类型)
+  /// API serviceinstance (BMMatchApiService type)
   final BMMatchApiService _apiService = BMMatchApiService();
 
-  /// 详情 API 服务 (BMMatchDetailApiService 类型, 关注/取消关注接口)
+  /// detail API service (BMMatchDetailApiService type, follow/Take effectfollowAPI)
   final BMMatchDetailApiService _detailApiService = BMMatchDetailApiService();
 
-  /// 本地关注状态缓存 (Map<String, bool> 类型, key=matchId, 接口列表返回后同步/按钮点击后更新)
+  /// localfollowstatecache (Map<String, bool> type, key=matchId, APIlistreturnslatersync/buttontaplaterupdate)
   final Map<String, bool> _followStates = {};
 
-  /// 列表滚动控制器 (ScrollController 类型, 上拉加载监听)
+  /// listscrollcontroller (ScrollController type, pull uploadinglistener)
   late final ScrollController _scrollController;
 
-  /// 每页条数 (int 类型, 固定20)
+  /// per pagecount (int type, fixed20)
   final int _size = 20;
 
-  /// 分页缓存池 (Map<String, _MatchPageState> 类型,  key='{sportIndex}_{tab}_{timestamp(秒)}')
+  /// paginationcache (Map<String, _MatchPageState> type, key='{sportIndex}_{tab}_{timestamp(second)}')
   final Map<String, _MatchPageState> _cachePool = {};
 
-  /// 取当前 sport + 当前 tab + 当前 timestamp 对应的分页状态 (没有则新建)
+  /// takecurrent sport + current tab + current timestamp corresponding of paginationstate (nohasthenNew)
   _MatchPageState _currentState() {
     final tab = _currentTabs[_currentSport] ?? 0;
     final ts = _currentTimestamp();
@@ -96,19 +97,19 @@ class _BMMatchTabPageState extends BMBasePageState<BMMatchTabPage> {
     return _cachePool.putIfAbsent(key, () => _MatchPageState());
   }
 
-  /// 构造缓存key
+  /// constructorcachekey
   String _cacheKey(BMSportType sport, int tab, int ts) =>
       '${sport.index}_${tab}_${ts}_${_todayZeroKey(sport)}';
 
-  /// 用于避免 sport 切换导致 timestamp 在同一天下不同 sport 实例也一致, 加 sport-specific 日期key
+  /// for sport switch timestamp sameonedaylowernotsame sport instancealsoone, add sport-specific datekey
   int _todayZeroKey(BMSportType sport) {
     final now = DateTime.now();
     final d = DateTime(now.year, now.month, now.day);
     return (d.millisecondsSinceEpoch ~/ 1000) + sport.index;
   }
 
-  /// 获取当前 sport 选中快捷日期的时间戳 (秒级, 日期0点)
-  /// 说明: 依赖当前 tab 动态计算日期范围, tab=0/1(全部/进行中)默认使用今天
+  /// gettakecurrent sport selectedfastdate of timestamp (secondlevel, date0point)
+  /// description: depends oncurrent tab statecomputedatescope, tab=0/1(all/in progress)defaultmakeusetoday
   int _currentTimestamp() {
     final tab = _currentTabs[_currentSport] ?? 0;
     final idx = _selectedDateIndices[_currentSport] ?? 0;
@@ -119,20 +120,20 @@ class _BMMatchTabPageState extends BMBasePageState<BMMatchTabPage> {
     return targetDay.millisecondsSinceEpoch ~/ 1000;
   }
 
-  /// 根据 tab 和 index 返回相对今天的 day 偏移量
-  /// tab=2(即将开赛): idx 0..5 -> offset 0..5 (今天..T+5)
-  /// tab=3(完场复盘): idx 0..5 -> offset -5..0 (T-5..今天)
-  /// tab=0/1(全部/进行中): 永远 0(今天)
+  /// data tab and index returnscorrecttoday of day offsetvolume
+  /// tab=2(i.e.willopenmatch): idx 0..5 -> offset 0..5 (today..T+5)
+  /// tab=3(FTrepeatodds): idx 0..5 -> offset -5..0 (T-5..today)
+  /// tab=0/1(all/in progress): far 0(today)
   int _dateOffsetForIndex(int tab, int idx) {
     if (tab == 2) return idx.clamp(0, 5);
     if (tab == 3) return (idx.clamp(0, 5)) - 5;
     return 0;
   }
 
-  /// 生成指定 sport+tab 对应的快捷日期项
-  /// tab=0(全部)/tab=1(进行中): 返回空列表 (UI隐藏)
-  /// tab=2(即将开赛): 今天 + 后5天(共6天)
-  /// tab=3(完场复盘): 前5天 + 今天(共6天), 选中最后一天=今天
+  /// generatespecified sport+tab corresponding of fastdateitem
+  /// tab=0(all)/tab=1(in progress): returnsemptylist (UIhide)
+  /// tab=2(i.e.willopenmatch): today + later5day(6day)
+  /// tab=3(FTrepeatodds): first5day + today(6day), selectedlateroneday=today
   List<(String, String, int)> _dateListForTab(int tab) {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
@@ -142,12 +143,20 @@ class _BMMatchTabPageState extends BMBasePageState<BMMatchTabPage> {
         final d = today.add(Duration(days: i));
         String day;
         if (i == 0) {
-          day = '今天';
+          day = 'today';
         } else if (i == 1) {
-          day = '明天';
+          day = 'tomorrow';
         } else {
           final wd = d.weekday;
-          const wk = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
+          const wk = [
+            'weekone',
+            'weektwo',
+            'weekthree',
+            'weekfour',
+            'weekfive',
+            'weeksix',
+            'weekday',
+          ];
           day = wk[wd - 1];
         }
         final date =
@@ -161,19 +170,27 @@ class _BMMatchTabPageState extends BMBasePageState<BMMatchTabPage> {
         final d = today.add(Duration(days: i));
         String day;
         if (i == 0) {
-          day = '今天';
+          day = 'today';
         } else if (i == -1) {
-          day = '昨天';
+          day = 'yesterday';
         } else if (i == -2) {
-          day = '前天';
+          day = 'firstday';
         } else {
           final wd = d.weekday;
-          const wk = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
+          const wk = [
+            'weekone',
+            'weektwo',
+            'weekthree',
+            'weekfour',
+            'weekfive',
+            'weeksix',
+            'weekday',
+          ];
           day = wk[wd - 1];
         }
         final date =
             '${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
-        // 相对索引: 0..5 (0=T-5, 5=今天)
+        // correctindex: 0..5 (0=T-5, 5=today)
         out.add((day, date, i + 5));
       }
       return out;
@@ -181,7 +198,7 @@ class _BMMatchTabPageState extends BMBasePageState<BMMatchTabPage> {
     return out;
   }
 
-  /// 生成快捷日期数据 (兼容历史接口: 始终返回 tab=2 的格式方便UI通用)
+  /// generatefastdatedata (compatiblehistoryAPI: startfinalreturns tab=2 of formatdirectionUIcommon)
   List<(String, String)> _dateList() {
     final tab = _currentTabs[_currentSport] ?? 0;
     return _dateListForTab(tab).map((e) => (e.$1, e.$2)).toList();
@@ -191,7 +208,7 @@ class _BMMatchTabPageState extends BMBasePageState<BMMatchTabPage> {
   void initState() {
     super.initState();
     _scrollController = ScrollController()..addListener(_onScroll);
-    // 首屏触发一次当前 (football + tab=0 + 今天) 的请求
+    // first screensendonetimecurrent (football + tab=0 + today) of request
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _fetchCurrent(isRefresh: true);
     });
@@ -203,7 +220,7 @@ class _BMMatchTabPageState extends BMBasePageState<BMMatchTabPage> {
     super.dispose();
   }
 
-  /// 滚动监听: 触底100px内触发上拉加载更多
+  /// scrolllistener: trigger pull within 100px of bottom upload more
   void _onScroll() {
     if (_scrollController.position.pixels >=
         _scrollController.position.maxScrollExtent - 100) {
@@ -214,40 +231,40 @@ class _BMMatchTabPageState extends BMBasePageState<BMMatchTabPage> {
     }
   }
 
-  /// 切换运动类型 (足球 <-> 篮球)
-  /// 说明: 不发新请求, 直接取该 sport 对应 tab+日期的缓存展示
+  /// switch sport type (football <-> basketball)
+  /// description: notsendnewrequest, takethe sport corresponding tab+date of cacheshow
   void _switchSport(BMSportType next) {
     if (next == _currentSport) return;
     setState(() {
       _currentSport = next;
     });
-    // 切到新sport, 如果这组缓存还没请求过( isRefreshing=true 且 list空 ), 触发请求
+    // tonewsport, likeresultgroupcachealsonorequest(isRefreshing=true and listempty), sendrequest
     final s = _currentState();
     if (s.list.isEmpty && s.isRefreshing && !s.isFetching) {
       _fetchCurrent(isRefresh: true);
     }
   }
 
-  /// 切换状态过滤器 (全部/进行中/即将开赛/完场复盘)
-  /// 说明: 切换 tab 时按规则重置默认日期, 并强制刷新(切换日期一定会触发刷新)
+  /// switchstatefilterdevice (all/in progress/i.e.willopenmatch/FTrepeatodds)
+  /// description: switch tab whenbyruleheavyplacedefaultdate, andmakerefresh(switchdateonewillsendrefresh)
   void _switchTab(int tab) {
     if ((_currentTabs[_currentSport] ?? 0) == tab) return;
     int defaultDateIdx = 0;
     if (tab == 2) {
-      // 即将开赛: 选中第一天(今天, idx=0)
+      // i.e.willopenmatch: selectedNo. oneday(today, idx=0)
       defaultDateIdx = 0;
     } else if (tab == 3) {
-      // 完场复盘: 选中最后一天(今天, 在T-5..今天共6天中最后1个, idx=5)
+      // FTrepeatodds: selectedlateroneday(today, T-5..today6dayinlater1items, idx=5)
       defaultDateIdx = 5;
     } else {
-      // 全部/进行中: 内部记录 idx=0 (不影响 timestamp 默认今天)
+      // all/in progress: innerpartrecord idx=0 (notimpact timestamp defaulttoday)
       defaultDateIdx = 0;
     }
     setState(() {
       _currentTabs[_currentSport] = tab;
       _selectedDateIndices[_currentSport] = defaultDateIdx;
     });
-    // 切换 tab 按需求规则重置并强制刷新
+    // switch tab byrequirementruleheavyplaceandmakerefresh
     final s = _currentState();
     s.list = [];
     s.page = 1;
@@ -256,14 +273,14 @@ class _BMMatchTabPageState extends BMBasePageState<BMMatchTabPage> {
     _fetchCurrent(isRefresh: true);
   }
 
-  /// 切换快捷日期
-  /// 说明: 根据需求, 点中不同的时间必须重新加载新数据 (即使缓存有也强制刷新)
+  /// switchfastdate
+  /// description: datarequirement, pointinnotsame of timemustheavynewloadingnewdata (i.e.makecachehasalsomakerefresh)
   void _switchDate(int idx) {
     if ((_selectedDateIndices[_currentSport] ?? 1) == idx) return;
     setState(() {
       _selectedDateIndices[_currentSport] = idx;
     });
-    // 需求: 切换日期必须重新加载新数据 => 强制重置并刷新
+    // requirement: switchdatemustheavynewloadingnewdata => makeheavyplaceandrefresh
     final s = _currentState();
     s.list = [];
     s.page = 1;
@@ -272,8 +289,8 @@ class _BMMatchTabPageState extends BMBasePageState<BMMatchTabPage> {
     _fetchCurrent(isRefresh: true);
   }
 
-  /// 请求当前 (sport + tab + timestamp) 组合的数据
-  /// [isRefresh] true=下拉/首屏重置page=1; false=上拉 page+1
+  /// requestcurrent (sport + tab + timestamp) groupmerge of data
+  /// [isRefresh] true=pull down/first screenreset page=1; false=pull up page+1
   Future<void> _fetchCurrent({required bool isRefresh}) async {
     final s = _currentState();
     final tab = _currentTabs[_currentSport] ?? 0;
@@ -281,7 +298,9 @@ class _BMMatchTabPageState extends BMBasePageState<BMMatchTabPage> {
     final BMSportType sport = _currentSport;
 
     if (s.isFetching) {
-      debugPrint('🔒 BMMatchTabPage 请求被挡(重入): sport=$sport tab=$tab ts=$timestamp isRefresh=$isRefresh');
+      debugPrint(
+        '🔒 BMMatchTabPage requestblocked (re-entry): sport=$sport tab=$tab ts=$timestamp isRefresh=$isRefresh',
+      );
       return;
     }
     if (!isRefresh && s.hasNoMore) return;
@@ -311,9 +330,9 @@ class _BMMatchTabPageState extends BMBasePageState<BMMatchTabPage> {
     }
 
     debugPrint(
-      '🌐 BMMatchTabPage 真实请求发起: sport=$sport, tab=$tab, page=$requestPageInt, size=$_size, ts=$timestamp',
+      '🌐 BMMatchTabPage trueactual request start: sport=$sport, tab=$tab, page=$requestPageInt, size=$_size, ts=$timestamp',
     );
-    // tab=0(关注) 时接口入参固定传 4, 其余原样传
+    // tab=0(follow) whenAPIinputfixedpass 4, itsremainingoriginalkindpass
     final int requestTab = tab == 0 ? 4 : tab;
     List<BMMatchModel> result = [];
     int? serverTotal;
@@ -332,7 +351,7 @@ class _BMMatchTabPageState extends BMBasePageState<BMMatchTabPage> {
             try {
               result.add(_apiServiceConvertFootball(item));
             } catch (e) {
-              debugPrint('BMMatchTabPage 足球单条转换跳过: $e');
+              debugPrint('BMMatchTabPage footballsingleconvertskip: $e');
             }
           }
         }
@@ -350,17 +369,17 @@ class _BMMatchTabPageState extends BMBasePageState<BMMatchTabPage> {
             try {
               result.add(_apiServiceConvertBasketball(item));
             } catch (e) {
-              debugPrint('BMMatchTabPage 篮球单条转换跳过: $e');
+              debugPrint('BMMatchTabPage basketballsingleconvertskip: $e');
             }
           }
         }
       }
       debugPrint(
-        '✅ BMMatchTabPage 真实请求成功: 本次返回 ${result.length} 条, 服务端总条数=$serverTotal',
+        '✅ BMMatchTabPage trueactual request success: this returns ${result.length} items, servicetotal count=$serverTotal',
       );
     } catch (e) {
       debugPrint(
-        '❌ BMMatchTabPage 请求异常(sport=$sport tab=$tab isRefresh=$isRefresh page=$requestPageInt): $e',
+        '❌ BMMatchTabPage requestexception(sport=$sport tab=$tab isRefresh=$isRefresh page=$requestPageInt): $e',
       );
       result = [];
     } finally {
@@ -369,12 +388,14 @@ class _BMMatchTabPageState extends BMBasePageState<BMMatchTabPage> {
 
     if (!mounted) return;
     setState(() {
-      // 防御: 若用户在 await 期间切换了 sport/tab/date, 本次结果归还给发起请求时那组缓存
+      // : ifuser await duringswitch sport/tab/date, thistimeresultreturnalsotosendrequestwhengroupcache
       final curTab = _currentTabs[sport] ?? 0;
       final curTs = _currentTimestampForSport(sport);
       final curKey = _cacheKey(sport, curTab, curTs);
       final origKey = _cacheKey(sport, tab, timestamp);
-      final targetS = (curKey == origKey) ? s : _cachePool.putIfAbsent(origKey, () => s);
+      final targetS = (curKey == origKey)
+          ? s
+          : _cachePool.putIfAbsent(origKey, () => s);
 
       if (isRefresh) {
         targetS.list = result;
@@ -391,7 +412,7 @@ class _BMMatchTabPageState extends BMBasePageState<BMMatchTabPage> {
       } else {
         targetS.hasNoMore = result.length < _size;
       }
-      // 同步关注状态缓存 (列表每条 matchId -> isFollowed)
+      // syncfollowstatecache (listper item matchId -> isFollowed)
       for (final m in targetS.list) {
         if (!_followStates.containsKey(m.matchId)) {
           _followStates[m.matchId] = m.isFollowed;
@@ -400,10 +421,10 @@ class _BMMatchTabPageState extends BMBasePageState<BMMatchTabPage> {
     });
   }
 
-  /// 卡片右上角关注按钮点击 (未登录先跳登录页, 与详情页一致)
-  /// 足球: POST /api/livespeed/football/match/subscribe|unsubscribe
-  /// 篮球: POST /api/livespeed/basketball/match/subscribe|unsubscribe
-  /// [match] - 目标比赛 (BMMatchModel 类型)
+  /// cardtop-right cornerfollow buttontap (not logged infirstjumploginpage, anddetailpageone)
+  /// football: POST /api/livespeed/football/match/subscribe|unsubscribe
+  /// basketball: POST /api/livespeed/basketball/match/subscribe|unsubscribe
+  /// [match] - goalmatch (BMMatchModel type)
   Future<void> _toggleFollow(BMMatchModel match) async {
     if (!BMAuthManager().isLoggedIn) {
       final ok = await Navigator.push<bool>(
@@ -419,7 +440,9 @@ class _BMMatchTabPageState extends BMBasePageState<BMMatchTabPage> {
     if (match.sportType == BMMatchSportType.basketball) {
       success = willFollow
           ? await _detailApiService.subscribeBasketballMatch(matchId: matchId)
-          : await _detailApiService.unsubscribeBasketballMatch(matchId: matchId);
+          : await _detailApiService.unsubscribeBasketballMatch(
+              matchId: matchId,
+            );
     } else {
       success = willFollow
           ? await _detailApiService.subscribeFootballMatch(matchId: matchId)
@@ -435,9 +458,13 @@ class _BMMatchTabPageState extends BMBasePageState<BMMatchTabPage> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            success ? (willFollow ? '已关注' : '已取消关注') : '操作失败, 请重试',
+            success
+                ? (willFollow ? 'followed' : 'Unfollowed')
+                : 'operation failed, please retry',
             style: const TextStyle(
-                color: Colors.white, fontWeight: FontWeight.w700),
+              color: Colors.white,
+              fontWeight: FontWeight.w700,
+            ),
           ),
           backgroundColor: BMColors.pitch800,
           duration: const Duration(milliseconds: 1200),
@@ -447,7 +474,7 @@ class _BMMatchTabPageState extends BMBasePageState<BMMatchTabPage> {
     }
   }
 
-  /// 取指定 sport 当前选中日期的时间戳 (用于异步回调前后一致性判断)
+  /// takespecified sport currentselecteddate of timestamp (forasynccallbackfirstlateronecheck)
   int _currentTimestampForSport(BMSportType sport) {
     final idx = _selectedDateIndices[sport] ?? 1;
     final now = DateTime.now();
@@ -456,7 +483,7 @@ class _BMMatchTabPageState extends BMBasePageState<BMMatchTabPage> {
     return targetDay.millisecondsSinceEpoch ~/ 1000;
   }
 
-  /// 单条 BMMatchItem -> BMMatchModel (对齐 BMMatchApiService._convertFootballMatch)
+  /// single BMMatchItem -> BMMatchModel (alignment BMMatchApiService._convertFootballMatch)
   BMMatchModel _apiServiceConvertFootball(BMMatchItem item) {
     int? safeInt(dynamic v) {
       if (v == null) return null;
@@ -465,11 +492,13 @@ class _BMMatchTabPageState extends BMBasePageState<BMMatchTabPage> {
       if (v is String) return int.tryParse(v);
       return null;
     }
+
     String? safeStr(dynamic v) {
       if (v == null) return null;
       if (v is String) return v;
       return v.toString();
     }
+
     BMMatchStatus status = BMMatchStatus.tbd;
     switch (safeInt(item.statusId)) {
       case 1:
@@ -536,7 +565,7 @@ class _BMMatchTabPageState extends BMBasePageState<BMMatchTabPage> {
     );
   }
 
-  /// 按OC语法累加篮球各节比分 (split逗号遍历求和)
+  /// byOCaccumulatebasketballper-quarter score (splitcomma No.passsum)
   /// OC: NSArray *a=[str componentsSeparatedByString:@","]; for(NSString*s in a) count+=[s integerValue];
   int _sumBasketballScores(String? scoresStr) {
     if (scoresStr == null || scoresStr.isEmpty) return 0;
@@ -550,7 +579,7 @@ class _BMMatchTabPageState extends BMBasePageState<BMMatchTabPage> {
     return count;
   }
 
-  /// 单条 BMBasketballMatchItem -> BMMatchModel (对齐 BMMatchApiService._convertBasketballMatch)
+  /// single BMBasketballMatchItem -> BMMatchModel (alignment BMMatchApiService._convertBasketballMatch)
   BMMatchModel _apiServiceConvertBasketball(BMBasketballMatchItem item) {
     int? safeInt(dynamic v) {
       if (v == null) return null;
@@ -559,11 +588,13 @@ class _BMMatchTabPageState extends BMBasePageState<BMMatchTabPage> {
       if (v is String) return int.tryParse(v);
       return null;
     }
+
     String? safeStr(dynamic v) {
       if (v == null) return null;
       if (v is String) return v;
       return v.toString();
     }
+
     BMMatchStatus status = BMMatchStatus.tbd;
     switch (safeInt(item.statusId)) {
       case 1:
@@ -587,7 +618,7 @@ class _BMMatchTabPageState extends BMBasePageState<BMMatchTabPage> {
       default:
         status = BMMatchStatus.tbd;
     }
-    // 按OC语法: 逗号分隔各节比分累加
+    // byOC: comma No.minper-quarter scoreaccumulate
     final int homeScore = _sumBasketballScores(item.homeScores);
     final int awayScore = _sumBasketballScores(item.awayScores);
     final String timeStr = _formatMatchTime(item.matchTime);
@@ -627,7 +658,7 @@ class _BMMatchTabPageState extends BMBasePageState<BMMatchTabPage> {
     );
   }
 
-  /// 格式化比赛时间戳 -> HH:mm
+  /// formatmatch timestamp -> HH:mm
   String _formatMatchTime(int? timestamp) {
     if (timestamp == null || timestamp == 0) return '';
     final dt = DateTime.fromMillisecondsSinceEpoch(timestamp * 1000);
@@ -636,14 +667,14 @@ class _BMMatchTabPageState extends BMBasePageState<BMMatchTabPage> {
     return '$hour:$minute';
   }
 
-  /// 队名取前3字母大写
+  /// team nametakefirst3textlargewrite
   String _extractShort(String? name) {
     if (name == null || name.isEmpty) return '';
     if (name.length <= 3) return name.toUpperCase();
     return name.substring(0, 3).toUpperCase();
   }
 
-  /// 下拉刷新回调
+  /// pull downrefreshcallback
   Future<void> _onRefresh() {
     final s = _currentState();
     s.list = [];
@@ -667,7 +698,7 @@ class _BMMatchTabPageState extends BMBasePageState<BMMatchTabPage> {
     );
   }
 
-  /// 构建顶部标题栏 + 足/篮切换
+  /// buildtoptitlebar + foot/basketswitch
   Widget _buildTopBar() {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
@@ -675,11 +706,12 @@ class _BMMatchTabPageState extends BMBasePageState<BMMatchTabPage> {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           const Text(
-            '赛程与历史数据库',
+            'match list',
             style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: BMColors.textPrimary),
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: BMColors.textPrimary,
+            ),
           ),
           _buildSportToggle(),
         ],
@@ -687,7 +719,7 @@ class _BMMatchTabPageState extends BMBasePageState<BMMatchTabPage> {
     );
   }
 
-  /// 构建足球/篮球切换
+  /// buildfootball/basketballswitch
   Widget _buildSportToggle() {
     return Container(
       padding: const EdgeInsets.all(4),
@@ -698,18 +730,26 @@ class _BMMatchTabPageState extends BMBasePageState<BMMatchTabPage> {
       ),
       child: Row(
         children: [
-          _buildToggleBtn('足球', _currentSport == BMSportType.football, () {
-            _switchSport(BMSportType.football);
-          }),
-          _buildToggleBtn('篮球', _currentSport == BMSportType.basketball, () {
-            _switchSport(BMSportType.basketball);
-          }),
+          _buildToggleBtn(
+            'football',
+            _currentSport == BMSportType.football,
+            () {
+              _switchSport(BMSportType.football);
+            },
+          ),
+          _buildToggleBtn(
+            'basketball',
+            _currentSport == BMSportType.basketball,
+            () {
+              _switchSport(BMSportType.basketball);
+            },
+          ),
         ],
       ),
     );
   }
 
-  /// 构建切换按钮
+  /// buildswitchbutton
   Widget _buildToggleBtn(String label, bool selected, VoidCallback onTap) {
     return GestureDetector(
       onTap: onTap,
@@ -731,7 +771,7 @@ class _BMMatchTabPageState extends BMBasePageState<BMMatchTabPage> {
     );
   }
 
-  /// 构建状态过滤器 (横向, 0全部/1进行中/2即将开赛/3完场复盘)
+  /// buildstatefilterdevice (direction, 0all/1in progress/2i.e.willopenmatch/3FTrepeatodds)
   Widget _buildStatusFilter() {
     final currentTab = _currentTabs[_currentSport] ?? 0;
     return Container(
@@ -747,8 +787,7 @@ class _BMMatchTabPageState extends BMBasePageState<BMMatchTabPage> {
           return GestureDetector(
             onTap: () => _switchTab(filter.$1),
             child: Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
                 color: isSelected ? BMColors.pitch800 : BMColors.pitch950,
                 borderRadius: BorderRadius.circular(20),
@@ -763,9 +802,12 @@ class _BMMatchTabPageState extends BMBasePageState<BMMatchTabPage> {
                   filter.$2,
                   style: TextStyle(
                     fontSize: 12,
-                    fontWeight:
-                        isSelected ? FontWeight.bold : FontWeight.normal,
-                    color: isSelected ? BMColors.bright : BMColors.textSecondary,
+                    fontWeight: isSelected
+                        ? FontWeight.bold
+                        : FontWeight.normal,
+                    color: isSelected
+                        ? BMColors.bright
+                        : BMColors.textSecondary,
                   ),
                 ),
               ),
@@ -776,7 +818,7 @@ class _BMMatchTabPageState extends BMBasePageState<BMMatchTabPage> {
     );
   }
 
-  /// 构建日期选择条 (7天: 前天..大后天, 真实月日, 横向滚动防溢出)
+  /// builddateselectitems (7day: firstday..largelaterday, trueactualmonthday, directionscrolloverflow)
   Widget _buildDatePicker() {
     final dates = _dateList();
     final idx = _selectedDateIndices[_currentSport] ?? 1;
@@ -804,9 +846,13 @@ class _BMMatchTabPageState extends BMBasePageState<BMMatchTabPage> {
     );
   }
 
-  /// 构建日期项
+  /// builddateitem
   Widget _buildDateItem(
-      String day, String date, bool isSelected, VoidCallback onTap) {
+    String day,
+    String date,
+    bool isSelected,
+    VoidCallback onTap,
+  ) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -829,8 +875,7 @@ class _BMMatchTabPageState extends BMBasePageState<BMMatchTabPage> {
               date,
               style: TextStyle(
                 fontSize: 10,
-                color:
-                    isSelected ? BMColors.pitch950 : BMColors.textSecondary,
+                color: isSelected ? BMColors.pitch950 : BMColors.textSecondary,
               ),
             ),
           ],
@@ -839,7 +884,7 @@ class _BMMatchTabPageState extends BMBasePageState<BMMatchTabPage> {
     );
   }
 
-  /// 构建比赛列表 (含首屏Loading/空态/下拉刷新/上拉加载Footer + 按联赛分组)
+  /// buildmatchlist (includesfirst screenLoading/emptystate/pull downrefresh/pull uploadingFooter + byleaguegroup)
   Widget _buildMatchList() {
     final s = _currentState();
     if (s.isRefreshing && s.list.isEmpty) {
@@ -869,19 +914,20 @@ class _BMMatchTabPageState extends BMBasePageState<BMMatchTabPage> {
             SizedBox(height: 12),
             Center(
               child: Text(
-                '暂无比赛',
-                style:
-                    TextStyle(fontSize: 13, color: BMColors.textSecondary),
+                'No match',
+                style: TextStyle(fontSize: 13, color: BMColors.textSecondary),
               ),
             ),
           ],
         ),
       );
     }
-    // 有数据: 按联赛分组后展平 + Footer 放最后
+    // hasdata: byleaguegrouplaterD + Footer later
     final Map<String, List<BMMatchModel>> grouped = {};
     for (final m in s.list) {
-      final league = (m.leagueName.isNotEmpty) ? m.leagueName : '其他赛事';
+      final league = (m.leagueName.isNotEmpty)
+          ? m.leagueName
+          : 'others competition';
       grouped.putIfAbsent(league, () => []).add(m);
     }
     final flatGroups = grouped.entries.toList();
@@ -897,13 +943,15 @@ class _BMMatchTabPageState extends BMBasePageState<BMMatchTabPage> {
         itemBuilder: (ctx, index) {
           if (index == flatGroups.length) return _buildFooter();
           return _buildLeagueGroup(
-              flatGroups[index].key, flatGroups[index].value);
+            flatGroups[index].key,
+            flatGroups[index].value,
+          );
         },
       ),
     );
   }
 
-  /// 底部加载指示器
+  /// bottomloadingindicator
   Widget _buildFooter() {
     final s = _currentState();
     if (s.hasNoMore) {
@@ -915,7 +963,7 @@ class _BMMatchTabPageState extends BMBasePageState<BMMatchTabPage> {
             Container(width: 24, height: 1, color: BMColors.pitch700),
             const SizedBox(width: 8),
             const Text(
-              '—— 到底啦 ——',
+              '—— no more ——',
               style: TextStyle(fontSize: 11, color: BMColors.textTertiary),
             ),
             const SizedBox(width: 8),
@@ -940,7 +988,7 @@ class _BMMatchTabPageState extends BMBasePageState<BMMatchTabPage> {
             ),
             SizedBox(width: 10),
             Text(
-              '加载中...',
+              'loadingin...',
               style: TextStyle(fontSize: 12, color: BMColors.textSecondary),
             ),
           ],
@@ -950,7 +998,7 @@ class _BMMatchTabPageState extends BMBasePageState<BMMatchTabPage> {
     return const SizedBox.shrink();
   }
 
-  /// 构建联赛分组 (标题 + 赛事行列表)
+  /// buildleaguegroup (title + competitionlinelist)
   Widget _buildLeagueGroup(String leagueName, List<BMMatchModel> matches) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
@@ -964,8 +1012,11 @@ class _BMMatchTabPageState extends BMBasePageState<BMMatchTabPage> {
               children: [
                 Row(
                   children: [
-                    const Icon(Icons.emoji_events,
-                        size: 14, color: BMColors.amber),
+                    const Icon(
+                      Icons.emoji_events,
+                      size: 14,
+                      color: BMColors.amber,
+                    ),
                     const SizedBox(width: 6),
                     Text(
                       leagueName,
@@ -978,24 +1029,28 @@ class _BMMatchTabPageState extends BMBasePageState<BMMatchTabPage> {
                   ],
                 ),
                 Text(
-                  '${matches.length} 场对局',
-                  style:
-                      const TextStyle(fontSize: 12, color: BMColors.textSecondary),
+                  '${matches.length} games',
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: BMColors.textSecondary,
+                  ),
                 ),
               ],
             ),
           ),
           const SizedBox(height: 8),
-          ...matches.map((match) => Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: _buildMatchRow(match),
-              )),
+          ...matches.map(
+            (match) => Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: _buildMatchRow(match),
+            ),
+          ),
         ],
       ),
     );
   }
 
-  /// 构建单行比赛卡片 (背景色与 TopicPostCard 完全一致, 右上角带关注按钮)
+  /// buildsinglelinematch card (background colorand TopicPostCard completefullone, top-right cornerfollow button)
   Widget _buildMatchRow(BMMatchModel match) {
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
@@ -1018,7 +1073,9 @@ class _BMMatchTabPageState extends BMBasePageState<BMMatchTabPage> {
               decoration: BoxDecoration(
                 color: BMColors.pitch850,
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: BMColors.pitch700.withValues(alpha: 0.5)),
+                border: Border.all(
+                  color: BMColors.pitch700.withValues(alpha: 0.5),
+                ),
               ),
               child: Row(
                 children: [
@@ -1038,18 +1095,14 @@ class _BMMatchTabPageState extends BMBasePageState<BMMatchTabPage> {
               ),
             ),
           ),
-          Positioned(
-            top: 24,
-            right: 10,
-            child: _buildFollowButton(match),
-          ),
+          Positioned(top: 24, right: 10, child: _buildFollowButton(match)),
         ],
       ),
     );
   }
 
-  /// 构建卡片右上角关注状态按钮 (与详情页导航同款铃铛样式, 点击调关注/取消关注接口)
-  /// [match] - 目标比赛 (BMMatchModel 类型)
+  /// buildcardtop-right cornerfollowstatus button (anddetailpagenavigationsameclausestyle, tapfollow/Take effectfollowAPI)
+  /// [match] - goalmatch (BMMatchModel type)
   Widget _buildFollowButton(BMMatchModel match) {
     final bool followed = _followStates[match.matchId] ?? match.isFollowed;
     return GestureDetector(
@@ -1077,7 +1130,7 @@ class _BMMatchTabPageState extends BMBasePageState<BMMatchTabPage> {
     );
   }
 
-  /// 构建比赛时间 / LIVE 状态
+  /// buildmatch time / LIVE state
   Widget _buildMatchTime(BMMatchModel match) {
     final bool isLive = match.status == BMMatchStatus.live;
     return SizedBox(
@@ -1121,8 +1174,8 @@ class _BMMatchTabPageState extends BMBasePageState<BMMatchTabPage> {
             const SizedBox(height: 2),
             Text(
               match.status == BMMatchStatus.upcoming
-                  ? '未开赛'
-                  : (match.round.isNotEmpty ? match.round : '已结束'),
+                  ? 'not started'
+                  : (match.round.isNotEmpty ? match.round : 'FT'),
               style: const TextStyle(fontSize: 9, color: BMColors.textTertiary),
             ),
           ],
@@ -1131,7 +1184,7 @@ class _BMMatchTabPageState extends BMBasePageState<BMMatchTabPage> {
     );
   }
 
-  /// 构建比赛队伍 + 比分 (两行: 主队 比分 / 客队 比分)
+  /// buildmatchteam + score (line: home team score / away team score)
   Widget _buildMatchTeams(BMMatchModel match) {
     final homeName = match.homeTeam?.teamName.isNotEmpty == true
         ? match.homeTeam!.teamName
@@ -1141,16 +1194,30 @@ class _BMMatchTabPageState extends BMBasePageState<BMMatchTabPage> {
         : match.awayTeamName;
     return Column(
       children: [
-        _buildTeamScoreRow(homeName, match.homeScore,
-            match.status == BMMatchStatus.live, match.homeTeam?.logoUrl),
+        _buildTeamScoreRow(
+          homeName,
+          match.homeScore,
+          match.status == BMMatchStatus.live,
+          match.homeTeam?.logoUrl,
+        ),
         const SizedBox(height: 4),
-        _buildTeamScoreRow(awayName, match.awayScore, false, match.awayTeam?.logoUrl),
+        _buildTeamScoreRow(
+          awayName,
+          match.awayScore,
+          false,
+          match.awayTeam?.logoUrl,
+        ),
       ],
     );
   }
 
-  /// 构建单行队伍比分 (logo(24px) + 队名 + 比分)
-  Widget _buildTeamScoreRow(String name, int? score, bool highlight, String? logoUrl) {
+  /// buildsinglelineteamscore (logo(24px) + team name + score)
+  Widget _buildTeamScoreRow(
+    String name,
+    int? score,
+    bool highlight,
+    String? logoUrl,
+  ) {
     return Row(
       children: [
         _buildTeamLogo(logoUrl, name),
@@ -1181,7 +1248,7 @@ class _BMMatchTabPageState extends BMBasePageState<BMMatchTabPage> {
     );
   }
 
-  /// 构建球队 logo 圆形 (24px, 失败占位灰底)
+  /// buildteam logo circle (24px, failureplaceholderbottom)
   Widget _buildTeamLogo(String? logoUrl, String teamName) {
     final url = logoUrl ?? '';
     final label = (teamName.isNotEmpty && teamName.length <= 3)
@@ -1259,7 +1326,7 @@ class _BMMatchTabPageState extends BMBasePageState<BMMatchTabPage> {
     );
   }
 
-  /// 构建比赛附加信息 (右侧角球盘口等)
+  /// buildmatchaddinfo (right sidecornerhandicapetc)
   Widget _buildMatchExtra(BMMatchModel match) {
     return SizedBox(
       width: 72,
@@ -1268,33 +1335,35 @@ class _BMMatchTabPageState extends BMBasePageState<BMMatchTabPage> {
         children: [
           if (match.status == BMMatchStatus.live) ...[
             const Text(
-              '数据实时',
+              'data actual',
               style: TextStyle(fontSize: 10, color: BMColors.textSecondary),
             ),
           ] else if (match.status == BMMatchStatus.upcoming) ...[
             const Text(
-              '指数参考',
+              'index reference',
               style: TextStyle(
-                  fontSize: 10,
-                  fontFamily: 'monospace',
-                  color: BMColors.textSecondary),
+                fontSize: 10,
+                fontFamily: 'monospace',
+                color: BMColors.textSecondary,
+              ),
             ),
             const SizedBox(height: 2),
             const Text(
-              'AI预警',
+              '',
               style: TextStyle(fontSize: 10, color: BMColors.bright),
             ),
           ] else ...[
             const Text(
-              '赛果归档',
+              '',
               style: TextStyle(
-                  fontSize: 10,
-                  fontFamily: 'monospace',
-                  color: BMColors.bright),
+                fontSize: 10,
+                fontFamily: 'monospace',
+                color: BMColors.bright,
+              ),
             ),
             const SizedBox(height: 2),
             const Text(
-              '复盘完结',
+              'repeat odds complete end',
               style: TextStyle(fontSize: 10, color: BMColors.textSecondary),
             ),
           ],

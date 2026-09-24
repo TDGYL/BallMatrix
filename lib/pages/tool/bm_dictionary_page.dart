@@ -3,198 +3,198 @@ import 'package:flutter/services.dart';
 import '../bm_base_page.dart';
 import '../../theme/bm_colors.dart';
 
-/// 话术分类枚举 (BM 差异化: 对比 hanklive 纯搜索列表, 增加6大场景分类)
+/// split classesenum (BM differentiation: compare hanklive searchlist, addadd6largescenariosplit classes)
 enum _BMDictCategory {
-  interview('媒体采访', Icons.mic_external_on_outlined, Color(0xFF3B82F6)),
-  lockroom('更衣室', Icons.group_outlined, Color(0xFF22C55E)),
-  referee('裁判沟通', Icons.gavel_outlined, Color(0xFFF59E0B)),
-  press('赛前动员', Icons.flag_outlined, Color(0xFFEF4444)),
-  postmatch('赛后总结', Icons.task_alt_outlined, Color(0xFFA855F7)),
-  skill('技巧术语', Icons.smart_toy_outlined, Color(0xFF14B8A6));
+ interview('body', Icons.mic_external_on_outlined, Color(0xFF3B82F6)),
+  lockroom('', Icons.group_outlined, Color(0xFF22C55E)),
+  referee('common', Icons.gavel_outlined, Color(0xFFF59E0B)),
+  press('match start XI', Icons.flag_outlined, Color(0xFFEF4444)),
+  postmatch('match end', Icons.task_alt_outlined, Color(0xFFA855F7)),
+  skill('', Icons.smart_toy_outlined, Color(0xFF14B8A6));
 
-  /// 分类显示名
-  final String label;
+ /// split classesdisplayname
+ final String label;
 
-  /// 分类图标
-  final IconData icon;
+ /// split classesicon
+ final IconData icon;
 
-  /// 分类主题色
-  final Color color;
-  const _BMDictCategory(this.label, this.icon, this.color);
+ /// split classesaccent color
+ final Color color;
+ const _BMDictCategory(this.label, this.icon, this.color);
 }
 
-/// 单条话术模型 (单文件内定义, 内聚使用)
+/// singlemodel (singletextfileinner, innermakeusage)
 class _BMDictTerm {
-  /// 分类 (_BMDictCategory 类型)
-  final _BMDictCategory category;
+ /// split classes (_BMDictCategory type)
+ final _BMDictCategory category;
 
-  /// 标题 (String 类型, 粗体显示)
-  final String title;
+ /// title (String type, bolddisplay)
+ final String title;
 
-  /// 正文话术 (String 类型, 一键复制内容)
-  final String content;
+ /// centertext (String type, Copycontent)
+ final String content;
 
-  /// 使用场景提示 (String? 类型, 空则不显示)
-  final String? scenario;
+ /// makeusescenariotoast (String? type, emptythennotdisplay)
+ final String? scenario;
 
-  const _BMDictTerm({
-    required this.category,
-    required this.title,
-    required this.content,
-    this.scenario,
-  });
+ const _BMDictTerm({
+ required this.category,
+ required this.title,
+ required this.content,
+ this.scenario,
+ });
 }
 
-/// Mock 话术数据 (BM 差异化: 按6类组织, 针对足篮球教练/队长/球员真实场景)
+/// Mock data (BM differentiation: by6classgroup, correctfootbasketballcoach/teamlength/playertrueactualscenario)
 const List<_BMDictTerm> _kAllTerms = [
-  // ---------- 媒体采访 ----------
-  _BMDictTerm(
-    category: _BMDictCategory.interview,
-    title: '失利后保持风度标准回答',
-    content: '今天的结果不是我们预期的，我们尊重对手的表现。回去之后会复盘每一个细节，从防守组织到前场终结效率都有提升空间。感谢球迷的支持，下一场我们会以更积极的态度面对。',
-    scenario: '球队输球后被媒体围堵',
+ // ---------- body ----------
+ _BMDictTerm(
+ category: _BMDictCategory.interview,
+ title: 'second-half degree tag back',
+    content: 'today of resultnotyesmy of ，myheavyopponent of table。backafterwillrepeatoddseachonesection，fromgrouptofirstcourtfinalendeffectratehasempty。fans of support，loweronecourtmywillwithvolume of statedegreeplanecorrect。',
+    scenario: 'team goal then by body',
   ),
   _BMDictTerm(
     category: _BMDictCategory.interview,
-    title: '关于转会传闻正面回应',
-    content: '我现在只专注于当前俱乐部和国家队的每一场比赛，合同期内的每一分钟我都会全力以赴。未来的事情交给经纪人和俱乐部沟通，现在不做任何推测。',
-    scenario: '被记者问及转会绯闻',
+    title: 'about conversion pass center plane back should',
+    content: 'mynowonlydedicatedcurrentpartandcountryteam of eachonecourtmatch，mergesameineachoneminutemywillfullpowerwith。future of topeopleandpartcommon，nownotdoanytest。',
+    scenario: 'by one and convert',
   ),
   _BMDictTerm(
     category: _BMDictCategory.interview,
-    title: 'MVP 获奖感言',
-    content: '这个奖项属于整个团队。没有队友每一场的拼抢、教练组每一次的战术调整、工作人员默默的付出，我不可能站在这里。这是对我们整支球队过去一段时间努力的肯定，接下来继续前进。',
-    scenario: '单场/月度最佳获奖采访',
-  ),
-  // ---------- 更衣室 ----------
-  _BMDictTerm(
-    category: _BMDictCategory.lockroom,
-    title: '半场落后 1 球打气',
-    content: '兄弟们抬起头来！现在只是落后一个球，不是输了整场。上半场我们的控球和机会都不差，最后一下的处理再冷静一点。防守端人盯人跟紧，进攻端多倒脚拉扯空间。下半场 15 分钟之内先把比分扳回来，做不做得到？',
-    scenario: '半场 0-1 进入更衣室',
-  ),
-  _BMDictTerm(
-    category: _BMDictCategory.lockroom,
-    title: '队长点名批评核心球员（温和版）',
-    content: '我今天要直接点出问题——我们攻防转换的节奏慢了。作为中场持球点，每一次被对方反抢都给后防挖坑。你是核心，大家看着你，接下来拿出你训练里的节奏，你能做到。',
-    scenario: '更衣室半场调整，核心失误多',
+    title: 'MVP get',
+    content: 'itemsitemwholeitemsteam。nohasteameachonecourt of 、coachgroupeachonetime of tacticaladjust、dopeoplemember of output，mynotcanability。yescorrectmywholeteampastonesectiontimepower of ，lowercontinuefirst。',
+    scenario: 'singlecourt/monthdegreeget',
+),
+ // ---------- ----------
+ _BMDictTerm(
+ category: _BMDictCategory.lockroom,
+ title: 'halfcourtlater 1 ball',
+    content: 'header！nowonlyyeslateroneball，notyesinputwholecourt。upperhalfcourtmy of ballandwillnotdiff，lateronelower of handleagainonepoint。sidepeoplepeople，sidemoreempty。lowerhalfcourt 15 minuteinnerfirsttakescoreback，donotdogetto？',
+    scenario: 'halfcourt 0-1 enter',
   ),
   _BMDictTerm(
     category: _BMDictCategory.lockroom,
-    title: '更衣室团结口号',
-    content: '我们不是十一个人在踢，我们是一个整体。有人丢球有人补，有人抽筋有人顶，谁都不准一个人扛。接下来我们一起上，一起下，懂？',
-    scenario: '关键比赛前最后动员',
-  ),
-  // ---------- 裁判沟通 ----------
-  _BMDictTerm(
-    category: _BMDictCategory.referee,
-    title: '抗议越位误判（冷静版）',
-    content: '裁判先生，我们非常尊重您的判罚，但是这一次请您回看一下助理裁判的举旗时机。我方前锋启动瞬间防守方最后一名后卫明显拖在后面，能否请您和边裁再沟通确认？',
-    scenario: '进球被判越位，需要申诉',
+    title: 'teamlengthpointnamecoreplayer（and）',
+    content: 'mytodayneedpointoutputissue——myconvert of sectionslow。doasincourtballpoint，eachonetimebycorrectdirectiontolater。yescore，largeview，lowergetoutput of section，abilitydoto。',
+    scenario: 'halfcourtadjust，coremore',
   ),
   _BMDictTerm(
-    category: _BMDictCategory.referee,
-    title: '申请黄牌警告尺度一致',
-    content: '先生，上半场对方 10 号相同动作我们队长已经吃到了黄牌，这一次同样的犯规如果尺度不一致会影响比赛节奏。请您保持判罚标准统一，谢谢。',
-    scenario: '双方尺度不一致时和第四官员沟通',
+    category: _BMDictCategory.lockroom,
+    title: 'endNo.',
+    content: 'mynotyestenoneprofile，myyesonewhole。haspeopleballhaspeoplepatch，haspeoplehaspeopletop，notoneprofile。lowermyoneupper，onelower，？',
+    scenario: 'key match first XI',
+),
+ // ---------- common ----------
+ _BMDictTerm(
+ category: _BMDictCategory.referee,
+ title: 'offside（）',
+    content: 'first，mynonheavy of ，yesonetimebackviewonelower of when。our sidefirst forwardlaunchinstantdirectionlateronenamelaterguardtomorrowshowlaterplane，abilityandedgeagaincommonconfirm？',
+    scenario: 'goalbyoffside，needs',
   ),
   _BMDictTerm(
     category: _BMDictCategory.referee,
-    title: '点球申诉冷静话术',
-    content: '裁判先生，对方后卫在禁区内手上有明显拉拽动作，我方球员在射门节奏被完全破坏前才摔倒。请您考虑通过 VAR 再确认一次这个接触，谢谢。',
-    scenario: '禁区内接触没吹点球',
+    title: 'yellow cardwarningdegreeone',
+    content: 'first，upperhalfcourtcorrectdirection 10 No.samedomyteamlengthalreadytoyellow card，onetimesamekind of foullikeresultdegreenotonewillimpactmatchsection。keeptagunified，。',
+    scenario: 'doubledirectiondegreenotonewhenandNo. fourmembercommon',
   ),
-  // ---------- 赛前动员 ----------
+  _BMDictTerm(
+    category: _BMDictCategory.referee,
+    title: 'penalty',
+    content: 'first，correctdirectionlaterguardforbiddenzoneinnerupperhastomorrowshowdo，our sideplayersectionbycompletefullbadfirst。common VAR againconfirmonetimeitems，。',
+    scenario: 'no penalty inside the box',
+),
+ // ---------- match start XI ----------
+ _BMDictTerm(
+ category: _BMDictCategory.press,
+ title: 'ratiolargematchfirst 5 minutemember',
+    content: 'today，nohasoneprofilecanwithsayown 100% backupgood，mytodayneed of notyesabilitypower，yes。eachone 50-50 ballneedratiocorrectdirectionfasthalf，eachonetimeheaderballneedratiocorrectdirectionheighthalf。asallhasnightsupportmy of fans，lower 90 minute！',
+    scenario: 'ratio/matchmatchfirstplayercommoninner',
+  ),
   _BMDictTerm(
     category: _BMDictCategory.press,
-    title: '德比大战赛前 5 分钟动员',
-    content: '今天站在这里，没有一个人可以说自己 100% 准备好，但我们今天要赢的不是能力，是意志。每一个 50-50 球要比对方快半米，每一次头球要比对方高半厘米。为了所有熬夜支持我们的球迷，拼下这 90 分钟！',
-    scenario: '德比/决赛赛前球员通道内',
-  ),
-  _BMDictTerm(
-    category: _BMDictCategory.press,
-    title: '弱队逆袭赛前动员',
-    content: '今天外界没有人看好我们，但足球是圆的。对方实力在我们之上，但他们今天压力比我们大得多——我们就抱着每球必争的心态打反击，所有人回防到本方 30 米。他们慌了，机会就来了。',
-    scenario: '赛前实力明显弱于对手',
-  ),
-  // ---------- 赛后总结 ----------
-  _BMDictTerm(
-    category: _BMDictCategory.postmatch,
-    title: '赢球但过程不满意复盘',
-    content: '虽然今天三分到手，但我要强调：下半场最后 20 分钟我们的注意力明显下滑。如果对手门前把握再好一点，今天的结果完全可能不一样。回去后每一个人看自己的防守失误视频，周三训练前提交个人总结。',
-    scenario: '赢球但状态不佳赛后',
+    title: 'teammatch start XI',
+    content: 'todayouterboundarynohaspeopleviewgoodmy，footballyes of 。correctdirectionactualpowermyupper，todaypowerratiomylargegetmore——myeachball of state，allhaspeoplebacktothisdirection 30 。，will。',
+    scenario: 'match ability tomorrow show opponent',
+),
+ // ---------- match end ----------
+ _BMDictTerm(
+ category: _BMDictCategory.postmatch,
+ title: 'ball not full repeat odds',
+    content: 'todaythreeminto，myneed：lowerhalfcourtlater 20 minutemy of notepowertomorrowshowlower。likeresultopponentfirsttakeagaingoodonepoint，today of resultcompletefullcanabilitynotonekind。backlatereachoneprofileviewown of view，weekthreefirstprofileend。',
+    scenario: 'ball state not match end',
   ),
   _BMDictTerm(
     category: _BMDictCategory.postmatch,
-    title: '点球大战失利安慰全队',
-    content: '点球输不是今天的问题，是运气。过去 120 分钟我们每一个人都把自己榨干了，没有人有资格指责我们。抬起头来，今天我们向所有人证明了我们能和任何球队战斗到最后一秒。下一场再战！',
-    scenario: '杯赛点球被淘汰',
-  ),
-  // ---------- 技巧术语 ----------
-  _BMDictTerm(
-    category: _BMDictCategory.skill,
-    title: 'Tiki-Taka 解释',
-    content: 'Tiki-Taka：源自西班牙语对连续快速传球的拟声。通过短距离地面传递 + 全员跑动换位控制节奏，核心思想是用控球代替防守，代表球队为巅峰时期巴萨与西班牙国家队。',
-    scenario: '战术讲解 / 解说术语',
-  ),
-  _BMDictTerm(
-    category: _BMDictCategory.skill,
-    title: 'Gegenpress 反抢解释',
-    content: 'Gegenpress（克洛普式高位反抢）：丢球后 5 秒内，就近 3~4 名球员立刻从多个方向围堵对方第一出球点，夺回球权后就地组织反击。对体能要求极高，是现代压迫式足球的核心战术。',
-    scenario: '战术讲解 / 教练术语',
+    title: 'penalty large full team',
+    content: 'penaltyinputnotyestoday of issue，yes。past 120 minutemyeachoneprofiletakeown，nohaspeoplehasgridmy。header，todaymydirectionallhaspeopletomorrowmyabilityandanyteamtolateronesecond。loweronecourtagain！',
+    scenario: 'cup penalty',
+),
+ // ---------- ----------
+ _BMDictTerm(
+ category: _BMDictCategory.skill,
+ title: 'Tiki-Taka ',
+    content: 'Tiki-Taka：correctcontinuefastpassball of 。commondistanceleaveplanepass + fullmemberswappositionmakesection，corewantyesuseball，tableteamaswhenandcountryteam。',
+    scenario: 'tactical / say',
   ),
   _BMDictTerm(
     category: _BMDictCategory.skill,
-    title: 'False 9 伪九号解释',
-    content: 'False 9（伪九号）：表面站中锋位置，实际频繁回撤到后腰区域接球、串联中场，拉出对方中卫制造身后空当给边锋内切利用。代表球员：梅西、菲尔米诺。',
-    scenario: '战术板讲解 / 排兵布阵',
+    title: 'Gegenpress ',
+    content: 'Gegenpress（generalstyleheightposition）：balllater 5 secondinner，near 3~4 nameplayerimmediatelyfrommultipledirectioncorrectdirectionNo. oneoutputballpoint，backballlatergroup。correctbodyabilityneedheight，yesstylefootball of coretactical。',
+    scenario: 'tactical / coach',
   ),
   _BMDictTerm(
     category: _BMDictCategory.skill,
-    title: 'xG 预期进球解释',
-    content: 'xG（Expected Goals）：基于射门位置、角度、防守人距离、门将位置等数十个维度计算的 0~1 进球概率。单场 xG 高但进球少说明机会多但终结差，xG 低但进球多代表把握机会能力强或运气好。',
-    scenario: '数据分析 / 赛后复盘',
+    title: 'False 9 nineNo.',
+    content: 'False 9（nineNo.）：tableplaneinforwardposition，actualbacktolaterzoneball、stringincourt，outputcorrectdirectioninguardmakemakeheightlateremptywhentoedgeforwardinneruse。tableplayer：、。',
+    scenario: 'tactical / order',
   ),
+  _BMDictTerm(
+    category: _BMDictCategory.skill,
+    title: 'xG goal',
+    content: 'xG（Expected Goals）：position、cornerdegree、peopledistanceleave、willpositionwaitcounttenitemsdegreecompute of 0~1 goalprobability。singlecourt xG heightgoallessdescriptionwillmorefinalenddiff，xG goalmoretabletakewillabilitypowerorgood。',
+    scenario: 'dataanalysis / matchlaterrepeatodds',
+),
 ];
 
-/// BMDictionaryPage: Verbal Trick Dictionary 话术词典页
-/// 差异化设计 (对比 hanklive 纯搜索+可折叠卡片):
-/// 1. 深绿 BallMatrix 主题
-/// 2. 左侧分类导航（6 大场景分类，点击快速切换）+ 右侧话术卡片
-/// 3. 每张卡片右下角「一键复制」按钮（点击直接 copy 话术到剪贴板 + SnackBar 提示）
-/// 4. 顶部保留搜索栏（支持标题+正文全字段模糊匹配）
-/// 架构: 单类单文件, 继承 BMBasePage
+/// BMDictionaryPage: Verbal Trick Dictionary dictionarypage
+/// differentiated design (compare hanklive search+cancollapsecard):
+/// 1. dark green BallMatrix theme
+/// 2. left sidesplit classesnavigation（6 largescenariosplit classes，tapfastswitch）+ right sidecard
+/// 3. eachcardbottom-right corner「Copy」button（tap copy toclipboard + SnackBar toast）
+/// 4. topkeepsearchbar（supporttitle+centertextfullfieldmodule）
+/// architecture: one class per file, extends BMBasePage
 class BMDictionaryPage extends BMBasePage {
-  const BMDictionaryPage({super.key});
+ const BMDictionaryPage({super.key});
 
-  @override
-  State<BMDictionaryPage> createState() => _BMDictionaryPageState();
+ @override
+ State<BMDictionaryPage> createState() => _BMDictionaryPageState();
 }
 
 class _BMDictionaryPageState extends BMBasePageState<BMDictionaryPage> {
-  /// 搜索关键字 (String 类型)
-  String _keyword = '';
+ /// search keyword (String type)
+ String _keyword = '';
 
-  /// 当前选中分类 (_BMDictCategory? 类型, null=显示全部)
-  _BMDictCategory? _current = null;
+ /// currentselectedsplit classes (_BMDictCategory? type, null=displayall)
+ _BMDictCategory? _current = null;
 
-  /// 搜索输入框控制器
-  final _searchCtrl = TextEditingController();
+ /// search input fieldcontroller
+ final _searchCtrl = TextEditingController();
 
-  @override
-  void dispose() {
-    _searchCtrl.dispose();
-    super.dispose();
-  }
+ @override
+ void dispose() {
+ _searchCtrl.dispose();
+ super.dispose();
+ }
 
-  List<_BMDictTerm> get _filtered {
-    var list = _current == null ? _kAllTerms : _kAllTerms.where((e) => e.category == _current).toList();
-    if (_keyword.trim().isNotEmpty) {
-      final kw = _keyword.trim().toLowerCase();
-      list = list.where((e) =>
-          e.title.toLowerCase().contains(kw) ||
-          e.content.toLowerCase().contains(kw) ||
-          (e.scenario ?? '').toLowerCase().contains(kw)).toList();
+ List<_BMDictTerm> get _filtered {
+ var list = _current == null ? _kAllTerms: _kAllTerms.where((e) => e.category == _current).toList();
+ if (_keyword.trim().isNotEmpty) {
+ final kw = _keyword.trim().toLowerCase();
+ list = list.where((e) =>
+ e.title.toLowerCase().contains(kw) ||
+ e.content.toLowerCase().contains(kw) ||
+ (e.scenario ?? '').toLowerCase().contains(kw)).toList();
     }
     return list;
   }
@@ -203,7 +203,7 @@ class _BMDictionaryPageState extends BMBasePageState<BMDictionaryPage> {
     await Clipboard.setData(ClipboardData(text: text));
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
-        content: Text('✅ 话术已复制到剪贴板', style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w700)),
+        content: Text('✅ Copied to clipboard', style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w700)),
         backgroundColor: Color(0xFF14532D),
         duration: Duration(milliseconds: 1200),
         behavior: SnackBarBehavior.floating,
@@ -278,7 +278,7 @@ class _BMDictionaryPageState extends BMBasePageState<BMDictionaryPage> {
                 onChanged: (v) => setState(() => _keyword = v),
                 style: const TextStyle(color: Colors.white, fontSize: 12),
                 decoration: const InputDecoration(
-                  hintText: '搜索话术标题 / 内容 / 场景...',
+                  hintText: 'searchtitle / content / scenario...',
                   hintStyle: TextStyle(color: Color(0xFF6B7280), fontSize: 12),
                   isDense: true,
                   contentPadding: EdgeInsets.symmetric(vertical: 10),
@@ -302,7 +302,7 @@ class _BMDictionaryPageState extends BMBasePageState<BMDictionaryPage> {
 
   Widget _buildLeftNav() {
     final items = <(String, _BMDictCategory?, IconData, Color)>[
-      ('全部', null, Icons.all_inbox_outlined, BMColors.bright),
+      ('all', null, Icons.all_inbox_outlined, BMColors.bright),
       ..._BMDictCategory.values.map((c) => (c.label, c, c.icon, c.color)),
     ];
     return Container(
@@ -358,7 +358,7 @@ class _BMDictionaryPageState extends BMBasePageState<BMDictionaryPage> {
           children: [
             Icon(Icons.menu_book_outlined, size: 44, color: BMColors.textTertiary),
             const SizedBox(height: 8),
-            Text('暂无匹配话术', style: TextStyle(color: BMColors.textSecondary, fontSize: 12)),
+            Text('No ', style: TextStyle(color: BMColors.textSecondary, fontSize: 12)),
           ],
         ),
       );
@@ -417,7 +417,7 @@ class _BMDictionaryPageState extends BMBasePageState<BMDictionaryPage> {
                             children: [
                               const Icon(Icons.place_outlined, size: 9, color: Color(0xFF9CA3AF)),
                               const SizedBox(width: 3),
-                              Text('场景：${t.scenario!}', style: const TextStyle(color: Color(0xFF9CA3AF), fontSize: 9, fontWeight: FontWeight.w600)),
+                              Text('scenario：${t.scenario!}', style: const TextStyle(color: Color(0xFF9CA3AF), fontSize: 9, fontWeight: FontWeight.w600)),
                             ],
                           ),
                         ),
@@ -460,7 +460,7 @@ class _BMDictionaryPageState extends BMBasePageState<BMDictionaryPage> {
                       children: [
                         Icon(Icons.copy_all_outlined, size: 11, color: col),
                         const SizedBox(width: 4),
-                        Text('一键复制', style: TextStyle(color: col, fontSize: 10, fontWeight: FontWeight.w800)),
+                        Text('Copy', style: TextStyle(color: col, fontSize: 10, fontWeight: FontWeight.w800)),
                       ],
                     ),
                   ),

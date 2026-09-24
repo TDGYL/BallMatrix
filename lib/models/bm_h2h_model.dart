@@ -1,81 +1,81 @@
 import 'bm_match_model.dart';
 
-/// BMH2HMatch - H2H 历史交锋单条比赛 (H2H Tab 用)
+/// BMH2HMatch - H2H historyencounterssinglematch (H2H Tab usage)
 /// API：GET /api/livespeed/football/match/analysis -> data.history.vs
 class BMH2HMatch {
-  /// 比赛ID (String 类型)
-  final String matchId;
+ /// matchID (String type)
+ final String matchId;
 
-  /// 联赛名 (String? 类型)
-  final String? leagueName;
+ /// league name (String? type)
+ final String? leagueName;
 
-  /// 比赛时间秒级时间戳 (int? 类型)
-  final int? matchTime;
+ /// match timesecondlevel timestamp (int? type)
+ final int? matchTime;
 
-  /// 主队名 (String? 类型)
-  final String? homeTeamName;
+ /// home teamname (String? type)
+ final String? homeTeamName;
 
-  /// 客队名 (String? 类型)
-  final String? awayTeamName;
+ /// away teamname (String? type)
+ final String? awayTeamName;
 
-  /// 主队球队 ID (int? 类型, 用于判断是否是当前主队: homeTeamId == currentHomeTeamId)
-  final int? homeTeamId;
+ /// home teamteam ID (int? type, forcheckwhetheryescurrenthome team: homeTeamId == currentHomeTeamId)
+ final int? homeTeamId;
 
-  /// 客队球队 ID (int? 类型, 用于判断是否是当前主队: awayTeamId == currentHomeTeamId)
-  final int? awayTeamId;
+ /// away teamteam ID (int? type, forcheckwhetheryescurrenthome team: awayTeamId == currentHomeTeamId)
+ final int? awayTeamId;
 
-  /// 主队logo URL (String? 类型)
-  final String? homeTeamLogo;
+ /// home teamlogo URL (String? type)
+ final String? homeTeamLogo;
 
-  /// 客队logo URL (String? 类型)
-  final String? awayTeamLogo;
+ /// away teamlogo URL (String? type)
+ final String? awayTeamLogo;
 
-  /// 联赛/杯赛 Logo (String? 类型, HankLive TopRow 左侧图标)
-  final String? leagueLogo;
+ /// league/cup Logo (String? type, HankLive TopRow left sideicon)
+ final String? leagueLogo;
 
-  /// 主队 90 分钟常规时间比分 (int? 类型, 不含加时/点球, 对应 Hank homeNormalScore)
-  final int? homeNormalScore;
+ /// home team 90 minutetimescore (int? type, notincludesextra time/penalty, corresponding Hank homeNormalScore)
+ final int? homeNormalScore;
 
-  /// 客队 90 分钟常规时间比分 (int? 类型, 对应 Hank awayNormalScore)
-  final int? awayNormalScore;
+ /// away team 90 minutetimescore (int? type, corresponding Hank awayNormalScore)
+ final int? awayNormalScore;
 
-  /// 主队比分 (int? 类型, 含加时/点球总比分)
-  final int? homeScore;
+ /// home teamscore (int? type, includesextra time/penaltytotal score)
+ final int? homeScore;
 
-  /// 客队比分 (int? 类型)
-  final int? awayScore;
+ /// away teamscore (int? type)
+ final int? awayScore;
 
-  /// 半场主队比分 (int? 类型, 可空)
-  final int? homeHalfScore;
+ /// halfcourthome teamscore (int? type, can be empty)
+ final int? homeHalfScore;
 
-  /// 半场客队比分 (int? 类型, 可空)
-  final int? awayHalfScore;
+ /// halfcourtaway teamscore (int? type, can be empty)
+ final int? awayHalfScore;
 
-  /// 比赛状态 (int? 类型, 8=已结束 等, 参考 BMMatchStatus id)
-  final int? statusId;
+ /// matchstate (int? type, 8=FT wait, reference BMMatchStatus id)
+ final int? statusId;
 
-  BMH2HMatch({
-    required this.matchId,
-    this.leagueName,
-    this.matchTime,
-    this.homeTeamName,
-    this.awayTeamName,
-    this.homeTeamId,
-    this.awayTeamId,
-    this.homeTeamLogo,
-    this.awayTeamLogo,
-    this.leagueLogo,
-    this.homeNormalScore,
-    this.awayNormalScore,
-    this.homeScore,
-    this.awayScore,
-    this.homeHalfScore,
-    this.awayHalfScore,
-    this.statusId,
-  });
+ BMH2HMatch({
+ required this.matchId,
+ this.leagueName,
+ this.matchTime,
+ this.homeTeamName,
+ this.awayTeamName,
+ this.homeTeamId,
+ this.awayTeamId,
+ this.homeTeamLogo,
+ this.awayTeamLogo,
+ this.leagueLogo,
+ this.homeNormalScore,
+ this.awayNormalScore,
+ this.homeScore,
+ this.awayScore,
+ this.homeHalfScore,
+ this.awayHalfScore,
+ this.statusId,
+ });
 
-  factory BMH2HMatch.fromJson(Map<String, dynamic> json) {
-    final mid = (json['match_id'] ?? json['matchId'] ?? '').toString();
+ factory BMH2HMatch.fromJson(Map<String, dynamic> json) {
+ final mid = (json['match_id'] ?? json['matchId'] ?? '').toString();
     final ht = json['home_score'] ?? json['homeScore'];
     final at = json['away_score'] ?? json['awayScore'];
     final hnt = json['home_normal_score'] ?? json['homeNormalScore'] ?? json['home_regular_score'] ?? json['homeRegularScore'] ?? ht;
@@ -103,80 +103,80 @@ class BMH2HMatch {
       awayScore: (at is num) ? at.toInt() : int.tryParse(at?.toString() ?? ''),
       homeHalfScore: (hh is num) ? hh.toInt() : int.tryParse(hh?.toString() ?? ''),
       awayHalfScore: (aa is num) ? aa.toInt() : int.tryParse(aa?.toString() ?? ''),
-      statusId: (json['status'] is num) ? (json['status'] as num).toInt() : null,
-    );
-  }
+      statusId: (json['status'] is num) ? (json['status'] as num).toInt(): null,
+);
+ }
 }
 
-/// BMH2HMatch 显示与转换扩展
+/// BMH2HMatch displayandconvertexpanded
 extension BMH2HMatchDisplayX on BMH2HMatch {
-  /// 状态ID -> BMMatchStatus 枚举 (同 BMFootball 约定: 1未开始 2-7进行中 8已结束 其他TBD)
-  BMMatchStatus get resolvedStatus {
-    if (statusId == 8) return BMMatchStatus.ended;
-    if (statusId == 1) return BMMatchStatus.upcoming;
-    if (statusId != null && statusId! >= 2 && statusId! <= 7) return BMMatchStatus.live;
-    return BMMatchStatus.tbd;
-  }
+ /// stateID -> BMMatchStatus enum (same BMFootball : 1NS 2-7in progress 8FT othersTBD)
+ BMMatchStatus get resolvedStatus {
+ if (statusId == 8) return BMMatchStatus.ended;
+ if (statusId == 1) return BMMatchStatus.upcoming;
+ if (statusId != null && statusId! >= 2 && statusId! <= 7) return BMMatchStatus.live;
+ return BMMatchStatus.tbd;
+ }
 
-  /// 时间戳 -> MM-dd HH:mm 字符串 (用于 matchTime 字段, 未传则空串)
-  String get formattedMatchTime {
-    if (matchTime == null || matchTime == 0) return '';
+ /// timestamp -> MM-dd HH:mm string (for matchTime field, not yetpassthenemptystring)
+ String get formattedMatchTime {
+ if (matchTime == null || matchTime == 0) return '';
     final dt = DateTime.fromMillisecondsSinceEpoch(matchTime! * 1000);
     final mm = dt.month.toString().padLeft(2, '0');
     final dd = dt.day.toString().padLeft(2, '0');
     final hh = dt.hour.toString().padLeft(2, '0');
     final mi = dt.minute.toString().padLeft(2, '0');
     return '$mm-$dd $hh:$mi';
-  }
+ }
 
-  /// 半场比分拼接字符串 (如 "1-0", 缺任一则null)
-  String? get halfTimeScoreStr {
-    if (homeHalfScore == null || awayHalfScore == null) return null;
-    return '${homeHalfScore}-${awayHalfScore}';
-  }
+ /// HT scoreconcatstring (like "1-0", missinganyonethennull)
+ String? get halfTimeScoreStr {
+ if (homeHalfScore == null || awayHalfScore == null) return null;
+ return '${homeHalfScore}-${awayHalfScore}';
+ }
 
-  /// 转为 BMMatchModel (用于 push BMFootballDetailPage, 详情页 initState 会用 matchId 重新请求 detail/process 覆盖数据)
-  BMMatchModel get toMatchModel {
-    return BMMatchModel(
-      matchId: matchId,
-      // Hank 对齐字段: 顶层 int homeTeamId / awayTeamId → 直接传给 BMMatchModel, 解决 H2H WDL 归属判断问题
-      homeTeamId: homeTeamId,
-      awayTeamId: awayTeamId,
-      homeTeamName: homeTeamName,
-      awayTeamName: awayTeamName,
-      homeTeamLogo: homeTeamLogo,
-      awayTeamLogo: awayTeamLogo,
-      homeScore: homeScore,
-      awayScore: awayScore,
-      // 4 段比分 (Hank 对齐 常规/半场/加时/点球)
-      homeNormalScore: homeNormalScore,
-      homeHalfScore: homeHalfScore,
-      awayNormalScore: awayNormalScore,
-      awayHalfScore: awayHalfScore,
-      leagueName: leagueName ?? '',
+ /// convertas BMMatchModel (for push BMFootballDetailPage, detailpage initState willuse matchId re-request detail/process overridedata)
+ BMMatchModel get toMatchModel {
+ return BMMatchModel(
+ matchId: matchId,
+ // Hank alignmentfield: top level int homeTeamId / awayTeamId → passto BMMatchModel, solve H2H WDL returncheckissue
+ homeTeamId: homeTeamId,
+ awayTeamId: awayTeamId,
+ homeTeamName: homeTeamName,
+ awayTeamName: awayTeamName,
+ homeTeamLogo: homeTeamLogo,
+ awayTeamLogo: awayTeamLogo,
+ homeScore: homeScore,
+ awayScore: awayScore,
+ // 4 sectionscore (Hank alignment /halfcourt/extra time/penalty)
+ homeNormalScore: homeNormalScore,
+ homeHalfScore: homeHalfScore,
+ awayNormalScore: awayNormalScore,
+ awayHalfScore: awayHalfScore,
+ leagueName: leagueName ?? '',
       leagueColor: 0xFF12FF80,
       status: resolvedStatus,
       statusId: statusId,
       statusName: resolvedStatus == BMMatchStatus.ended
-          ? '完场'
+          ? 'FT'
           : resolvedStatus == BMMatchStatus.live
-              ? '进行中'
+              ? 'in progress'
               : resolvedStatus == BMMatchStatus.upcoming
-                  ? '未开始'
-                  : '待定',
-      // win 胜负结果 (1=主胜 2=平 3=客胜 Hank 对齐)
-      win: (homeScore != null && awayScore != null)
-          ? (homeScore! > awayScore! ? 1 : (homeScore! < awayScore! ? 3 : 2))
-          : null,
-      sportType: BMMatchSportType.football,
-      matchTime: formattedMatchTime,
-      halfTimeScore: halfTimeScoreStr,
-      round: '',
-      // 兼容原来的 homeTeam / awayTeam 结构化字段 (未直接传 teamId/teamLogo 时 H2H 顶部 fallback)
-      homeTeam: (homeTeamId != null || (homeTeamName?.isNotEmpty ?? false))
-          ? BMTeamModel(
-              teamId: homeTeamId?.toString(),
-              teamName: homeTeamName ?? '',
+                  ? 'NS'
+                  : 'TBD',
+ // win WLresult (1=home win 2=D 3=away win Hank alignment)
+ win: (homeScore != null && awayScore != null)
+ ? (homeScore! > awayScore! ? 1: (homeScore! < awayScore! ? 3: 2))
+: null,
+ sportType: BMMatchSportType.football,
+ matchTime: formattedMatchTime,
+ halfTimeScore: halfTimeScoreStr,
+ round: '',
+ // compatibleoriginal of homeTeam / awayTeam structurefield (not yetpass teamId/teamLogo when H2H top fallback)
+ homeTeam: (homeTeamId != null || (homeTeamName?.isNotEmpty ?? false))
+ ? BMTeamModel(
+ teamId: homeTeamId?.toString(),
+ teamName: homeTeamName ?? '',
               logoUrl: homeTeamLogo,
             )
           : null,

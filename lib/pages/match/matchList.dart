@@ -8,92 +8,92 @@ import '../../services/bm_match_api_service.dart';
 import 'bm_football_detail_page.dart';
 import 'bm_basketball_detail_page.dart';
 
-/// BMMatchListPage - 赛事列表页 (首页「查看全部」push 进来)
-/// 功能: 真实POST接口请求(tab=0/当天timestamp) + 复用首页卡片 + 下拉刷新 + 上拉加载
+/// BMMatchListPage - competitionlistpage (home「view all」push enter)
+/// feature: trueactualPOSTAPI request(tab=0/whendaytimestamp) + reusehomecard + pull downrefresh + pull uploading
 class BMMatchListPage extends BMBasePage {
-  /// 运动类型 (BMSportType 类型, football/basketball)
-  final BMSportType sportType;
+ /// sport type (BMSportType type, football/basketball)
+ final BMSportType sportType;
 
-  const BMMatchListPage({
-    super.key,
-    required this.sportType,
-  });
+ const BMMatchListPage({
+ super.key,
+ required this.sportType,
+ });
 
-  @override
-  State<BMMatchListPage> createState() => _BMMatchListPageState();
+ @override
+ State<BMMatchListPage> createState() => _BMMatchListPageState();
 }
 
 class _BMMatchListPageState extends BMBasePageState<BMMatchListPage> {
-  /// 比赛列表数据 (List类型, 元素为BMMatchModel)
-  List<BMMatchModel> _matchList = [];
+ /// matchlistdata (Listtype, elementasBMMatchModel)
+ List<BMMatchModel> _matchList = [];
 
-  /// 下拉刷新或首次加载中 (bool 类型, 仅控制UI全屏Loading)
-  bool _isRefreshing = true;
+ /// pull downrefreshor first loading (bool type, onlymakeUIfullLoading)
+ bool _isRefreshing = true;
 
-  /// 上拉加载更多中 (bool 类型, 控制底部footer Loading)
-  bool _isLoadingMore = false;
+ /// pull upload morein (bool type, control bottom footer Loading)
+ bool _isLoadingMore = false;
 
-  /// 请求重入锁 (bool 类型, true=有请求在飞, 防止重复发)
-  bool _isFetching = false;
+ /// requestre-entry lock (bool type, true=hasrequest, duplicatesend)
+ bool _isFetching = false;
 
-  /// 是否还有下一页 (bool 类型, true=可继续上拉)
-  bool _hasNoMore = false;
+ /// has next page (bool type, true=cancontinuepull up)
+ bool _hasNoMore = false;
 
-  /// 当前页码 (int 类型, 从1开始)
-  int _page = 1;
+ /// current pagecode (int type, starting from 1)
+ int _page = 1;
 
-  /// 每页条数 (int 类型, 默认10, 对齐hanklive)
-  final int _size = 10;
+ /// per pagecount (int type, default10, alignmenthanklive)
+ final int _size = 10;
 
-  /// 当前选中的日期时间戳 (int 类型, 秒级, 默认今天0点)
-  int _currentTimestamp = 0;
+ /// currentselected of datetimestamp (int type, secondlevel, defaulttoday0point)
+ int _currentTimestamp = 0;
 
-  /// 列表滚动控制器 (ScrollController 类型, 上拉加载监听)
-  late final ScrollController _scrollController;
+ /// listscrollcontroller (ScrollController type, pull uploadinglistener)
+ late final ScrollController _scrollController;
 
-  /// API 服务实例 (BMMatchApiService 类型)
-  final BMMatchApiService _apiService = BMMatchApiService();
+ /// API serviceinstance (BMMatchApiService type)
+ final BMMatchApiService _apiService = BMMatchApiService();
 
-  @override
-  void initState() {
-    super.initState();
-    _scrollController = ScrollController()..addListener(_onScroll);
-    _fetchMatches(isRefresh: true);
-  }
+ @override
+ void initState() {
+ super.initState();
+ _scrollController = ScrollController()..addListener(_onScroll);
+ _fetchMatches(isRefresh: true);
+ }
 
-  @override
-  void dispose() {
-    _scrollController.dispose();
-    super.dispose();
-  }
+ @override
+ void dispose() {
+ _scrollController.dispose();
+ super.dispose();
+ }
 
-  /// 滚动监听: 触底100px内触发上拉加载更多
-  void _onScroll() {
-    if (_scrollController.position.pixels >=
-        _scrollController.position.maxScrollExtent - 100) {
-      if (!_isFetching && !_isRefreshing && !_hasNoMore) {
-        _fetchMatches(isRefresh: false);
-      }
-    }
-  }
+ /// scrolllistener: trigger pull within 100px of bottom upload more
+ void _onScroll() {
+ if (_scrollController.position.pixels >=
+ _scrollController.position.maxScrollExtent - 100) {
+ if (!_isFetching && !_isRefreshing && !_hasNoMore) {
+ _fetchMatches(isRefresh: false);
+ }
+ }
+ }
 
-  /// 获取当天0点秒级时间戳 (若用户未选择日期, 取默认今天0点)
-  int _getSelectedTimestamp() {
-    if (_currentTimestamp > 0) return _currentTimestamp;
-    final now = DateTime.now();
-    final d = DateTime(now.year, now.month, now.day);
-    return d.millisecondsSinceEpoch ~/ 1000;
-  }
+ /// gettakewhenday0pointsecondlevel timestamp (ifusernot yetselectdate, takedefaulttoday0point)
+ int _getSelectedTimestamp() {
+ if (_currentTimestamp > 0) return _currentTimestamp;
+ final now = DateTime.now();
+ final d = DateTime(now.year, now.month, now.day);
+ return d.millisecondsSinceEpoch ~/ 1000;
+ }
 
-  /// 请求比赛列表 (真实POST接口, tab=0 + 当天时间戳 + 分页)
-  /// [isRefresh] - true=重置page=1 / false=加载更多 page+1
-  Future<void> _fetchMatches({required bool isRefresh}) async {
-    if (_isFetching) {
-      debugPrint('🔒 BMMatchListPage 请求被挡(重入): isRefresh=$isRefresh, _page=$_page');
+ /// requestmatchlist (trueactualPOSTAPI, tab=0 + whendaytimestamp + pagination)
+ /// [isRefresh] - true=reset page=1 / false=load more page+1
+ Future<void> _fetchMatches({required bool isRefresh}) async {
+ if (_isFetching) {
+ debugPrint('🔒 BMMatchListPage requestblocked (re-entry): isRefresh=$isRefresh, _page=$_page');
       return;
     }
     if (!isRefresh && _hasNoMore) {
-      debugPrint('🔒 BMMatchListPage 加载更多被挡: _hasNoMore=true');
+      debugPrint('🔒 BMMatchListPage load moreby: _hasNoMore=true');
       return;
     }
     _isFetching = true;
@@ -116,7 +116,7 @@ class _BMMatchListPageState extends BMBasePageState<BMMatchListPage> {
     }
 
     final timestamp = _getSelectedTimestamp();
-    debugPrint('🌐 BMMatchListPage 真实请求发起: sport=${widget.sportType.name}, tab=0, page=$requestPage, size=$_size, timestamp=$timestamp');
+    debugPrint('🌐 BMMatchListPage trueactual request start: sport=${widget.sportType.name}, tab=0, page=$requestPage, size=$_size, timestamp=$timestamp');
     List<BMMatchModel> result = [];
     try {
       if (widget.sportType == BMSportType.football) {
@@ -132,69 +132,69 @@ class _BMMatchListPageState extends BMBasePageState<BMMatchListPage> {
           size: _size,
         );
       }
-      debugPrint('✅ BMMatchListPage 真实请求成功: 本次返回 ${result.length} 条');
+      debugPrint('✅ BMMatchListPage trueactual request success: this returns ${result.length} items');
     } catch (e) {
-      debugPrint('❌ BMMatchListPage 真实请求异常(isRefresh=$isRefresh, page=$requestPage): $e');
-      result = [];
-    } finally {
-      _isFetching = false; // 无论成功失败强制释放请求锁
-    }
+      debugPrint('❌ BMMatchListPage trueactual requestexception(isRefresh=$isRefresh, page=$requestPage): $e');
+ result = [];
+ } finally {
+ _isFetching = false; // nonesuccessfailuremakereleaserequest
+ }
 
-    if (!mounted) return;
-    setState(() {
-      if (isRefresh) {
-        _matchList = result;
-        _page = 1;
-        _isRefreshing = false;
-      } else {
-        _matchList.addAll(result);
-        _page = requestPage;
-        _isLoadingMore = false;
-      }
-      // 返回条数 < 每页数量, 标记没有更多页 (对齐hanklive)
-      if (result.length < _size) {
-        _hasNoMore = true;
-        debugPrint('🛑 BMMatchListPage 无更多页, 本页 ${result.length} < size=$_size');
-      }
-    });
-  }
+ if (!mounted) return;
+ setState(() {
+ if (isRefresh) {
+ _matchList = result;
+ _page = 1;
+ _isRefreshing = false;
+ } else {
+ _matchList.addAll(result);
+ _page = requestPage;
+ _isLoadingMore = false;
+ }
+ // returnscount < per pagecount, markerno more datapage (alignmenthanklive)
+ if (result.length < _size) {
+ _hasNoMore = true;
+ debugPrint('🛑 BMMatchListPage nonemorepage, this page ${result.length} < size=$_size');
+ }
+ });
+ }
 
-  /// 下拉刷新回调
-  Future<void> _onRefresh() {
-    return _fetchMatches(isRefresh: true);
-  }
+ /// pull downrefreshcallback
+ Future<void> _onRefresh() {
+ return _fetchMatches(isRefresh: true);
+ }
 
-  /// 导航标题 (FootBall List / BasketBall List)
-  String get _navTitle {
-    return widget.sportType == BMSportType.football
-        ? 'FootBall List'
+ /// navigationtitle (FootBall List / BasketBall List)
+ String get _navTitle {
+ return widget.sportType == BMSportType.football
+ ? 'FootBall List'
         : 'BasketBall List';
-  }
+ }
 
-  @override
-  Widget buildBody(BuildContext context) {
-    return Column(
-      children: [
-        _buildNavBar(context),
-        Expanded(child: _buildMatchList()),
-      ],
-    );
-  }
+ @override
+ Widget buildBody(BuildContext context) {
+ return Column(
+ children: [
+ _buildNavBar(context),
+ Expanded(child: _buildMatchList()),
+ ],
+);
+ }
 
-  /// 自定义导航栏 (返回 + 标题 + 日历按钮 + 选中日期小文字)
-  Widget _buildNavBar(BuildContext context) {
-    final now = DateTime.now();
-    final todayMidnight = DateTime(now.year, now.month, now.day);
-    final selectedMidnight = DateTime(
-        _selectedDate.year, _selectedDate.month, _selectedDate.day);
-    final diff = selectedMidnight.difference(todayMidnight).inDays;
-    String dateLabel;
-    if (diff == 0) {
-      dateLabel = '今天';
+ /// custom app bar (returns + title + daybutton + selecteddatesmalltext)
+ Widget _buildNavBar(BuildContext context) {
+ final now = DateTime.now();
+ final todayMidnight = DateTime(now.year, now.month, now.day);
+ final selectedMidnight = DateTime(
+ _selectedDate.year, _selectedDate.month, _selectedDate.day);
+ final diff = selectedMidnight.difference(todayMidnight).inDays;
+ String dateLabel;
+ if (diff == 0) {
+ dateLabel = 'today';
     } else if (diff == 1) {
-      dateLabel = '明天';
+      dateLabel = 'tomorrow';
     } else if (diff == -1) {
-      dateLabel = '昨天';
+      dateLabel = 'yesterday';
     } else {
       dateLabel =
           '${_selectedDate.month.toString().padLeft(2, '0')}/${_selectedDate.day.toString().padLeft(2, '0')}';
@@ -211,7 +211,7 @@ class _BMMatchListPageState extends BMBasePageState<BMMatchListPage> {
         children: [
           IconButton(
             onPressed: () {
-              debugPrint('👈 导航栏返回按钮点击');
+              debugPrint('👈 app barback buttontap');
               Navigator.of(context).pop();
             },
             icon: const Icon(Icons.arrow_back_ios,
@@ -232,43 +232,43 @@ class _BMMatchListPageState extends BMBasePageState<BMMatchListPage> {
           ),
           GestureDetector(
             onTap: () {
-              debugPrint('📅 日历点击手势触发');
-              _showDatePicker(context);
-            },
-            behavior: HitTestBehavior.opaque,
-            child: SizedBox(
-              width: 60,
-              height: 40,
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  const Icon(Icons.calendar_month_outlined,
-                      size: 20, color: BMColors.bright),
-                  const SizedBox(height: 1),
-                  Text(
-                    dateLabel,
-                    style: TextStyle(
-                      fontSize: 9,
-                      color: diff == 0
-                          ? BMColors.bright
-                          : BMColors.textSecondary,
-                      fontWeight:
-                          diff == 0 ? FontWeight.w600 : FontWeight.normal,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+              debugPrint('📅 daytapgesturesend');
+ _showDatePicker(context);
+ },
+ behavior: HitTestBehavior.opaque,
+ child: SizedBox(
+ width: 60,
+ height: 40,
+ child: Column(
+ mainAxisAlignment: MainAxisAlignment.center,
+ crossAxisAlignment: CrossAxisAlignment.center,
+ children: [
+ const Icon(Icons.calendar_month_outlined,
+ size: 20, color: BMColors.bright),
+ const SizedBox(height: 1),
+ Text(
+ dateLabel,
+ style: TextStyle(
+ fontSize: 9,
+ color: diff == 0
+ ? BMColors.bright
+: BMColors.textSecondary,
+ fontWeight:
+ diff == 0 ? FontWeight.w600: FontWeight.normal,
+),
+),
+ ],
+),
+),
+),
+ ],
+),
+);
+ }
 
-  /// 弹出日期选择器 (球场深绿主题)，选中后用该天0点时间戳刷新列表
-  Future<void> _showDatePicker(BuildContext context) async {
-    debugPrint('📅 _showDatePicker 开始执行');
+ /// popdatepicker (ballcourtdark greentheme)，selectedlaterusetheday0pointtimestamprefreshlist
+ Future<void> _showDatePicker(BuildContext context) async {
+ debugPrint('📅 _showDatePicker startline');
     final now = DateTime.now();
     final initialDate = _currentTimestamp > 0
         ? DateTime.fromMillisecondsSinceEpoch(_currentTimestamp * 1000)
@@ -276,7 +276,7 @@ class _BMMatchListPageState extends BMBasePageState<BMMatchListPage> {
     debugPrint('📅 initialDate = $initialDate, firstDate=${now.year - 2}, lastDate=${now.year + 1}');
     DateTime? picked;
     try {
-      debugPrint('📅 await showDatePicker 进入前');
+      debugPrint('📅 await showDatePicker enterfirst');
       picked = await showDatePicker(
         context: context,
         initialDate: initialDate,
@@ -284,9 +284,9 @@ class _BMMatchListPageState extends BMBasePageState<BMMatchListPage> {
         lastDate: DateTime(now.year + 1, now.month + 3),
         locale: const Locale('zh', 'CN'),
         builder: (ctx, child) {
-          debugPrint('📅 showDatePicker builder 进入');
+          debugPrint('📅 showDatePicker builder enter');
           if (child == null) {
-            debugPrint('⚠️  showDatePicker builder child是null, 返回空占位');
+            debugPrint('⚠️ showDatePicker builder childyesnull, returnsemptyplaceholder');
             return const SizedBox.shrink();
           }
           return Theme(
@@ -311,14 +311,14 @@ class _BMMatchListPageState extends BMBasePageState<BMMatchListPage> {
           );
         },
       );
-      debugPrint('📅 await showDatePicker 返回 picked=$picked');
+      debugPrint('📅 await showDatePicker returns picked=$picked');
     } catch (e, s) {
-      debugPrint('❌ showDatePicker 抛出异常: $e');
-      debugPrint('❌ 调用栈: $s');
+      debugPrint('❌ showDatePicker throwexception: $e');
+      debugPrint('❌ call: $s');
       picked = null;
     }
     if (picked == null) {
-      debugPrint('📅 用户取消选择日期');
+      debugPrint('📅 userTake effectselectdate');
       return;
     }
     final ts = DateTime(picked.year, picked.month, picked.day)
@@ -327,39 +327,39 @@ class _BMMatchListPageState extends BMBasePageState<BMMatchListPage> {
     _currentTimestamp = ts;
     _selectedDate = DateTime(picked.year, picked.month, picked.day);
     debugPrint(
-        '📅 BMMatchListPage 选中日期: ${picked.year}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}  timestamp=$ts, 准备刷新');
+        '📅 BMMatchListPage selecteddate: ${picked.year}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')} timestamp=$ts, backuprefresh');
     await _fetchMatches(isRefresh: true);
-    debugPrint('📅 列表刷新完成');
-  }
+    debugPrint('📅 listrefreshdone');
+ }
 
-  /// 当前选中的 DateTime (用于日期弹窗高亮 + 导航栏显示"今天/昨天/MM-DD"小标签)
-  DateTime _selectedDate = DateTime.now();
+ /// currentselected of DateTime (fordatedialoghighlight + app bardisplay"today/yesterday/MM-DD"smalltag)
+ DateTime _selectedDate = DateTime.now();
 
-  /// 比赛列表区 (含首屏Loading/空态/下拉刷新/上拉加载)
-  Widget _buildMatchList() {
-    if (_isRefreshing && _matchList.isEmpty) {
-      return const Center(
-        child: CircularProgressIndicator(
-            color: BMColors.bright, strokeWidth: 2),
-      );
-    }
-    if (_matchList.isEmpty) {
-      return RefreshIndicator(
-        color: BMColors.bright,
-        backgroundColor: BMColors.pitch850,
-        onRefresh: _onRefresh,
-        child: ListView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          children: const [
-            SizedBox(height: 140),
-            Center(
-              child: Icon(Icons.sports_soccer_outlined,
-                  size: 48, color: BMColors.textTertiary),
-            ),
-            SizedBox(height: 12),
-            Center(
-              child: Text(
-                '当日暂无比赛',
+ /// matchlistzone (includesfirst screenLoading/emptystate/pull downrefresh/pull uploading)
+ Widget _buildMatchList() {
+ if (_isRefreshing && _matchList.isEmpty) {
+ return const Center(
+ child: CircularProgressIndicator(
+ color: BMColors.bright, strokeWidth: 2),
+);
+ }
+ if (_matchList.isEmpty) {
+ return RefreshIndicator(
+ color: BMColors.bright,
+ backgroundColor: BMColors.pitch850,
+ onRefresh: _onRefresh,
+ child: ListView(
+ physics: const AlwaysScrollableScrollPhysics(),
+ children: const [
+ SizedBox(height: 140),
+ Center(
+ child: Icon(Icons.sports_soccer_outlined,
+ size: 48, color: BMColors.textTertiary),
+),
+ SizedBox(height: 12),
+ Center(
+ child: Text(
+ 'whendayNo match',
                 style: TextStyle(fontSize: 13, color: BMColors.textSecondary),
               ),
             ),
@@ -407,7 +407,7 @@ class _BMMatchListPageState extends BMBasePageState<BMMatchListPage> {
     );
   }
 
-  /// 底部加载指示器
+  /// bottomloadingindicator
   Widget _buildFooter() {
     if (_hasNoMore) {
       return Padding(
@@ -418,7 +418,7 @@ class _BMMatchListPageState extends BMBasePageState<BMMatchListPage> {
             Container(width: 24, height: 1, color: BMColors.pitch700),
             const SizedBox(width: 8),
             const Text(
-              '—— 到底啦 ——',
+              '—— no more ——',
               style: TextStyle(fontSize: 11, color: BMColors.textTertiary),
             ),
             const SizedBox(width: 8),
@@ -440,7 +440,7 @@ class _BMMatchListPageState extends BMBasePageState<BMMatchListPage> {
                   color: BMColors.bright, strokeWidth: 2),
             ),
             SizedBox(width: 10),
-            Text('加载中...',
+            Text('loadingin...',
                 style: TextStyle(fontSize: 12, color: BMColors.textSecondary)),
           ],
         ),

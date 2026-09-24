@@ -1,11 +1,11 @@
-/// BMTeamInfo - 足球球队详细信息
+/// BMTeamInfo - footballteamdetail info
 /// API: GET /api/livespeed/football/team/data?team_id=
-/// 用户指定返回结构 14 字段:
-///   competition_id: 82
-///   competition_name: "ENG Premier League"
+/// userspecifiedreturnsstructure 14 field:
+/// competition_id: 82
+/// competition_name: "ENG Premier League"
 ///   name: "Manchester City"
 ///   logo: "https://..."
-///   foundation_time: 1880 (年)
+///   foundation_time: 1880 (year)
 ///   country_name: "England"
 ///   country_logo: "https://..."
 ///   venue_name: "Etihad Stadium"
@@ -16,67 +16,67 @@
 ///   is_subscribe: false
 ///   website: "http://..."
 class BMTeamInfo {
-  /// 所属联赛 ID (int? 类型)
-  final int? competitionId;
+ /// allleague ID (int? type)
+ final int? competitionId;
 
-  /// 所属联赛名称 (String? 类型)
-  final String? competitionName;
+ /// allleague namename (String? type)
+ final String? competitionName;
 
-  /// 球队名 (String? 类型)
-  final String? name;
+ /// team name (String? type)
+ final String? name;
 
-  /// 球队 Logo URL (String? 类型)
-  final String? logo;
+ /// team Logo URL (String? type)
+ final String? logo;
 
-  /// 成立年份 (int? 类型, 例: 1880)
-  final int? foundationTime;
+ /// formatyear (int? type, e.g.: 1880)
+ final int? foundationTime;
 
-  /// 所属国家名 (String? 类型)
-  final String? countryName;
+ /// allcountryname (String? type)
+ final String? countryName;
 
-  /// 国家 Logo / 国旗 URL (String? 类型)
-  final String? countryLogo;
+ /// country Logo / URL (String? type)
+ final String? countryLogo;
 
-  /// 主场名称 (String? 类型)
-  final String? venueName;
+ /// homecourtname (String? type)
+ final String? venueName;
 
-  /// 主场容量 (int? 类型)
-  final int? venueCapacity;
+ /// homecourtcapacity (int? type)
+ final int? venueCapacity;
 
-  /// 主教练名 (String? 类型)
-  final String? managerName;
+ /// homecoachname (String? type)
+ final String? managerName;
 
-  /// 主教练头像 URL (String? 类型)
-  final String? managerLogo;
+ /// homecoachavatar URL (String? type)
+ final String? managerLogo;
 
-  /// 球队总身价 (int? 类型, 单位: 币种默认为 EUR 万/亿换算)
-  final int? marketValue;
+ /// teamtotal market value (int? type, singleposition: kinddefaultas EUR 10k/100Mswapcalc)
+ final int? marketValue;
 
-  /// 是否订阅 (bool? 类型, 用户关注此球队)
-  final bool? isSubscribe;
+ /// whethersubscribe (bool? type, userfollowteam)
+ final bool? isSubscribe;
 
-  /// 球队官网 URL (String? 类型)
-  final String? website;
+ /// teamofficial site URL (String? type)
+ final String? website;
 
-  const BMTeamInfo({
-    this.competitionId,
-    this.competitionName,
-    this.name,
-    this.logo,
-    this.foundationTime,
-    this.countryName,
-    this.countryLogo,
-    this.venueName,
-    this.venueCapacity,
-    this.managerName,
-    this.managerLogo,
-    this.marketValue,
-    this.isSubscribe,
-    this.website,
-  });
+ const BMTeamInfo({
+ this.competitionId,
+ this.competitionName,
+ this.name,
+ this.logo,
+ this.foundationTime,
+ this.countryName,
+ this.countryLogo,
+ this.venueName,
+ this.venueCapacity,
+ this.managerName,
+ this.managerLogo,
+ this.marketValue,
+ this.isSubscribe,
+ this.website,
+ });
 
-  factory BMTeamInfo.fromJson(Map<String, dynamic> json) {
-    final cid = json['competition_id'] ?? json['competitionId'];
+ factory BMTeamInfo.fromJson(Map<String, dynamic> json) {
+ final cid = json['competition_id'] ?? json['competitionId'];
     final ft = json['foundation_time'] ?? json['foundationTime'];
     final vc = json['venue_capacity'] ?? json['venueCapacity'];
     final mv = json['market_value'] ?? json['marketValue'];
@@ -105,41 +105,41 @@ class BMTeamInfo {
           ? json['is_subscribe']
           : (json['isSubscribe'] is bool ? json['isSubscribe'] : (json['is_follow'] is bool ? json['is_follow'] : null)),
       website: (json['website'] ?? json['site'] ?? json['homepage'])?.toString().trim(),
-    );
-  }
+);
+ }
 
-  /// 成立年份格式化: 1880 → "1880年"
+ /// formatyearformat: 1880 → "1880year"
   String get foundationLabel {
     if (foundationTime == null || foundationTime == 0) return '-';
-    return '$foundationTime年';
-  }
+    return '$foundationTime yr';
+ }
 
-  /// 球场容量格式化: 55097 → "55,097人"
+ /// ballcourtcapacityformat: 55097 → "55,097people"
   String get venueCapacityLabel {
     if (venueCapacity == null || venueCapacity == 0) return '-';
-    final s = venueCapacity.toString();
-    final len = s.length;
-    // 加千分位逗号
-    final buf = StringBuffer();
-    for (int i = 0; i < len; i++) {
-      if (i > 0 && (len - i) % 3 == 0) buf.write(',');
+ final s = venueCapacity.toString();
+ final len = s.length;
+ // addthousandminpositioncomma No.
+ final buf = StringBuffer();
+ for (int i = 0; i < len; i++) {
+ if (i > 0 && (len - i) % 3 == 0) buf.write(',');
       buf.write(s[i]);
     }
-    return '${buf.toString()}人';
-  }
+    return '${buf.toString()}people';
+ }
 
-  /// 身价格式化: 1050000000 → "€10.5亿" (万/亿自动换算)
-  String get marketValueLabel {
-    if (marketValue == null || marketValue == 0) return '-';
+ /// market valueformat: 1050000000 → "€10.5100M" (auto convert 10k/100M)
+ String get marketValueLabel {
+ if (marketValue == null || marketValue == 0) return '-';
     final v = marketValue!;
-    const unit = '€';  // 足球球队身价默认欧元
-    String numStr;
-    if (v >= 100000000) {
-      // 亿
-      numStr = '${(v / 100000000).toStringAsFixed(1)}亿';
-    } else if (v >= 10000) {
-      // 万
-      numStr = '${(v / 10000).toStringAsFixed(0)}万';
+    const unit = '€'; // footballteammarket valuedefaultelement
+ String numStr;
+ if (v >= 100000000) {
+ // 100M
+ numStr = '${(v / 100000000).toStringAsFixed(1)}100M';
+ } else if (v >= 10000) {
+ // 10k
+ numStr = '${(v / 10000).toStringAsFixed(0)}10k';
     } else {
       numStr = '$v';
     }

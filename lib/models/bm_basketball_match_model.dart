@@ -1,22 +1,22 @@
 import 'bm_match_api_model.dart' show safeInt, safeString, safeBool, debugPrintSafe;
 
-/// BMBasketballMatchData - 篮球比赛列表API响应数据体
-/// 作用范围: /api/livespeed/basketball/matches 接口响应data字段
+/// BMBasketballMatchData - basketballmatchlistAPIresponsedatabody
+/// purposescope: /api/livespeed/basketball/matches APIresponsedatafield
 class BMBasketballMatchData {
-  /// 数据总数 (int? 类型)
-  final int? total;
+ /// datatotal (int? type)
+ final int? total;
 
-  /// 请求时间戳 (int? 类型, 秒)
-  final int? timestamp;
+ /// requesttimestamp (int? type, second)
+ final int? timestamp;
 
-  /// 比赛项目列表 (List<BMBasketballMatchItem> 类型)
-  final List<BMBasketballMatchItem> results;
+ /// matchitem list (List<BMBasketballMatchItem> type)
+ final List<BMBasketballMatchItem> results;
 
-  BMBasketballMatchData({this.total, this.timestamp, this.results = const []});
+ BMBasketballMatchData({this.total, this.timestamp, this.results = const []});
 
-  /// 从 JSON 解析 (全安全提取, 不抛错)
-  factory BMBasketballMatchData.fromJson(Map<String, dynamic> json) {
-    final list = json['results'] is List ? json['results'] as List : null;
+ /// from JSON parse (fullsecuritytake, no throw)
+ factory BMBasketballMatchData.fromJson(Map<String, dynamic> json) {
+ final list = json['results'] is List ? json['results'] as List : null;
     final List<BMBasketballMatchItem> items = [];
     if (list != null) {
       for (final e in list) {
@@ -25,164 +25,164 @@ class BMBasketballMatchData {
             items.add(BMBasketballMatchItem.fromJson(e));
           }
         } catch (ex) {
-          debugPrintSafe('BMBasketballMatchData results单项解析跳过: $ex');
+          debugPrintSafe('BMBasketballMatchData resultssingleitemparseskip: $ex');
         }
       }
     }
     return BMBasketballMatchData(
       total: safeInt(json['total']),
       timestamp: safeInt(json['timestamp']),
-      results: items,
-    );
-  }
+ results: items,
+);
+ }
 }
 
-/// BMBasketballMatchItem - 单场篮球比赛数据项
-/// 作用范围: /api/livespeed/basketball/matches 接口 results 子项
+/// BMBasketballMatchItem - singlecourtbasketballmatchdataitem
+/// purposescope: /api/livespeed/basketball/matches API results sub item
 class BMBasketballMatchItem {
-  /// 比赛唯一ID (int? 类型)
-  final int? id;
+ /// matchuniqueID (int? type)
+ final int? id;
 
-  /// 赛季ID (int? 类型)
-  final int? seasonId;
+ /// season ID (int? type)
+ final int? seasonId;
 
-  /// 联赛ID (int? 类型)
-  final int? competitionId;
+ /// leagueID (int? type)
+ final int? competitionId;
 
-  /// 联赛LogoURL (String? 类型)
-  final String? competitionLogo;
+ /// leagueLogoURL (String? type)
+ final String? competitionLogo;
 
-  /// 联赛名称 (String? 类型)
-  final String? competitionName;
+ /// league namename (String? type)
+ final String? competitionName;
 
-  /// 主队ID (int? 类型)
-  final int? homeTeamId;
+ /// home teamID (int? type)
+ final int? homeTeamId;
 
-  /// 主队名称 (String? 类型)
-  final String? homeTeamName;
+ /// home teamname (String? type)
+ final String? homeTeamName;
 
-  /// 主队LogoURL (String? 类型)
-  final String? homeTeamLogo;
+ /// home teamLogoURL (String? type)
+ final String? homeTeamLogo;
 
-  /// 客队ID (int? 类型)
-  final int? awayTeamId;
+ /// away teamID (int? type)
+ final int? awayTeamId;
 
-  /// 客队名称 (String? 类型)
-  final String? awayTeamName;
+ /// away teamname (String? type)
+ final String? awayTeamName;
 
-  /// 客队LogoURL (String? 类型)
-  final String? awayTeamLogo;
+ /// away teamLogoURL (String? type)
+ final String? awayTeamLogo;
 
-  /// 主队总比分 (String? 类型, 注意后端可能是string或int)
-  final String? homeScores;
+ /// home teamtotal score (String? type, notelatersidecanabilityyesstringorint)
+ final String? homeScores;
 
-  /// 客队总比分 (String? 类型)
-  final String? awayScores;
+ /// away teamtotal score (String? type)
+ final String? awayScores;
 
-  /// 主队系列赛比分 (String? 类型)
-  final String? seriesHomeScore;
+ /// home teamsystemcolumnmatchscore (String? type)
+ final String? seriesHomeScore;
 
-  /// 客队系列赛比分 (String? 类型)
-  final String? seriesAwayScore;
+ /// away teamsystemcolumnmatchscore (String? type)
+ final String? seriesAwayScore;
 
-  /// 类型 (int? 类型)
-  final int? kind;
+ /// type (int? type)
+ final int? kind;
 
-  /// 节数 (int? 类型)
-  final int? periodCount;
+ /// sectioncount (int? type)
+ final int? periodCount;
 
-  /// 状态ID (int? 类型)
-  final int? statusId;
+ /// stateID (int? type)
+ final int? statusId;
 
-  /// 状态名称 (String? 类型)
-  final String? statusName;
+ /// statename (String? type)
+ final String? statusName;
 
-  /// 开赛时间戳 (int? 类型, 秒)
-  final int? matchTime;
+ /// kickoff timestamp (int? type, second)
+ final int? matchTime;
 
-  /// 是否中立场地 (int? 类型)
-  final int? neutral;
+ /// whetherininstantlycourt (int? type)
+ final int? neutral;
 
-  /// 是否关注 (bool? 类型)
-  final bool? subscribed;
+ /// whetherfollow (bool? type)
+ final bool? subscribed;
 
-  /// 主队排名 (String? 类型)
-  final String? homePosition;
+ /// home teamrank (String? type)
+ final String? homePosition;
 
-  /// 客队排名 (String? 类型)
-  final String? awayPosition;
+ /// away teamrank (String? type)
+ final String? awayPosition;
 
-  /// 剩余时间 (int? 类型, 秒)
-  final int? remainTime;
+ /// remainingtime (int? type, second)
+ final int? remainTime;
 
-  /// 阶段名称 (String? 类型)
-  final String? stageName;
+ /// stage section name (String? type)
+ final String? stageName;
 
-  /// 主队Q1比分 (String? 类型, 兼容嵌套)
-  final String? homeQ1;
+ /// home teamQ1score (String? type, compatible)
+ final String? homeQ1;
 
-  /// 主队Q2比分 (String? 类型)
-  final String? homeQ2;
+ /// home teamQ2score (String? type)
+ final String? homeQ2;
 
-  /// 主队Q3比分 (String? 类型)
-  final String? homeQ3;
+ /// home teamQ3score (String? type)
+ final String? homeQ3;
 
-  /// 主队Q4比分 (String? 类型)
-  final String? homeQ4;
+ /// home teamQ4score (String? type)
+ final String? homeQ4;
 
-  /// 客队Q1比分 (String? 类型)
-  final String? awayQ1;
+ /// away teamQ1score (String? type)
+ final String? awayQ1;
 
-  /// 客队Q2比分 (String? 类型)
-  final String? awayQ2;
+ /// away teamQ2score (String? type)
+ final String? awayQ2;
 
-  /// 客队Q3比分 (String? 类型)
-  final String? awayQ3;
+ /// away teamQ3score (String? type)
+ final String? awayQ3;
 
-  /// 客队Q4比分 (String? 类型)
-  final String? awayQ4;
+ /// away teamQ4score (String? type)
+ final String? awayQ4;
 
-  BMBasketballMatchItem({
-    this.id,
-    this.seasonId,
-    this.competitionId,
-    this.competitionLogo,
-    this.competitionName,
-    this.homeTeamId,
-    this.homeTeamName,
-    this.homeTeamLogo,
-    this.awayTeamId,
-    this.awayTeamName,
-    this.awayTeamLogo,
-    this.homeScores,
-    this.awayScores,
-    this.seriesHomeScore,
-    this.seriesAwayScore,
-    this.kind,
-    this.periodCount,
-    this.statusId,
-    this.statusName,
-    this.matchTime,
-    this.neutral,
-    this.subscribed,
-    this.homePosition,
-    this.awayPosition,
-    this.remainTime,
-    this.stageName,
-    this.homeQ1,
-    this.homeQ2,
-    this.homeQ3,
-    this.homeQ4,
-    this.awayQ1,
-    this.awayQ2,
-    this.awayQ3,
-    this.awayQ4,
-  });
+ BMBasketballMatchItem({
+ this.id,
+ this.seasonId,
+ this.competitionId,
+ this.competitionLogo,
+ this.competitionName,
+ this.homeTeamId,
+ this.homeTeamName,
+ this.homeTeamLogo,
+ this.awayTeamId,
+ this.awayTeamName,
+ this.awayTeamLogo,
+ this.homeScores,
+ this.awayScores,
+ this.seriesHomeScore,
+ this.seriesAwayScore,
+ this.kind,
+ this.periodCount,
+ this.statusId,
+ this.statusName,
+ this.matchTime,
+ this.neutral,
+ this.subscribed,
+ this.homePosition,
+ this.awayPosition,
+ this.remainTime,
+ this.stageName,
+ this.homeQ1,
+ this.homeQ2,
+ this.homeQ3,
+ this.homeQ4,
+ this.awayQ1,
+ this.awayQ2,
+ this.awayQ3,
+ this.awayQ4,
+ });
 
-  /// 从 JSON 解析 (snake_case → camelCase, 全安全提取不抛错)
-  factory BMBasketballMatchItem.fromJson(Map<String, dynamic> json) {
-    return BMBasketballMatchItem(
-      id: safeInt(json['id']) ?? safeInt(json['match_id']),
+ /// from JSON parse (snake_case → camelCase, fullsecuritytakeno throw)
+ factory BMBasketballMatchItem.fromJson(Map<String, dynamic> json) {
+ return BMBasketballMatchItem(
+ id: safeInt(json['id']) ?? safeInt(json['match_id']),
       seasonId: safeInt(json['season_id']),
       competitionId: safeInt(json['competition_id']),
       competitionLogo: safeString(json['competition_logo']),

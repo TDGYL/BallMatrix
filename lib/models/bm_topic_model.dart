@@ -1,97 +1,97 @@
 import 'bm_match_model.dart';
 
-/// BMTopicIconType - 话题卡片图标类型枚举
+/// BMTopicIconType - topic cardicontypeenum
 enum BMTopicIconType {
-  /// 信息图标 (翠绿色)
-  info,
+ /// infoicon (color)
+ info,
 
-  /// 图表图标 (青色)
-  chart,
+ /// tableicon (color)
+ chart,
 }
 
-/// BMTopicModel - 热门话题数据模型
-/// 作用范围: 首页热门话题列表
-/// 用于展示热门讨论话题卡片, 支持两种构造方式 (首页简版/详情扩展版)
+/// BMTopicModel - hot topicdatamodel
+/// purposescope: homehot topic list
+/// forshowtopic card, supportkindconstructordirectionstyle (home/detailexpanded)
 class BMTopicModel {
-  /// 话题唯一标识 (String 类型)
-  final String topicId;
+ /// topicuniqueidentifier (String type)
+ final String topicId;
 
-  /// 分类标签 (String 类型, 如 "英超" / "独家分析")
-  final String categoryTag;
+ /// split classestag (String type, like "Premier League" / "exclusiveanalysis")
+ final String categoryTag;
 
-  /// 分类标签背景色 (int 类型, ARGB格式)
-  final int categoryBgColor;
+ /// split classestagbackground color (int type, ARGBformat)
+ final int categoryBgColor;
 
-  /// 分类标签文字颜色 (int 类型, ARGB格式)
-  final int categoryTextColor;
+ /// split classestagtext color (int type, ARGBformat)
+ final int categoryTextColor;
 
-  /// 预测结果观点 (String 类型, 如 "预测比分 2:1")
-  final String prediction;
+ /// predictionresultpoint (String type, like "predicted score 2:1")
+ final String prediction;
 
-  /// 预测主色 (int 类型, ARGB格式)
-  final int predictionColor;
+ /// predictionhomecolor (int type, ARGBformat)
+ final int predictionColor;
 
-  /// AI洞察分析 (String 类型)
-  final String aiInsight;
+ /// AIanalysis (String type)
+ final String aiInsight;
 
-  /// 预测结果说明 (String 类型, 如 "主胜概率 58%")
-  final String predictionResult;
+ /// predictionresultdescription (String type, like "home win probability 58%")
+ final String predictionResult;
 
-  /// 信心值 (int 类型, 0-100)
-  final int confidence;
+ /// value (int type, 0-100)
+ final int confidence;
 
-  /// 关联比赛数据 (BMMatchModel? 类型, 可选)
-  final BMMatchModel? embeddedMatch;
+ /// related match data (BMMatchModel? type, optional)
+ final BMMatchModel? embeddedMatch;
 
-  /// 话题标签列表 (List<String> 类型, image 逗号切割 + 过滤 com/ 前缀后的多个话题)
-  final List<String> hashtags;
+ /// topictaglist (List<String> type, image comma split + filter com/ firstlater of multipletopic)
+ final List<String> hashtags;
 
-  /// 点赞数 (int 类型, 对应 BMPostItem.likeCount)
-  final int likeCount;
+ /// likecount (int type, corresponding BMPostItem.likeCount)
+ final int likeCount;
 
-  /// 评论数 (int 类型, 对应 BMPostItem.commentCount)
-  final int commentCount;
+ /// commentcount (int type, corresponding BMPostItem.commentCount)
+ final int commentCount;
 
-  /// 是否已点赞 (bool 类型, 对应 BMPostItem.isLike)
-  final bool isLiked;
+ /// liked or not (bool type, corresponding BMPostItem.isLike)
+ final bool isLiked;
 
-  /// 作者名称 (String? 类型, 话题发布者昵称, 对应BMPostAuthor.name)
-  final String? authorName;
+ /// authorname (String? type, topicpublishonenickname, correspondingBMPostAuthor.name)
+ final String? authorName;
 
-  /// 作者头像URL (String? 类型, 对应BMPostAuthor.avatar)
-  final String? authorAvatarUrl;
+ /// authoravatarURL (String? type, correspondingBMPostAuthor.avatar)
+ final String? authorAvatarUrl;
 
-  /// 发布时间描述 (String? 类型, 相对时间: 如 2小时前, 对应BMPostItem.createTime格式化)
-  final String? publishTimeDesc;
+ /// publishtimedescription (String? type, correcttime: like 2hourfirst, correspondingBMPostItem.createTimeformat)
+ final String? publishTimeDesc;
 
-  // ===== 兼容旧字段 =====
-  /// 旧标题 (String 类型, 默认空)
-  final String title;
+ // ===== compatibleoldfield =====
+ /// oldtitle (String type, defaultempty)
+ final String title;
 
-  /// 旧分类 (String 类型, 默认空)
-  final String category;
+ /// oldsplit classes (String type, defaultempty)
+ final String category;
 
-  /// 旧热度数 (int 类型, 默认0)
-  final int heatCount;
+ /// olddegreecount (int type, default0)
+ final int heatCount;
 
-  /// 旧标签颜色 (int 类型)
-  final int tagColor;
+ /// oldtagcolor (int type)
+ final int tagColor;
 
-  /// 旧标签文本 (String 类型)
-  final String tagText;
+ /// oldtagtext (String type)
+ final String tagText;
 
-  /// 旧图标类型 (BMTopicIconType 枚举)
-  final BMTopicIconType iconType;
+ /// oldicontype (BMTopicIconType enum)
+ final BMTopicIconType iconType;
 
-  BMTopicModel({
-    required this.topicId,
-    this.categoryTag = '热门话题',
+ BMTopicModel({
+ required this.topicId,
+ this.categoryTag = 'hot topic',
     this.categoryBgColor = 0xFFDC2626,
     this.categoryTextColor = 0xFFFFFFFF,
-    this.prediction = 'AI预测',
+    this.prediction = 'AIprediction',
     this.predictionColor = 0xFFF97316,
     required this.aiInsight,
-    this.predictionResult = '主胜概率 58%',
+    this.predictionResult = 'home win probability 58%',
     this.confidence = 85,
     this.embeddedMatch,
     this.hashtags = const [],
@@ -108,20 +108,20 @@ class BMTopicModel {
     String? tagText,
     BMTopicIconType? iconType,
   })  : title = title ?? '',
-        category = category ?? categoryTag,
-        heatCount = heatCount ?? 0,
-        tagColor = tagColor ?? categoryBgColor,
-        tagText = tagText ?? predictionResult,
-        iconType = iconType ?? BMTopicIconType.info;
+ category = category ?? categoryTag,
+ heatCount = heatCount ?? 0,
+ tagColor = tagColor ?? categoryBgColor,
+ tagText = tagText ?? predictionResult,
+ iconType = iconType ?? BMTopicIconType.info;
 
-  /// 从Map映射构建模型 (兼容旧版)
-  factory BMTopicModel.fromMap(Map<String, dynamic> map) {
-    return BMTopicModel(
-      topicId: map['topicId'] as String,
+ /// build model from Map mapping (compatibleold)
+ factory BMTopicModel.fromMap(Map<String, dynamic> map) {
+ return BMTopicModel(
+ topicId: map['topicId'] as String,
       title: map['title'] as String? ?? '',
       category: map['category'] as String? ?? '',
       heatCount: map['heatCount'] as int? ?? 0,
-      prediction: map['prediction'] as String? ?? 'AI预测',
+      prediction: map['prediction'] as String? ?? 'AIprediction',
       aiInsight: map['aiInsight'] as String? ?? '',
       tagColor: map['tagColor'] as int? ?? 0xFFDC2626,
       tagText: map['tagText'] as String? ?? '',

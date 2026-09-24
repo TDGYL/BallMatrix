@@ -3,94 +3,94 @@ import 'package:flutter/material.dart';
 import '../../models/bm_match_model.dart';
 import '../../theme/bm_colors.dart';
 
-/// BMMatchSpotlightCard - 焦点赛事卡片
-/// 功能: 展示焦点比赛信息, 包括队伍、比分、AI胜率、实时压制力
-/// 作用范围: 首页第一段
-/// 修改点1: 在卡片头部右侧添加 "View All" 按钮, 可跳转比赛列表页
+/// BMMatchSpotlightCard - focus competitioncard
+/// feature: showpointmatchinfo, team、score、AIWrate、actualwhenmakepower
+/// purposescope: homeNo. onesection
+/// modifypoint1: cardheaderright sideadd "View All" button, cannavigatematchlistpage
 class BMMatchSpotlightCard extends StatelessWidget {
-  /// 焦点比赛数据 (BMMatchModel 类型)
-  final BMMatchModel match;
+ /// pointmatchdata (BMMatchModel type)
+ final BMMatchModel match;
 
-  /// 卡片点击回调 (VoidCallback 类型, 可空)
-  final VoidCallback? onTap;
+ /// cardtap callback (VoidCallback type, can be empty)
+ final VoidCallback? onTap;
 
-  const BMMatchSpotlightCard({
-    super.key,
-    required this.match,
-    this.onTap,
-  });
+ const BMMatchSpotlightCard({
+ super.key,
+ required this.match,
+ this.onTap,
+ });
 
-  @override
-  Widget build(BuildContext context) {
-    // ⭐️ 点击范围优化: GestureDetector 包裹整个卡片(含四周padding+头部+比分区)
-    // behavior=opaque 让空白区域也响应点击, 原来只包 _buildTeamsAndScore 一行导致四周无响应
-    return GestureDetector(
-      onTap: onTap,
-      behavior: HitTestBehavior.opaque,
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: const Color(0x0D10B981),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: BMColors.pitch600.withValues(alpha: 0.4)),
-          boxShadow: [
-            BoxShadow(
-              color: BMColors.accent.withValues(alpha: 0.15),
-              blurRadius: 15,
-            ),
-          ],
-        ),
-        child: Stack(
-          children: [
-            _buildGlowEffect(),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildHeader(),
-                const SizedBox(height: 12),
-                _buildTeamsAndScore(),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+ @override
+ Widget build(BuildContext context) {
+ // ⭐️ tapscopeoptimize: GestureDetector wrapwholeitemscard(includesfourweekpadding+header+scorezone)
+ // behavior=opaque letemptywhitezonealsoresponsetap, originalonly _buildTeamsAndScore onelinefourweeknoneresponse
+ return GestureDetector(
+ onTap: onTap,
+ behavior: HitTestBehavior.opaque,
+ child: Container(
+ padding: const EdgeInsets.all(16),
+ decoration: BoxDecoration(
+ color: const Color(0x0D10B981),
+ borderRadius: BorderRadius.circular(16),
+ border: Border.all(color: BMColors.pitch600.withValues(alpha: 0.4)),
+ boxShadow: [
+ BoxShadow(
+ color: BMColors.accent.withValues(alpha: 0.15),
+ blurRadius: 15,
+),
+ ],
+),
+ child: Stack(
+ children: [
+ _buildGlowEffect(),
+ Column(
+ crossAxisAlignment: CrossAxisAlignment.start,
+ children: [
+ _buildHeader(),
+ const SizedBox(height: 12),
+ _buildTeamsAndScore(),
+ ],
+),
+ ],
+),
+),
+);
+ }
 
-  /// 构建背景光晕效果
-  Widget _buildGlowEffect() {
-    return Positioned(
-      right: -30,
-      bottom: -30,
-      child: Container(
-        width: 120,
-        height: 120,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: BMColors.accent.withValues(alpha: 0.1),
-        ),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-          child: const SizedBox(),
-        ),
-      ),
-    );
-  }
+ /// buildbackgroundeffect
+ Widget _buildGlowEffect() {
+ return Positioned(
+ right: -30,
+ bottom: -30,
+ child: Container(
+ width: 120,
+ height: 120,
+ decoration: BoxDecoration(
+ shape: BoxShape.circle,
+ color: BMColors.accent.withValues(alpha: 0.1),
+),
+ child: BackdropFilter(
+ filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+ child: const SizedBox(),
+),
+),
+);
+ }
 
-  /// 构建卡片头部 (按statusId+运动类型判断状态)
-  Widget _buildHeader() {
-    final statusInfo = _resolveStatusDisplay();
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Expanded(
-          child: Row(
-            children: [
-              _buildLiveDot(showLive: statusInfo.isLive),
-              const SizedBox(width: 6),
-              Flexible(
-                child: Text(
-                  '${match.leagueName} · ${match.round}',
+ /// buildcardheader (bystatusId+sport typecheckstate)
+ Widget _buildHeader() {
+ final statusInfo = _resolveStatusDisplay();
+ return Row(
+ mainAxisAlignment: MainAxisAlignment.spaceBetween,
+ children: [
+ Expanded(
+ child: Row(
+ children: [
+ _buildLiveDot(showLive: statusInfo.isLive),
+ const SizedBox(width: 6),
+ Flexible(
+ child: Text(
+ '${match.leagueName} · ${match.round}',
                   style: const TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w500,
@@ -113,77 +113,77 @@ class BMMatchSpotlightCard extends StatelessWidget {
               ),
               child: Text(
                 '${statusInfo.label} ${statusInfo.timeSuffix}',
-                style: TextStyle(fontSize: 11, color: statusInfo.textColor),
-              ),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
+ style: TextStyle(fontSize: 11, color: statusInfo.textColor),
+),
+),
+ ],
+),
+ ],
+);
+ }
 
-  /// 状态展示配置
-  _StatusDisplay _resolveStatusDisplay() {
-    final hasStatusId = match.statusId != null;
-    final sid = match.statusId ?? 0;
-    final sport = match.sportType;
-    BMMatchStatus resolvedStatus;
-    String label;
-    String timeSuffix;
-    Color bgColor;
-    Color textColor;
-    Color borderColor;
+ /// stateshowplace
+ _StatusDisplay _resolveStatusDisplay() {
+ final hasStatusId = match.statusId != null;
+ final sid = match.statusId ?? 0;
+ final sport = match.sportType;
+ BMMatchStatus resolvedStatus;
+ String label;
+ String timeSuffix;
+ Color bgColor;
+ Color textColor;
+ Color borderColor;
 
-    if (hasStatusId) {
-      if (sport == BMMatchSportType.football) {
-        switch (sid) {
-          case 1:
-            resolvedStatus = BMMatchStatus.upcoming;
-            break;
-          case 2:
-          case 3:
-          case 4:
-          case 5:
-          case 7:
-            resolvedStatus = BMMatchStatus.live;
-            break;
-          case 8:
-            resolvedStatus = BMMatchStatus.ended;
-            break;
-          default:
-            resolvedStatus = BMMatchStatus.tbd;
-        }
-      } else {
-        switch (sid) {
-          case 1:
-          case 13:
-            resolvedStatus = BMMatchStatus.upcoming;
-            break;
-          case 2:
-          case 3:
-          case 4:
-          case 5:
-          case 6:
-          case 7:
-          case 8:
-          case 9:
-            resolvedStatus = BMMatchStatus.live;
-            break;
-          case 10:
-          case 11:
-            resolvedStatus = BMMatchStatus.ended;
-            break;
-          default:
-            resolvedStatus = BMMatchStatus.tbd;
-        }
-      }
-    } else {
-      resolvedStatus = match.status;
-    }
+ if (hasStatusId) {
+ if (sport == BMMatchSportType.football) {
+ switch (sid) {
+ case 1:
+ resolvedStatus = BMMatchStatus.upcoming;
+ break;
+ case 2:
+ case 3:
+ case 4:
+ case 5:
+ case 7:
+ resolvedStatus = BMMatchStatus.live;
+ break;
+ case 8:
+ resolvedStatus = BMMatchStatus.ended;
+ break;
+ default:
+ resolvedStatus = BMMatchStatus.tbd;
+ }
+ } else {
+ switch (sid) {
+ case 1:
+ case 13:
+ resolvedStatus = BMMatchStatus.upcoming;
+ break;
+ case 2:
+ case 3:
+ case 4:
+ case 5:
+ case 6:
+ case 7:
+ case 8:
+ case 9:
+ resolvedStatus = BMMatchStatus.live;
+ break;
+ case 10:
+ case 11:
+ resolvedStatus = BMMatchStatus.ended;
+ break;
+ default:
+ resolvedStatus = BMMatchStatus.tbd;
+ }
+ }
+ } else {
+ resolvedStatus = match.status;
+ }
 
-    switch (resolvedStatus) {
-      case BMMatchStatus.live:
-        label = match.statusName != null && match.statusName!.isNotEmpty ? match.statusName! : '进行中';
+ switch (resolvedStatus) {
+ case BMMatchStatus.live:
+ label = match.statusName != null && match.statusName!.isNotEmpty ? match.statusName!: 'in progress';
         timeSuffix = (match.liveMinute != null && match.liveMinute!.isNotEmpty)
             ? match.liveMinute!
             : match.matchTime;
@@ -192,14 +192,14 @@ class BMMatchSpotlightCard extends StatelessWidget {
         borderColor = BMColors.accent.withValues(alpha: 0.35);
         break;
       case BMMatchStatus.upcoming:
-        label = match.statusName != null && match.statusName!.isNotEmpty ? match.statusName! : '未开始';
+        label = match.statusName != null && match.statusName!.isNotEmpty ? match.statusName! : 'NS';
         timeSuffix = match.matchTime;
         bgColor = BMColors.cyan.withValues(alpha: 0.12);
         textColor = BMColors.cyan;
         borderColor = BMColors.cyan.withValues(alpha: 0.35);
         break;
       case BMMatchStatus.ended:
-        label = match.statusName != null && match.statusName!.isNotEmpty ? match.statusName! : '已结束';
+        label = match.statusName != null && match.statusName!.isNotEmpty ? match.statusName! : 'FT';
         timeSuffix = match.matchTime;
         bgColor = BMColors.pitch700.withValues(alpha: 0.8);
         textColor = BMColors.textSecondary;
@@ -207,106 +207,106 @@ class BMMatchSpotlightCard extends StatelessWidget {
         break;
       case BMMatchStatus.tbd:
         label = 'TBD';
-        timeSuffix = match.matchTime;
-        bgColor = BMColors.purple.withValues(alpha: 0.12);
-        textColor = BMColors.purple;
-        borderColor = BMColors.purple.withValues(alpha: 0.35);
-        break;
-    }
+ timeSuffix = match.matchTime;
+ bgColor = BMColors.purple.withValues(alpha: 0.12);
+ textColor = BMColors.purple;
+ borderColor = BMColors.purple.withValues(alpha: 0.35);
+ break;
+ }
 
-    return _StatusDisplay(
-      label: label,
-      timeSuffix: timeSuffix,
-      isLive: resolvedStatus == BMMatchStatus.live,
-      bgColor: bgColor,
-      textColor: textColor,
-      borderColor: borderColor,
-    );
-  }
+ return _StatusDisplay(
+ label: label,
+ timeSuffix: timeSuffix,
+ isLive: resolvedStatus == BMMatchStatus.live,
+ bgColor: bgColor,
+ textColor: textColor,
+ borderColor: borderColor,
+);
+ }
 
-  /// 构建实时心跳点
-  Widget _buildLiveDot({bool showLive = true}) {
-    return Container(
-      width: 8,
-      height: 8,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: showLive ? BMColors.bright : BMColors.textTertiary,
-        boxShadow: [
-          BoxShadow(color: BMColors.bright.withValues(alpha: 0.5), blurRadius: 6),
-        ],
-      ),
-    );
-  }
+ /// buildactualwhenjumppoint
+ Widget _buildLiveDot({bool showLive = true}) {
+ return Container(
+ width: 8,
+ height: 8,
+ decoration: BoxDecoration(
+ shape: BoxShape.circle,
+ color: showLive ? BMColors.bright: BMColors.textTertiary,
+ boxShadow: [
+ BoxShadow(color: BMColors.bright.withValues(alpha: 0.5), blurRadius: 6),
+ ],
+),
+);
+ }
 
-  /// 构建队伍与比分区域 (点击手势已上移到整卡 build 层, 这里只负责布局)
-  Widget _buildTeamsAndScore() {
-    return Row(
-      children: [
-        Expanded(child: _buildTeamInfo(match.homeTeamName, match.homeTeam?.logoUrl ?? match.homeTeamLogo, true)),
-        _buildScoreCenter(),
-        Expanded(child: _buildTeamInfo(match.awayTeamName, match.awayTeam?.logoUrl ?? match.awayTeamLogo, false)),
-      ],
-    );
-  }
+ /// buildteamandscorezone (tapgesturealreadyuppertowholecard build layer, onlyLlayout)
+ Widget _buildTeamsAndScore() {
+ return Row(
+ children: [
+ Expanded(child: _buildTeamInfo(match.homeTeamName, match.homeTeam?.logoUrl ?? match.homeTeamLogo, true)),
+ _buildScoreCenter(),
+ Expanded(child: _buildTeamInfo(match.awayTeamName, match.awayTeam?.logoUrl ?? match.awayTeamLogo, false)),
+ ],
+);
+ }
 
-  /// 构建单个队伍信息 (展示球队Logo, 删除主客场文案)
-  Widget _buildTeamInfo(String name, String? logoUrl, bool isHome) {
-    return Column(
-      children: [
-        Container(
-          width: 48,
-          height: 48,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            border: Border.all(
-              color: isHome ? BMColors.accent.withValues(alpha: 0.5) : BMColors.pitch700,
-              width: 2,
-            ),
-            color: BMColors.pitch800,
-          ),
-          child: ClipOval(
-            child: logoUrl != null && logoUrl.isNotEmpty
-                ? Image.network(
-                    logoUrl,
-                    width: 48,
-                    height: 48,
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, _, _) => _buildDefaultTeamIcon(isHome),
-                  )
-                : _buildDefaultTeamIcon(isHome),
-          ),
-        ),
-        const SizedBox(height: 6),
-        Text(
-          name,
-          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: BMColors.textPrimary),
-          textAlign: TextAlign.center,
-          maxLines: 2,
-          overflow: TextOverflow.ellipsis,
-        ),
-      ],
-    );
-  }
+ /// buildsingleitemsteaminfo (showteamLogo, removehome/awaycourttext)
+ Widget _buildTeamInfo(String name, String? logoUrl, bool isHome) {
+ return Column(
+ children: [
+ Container(
+ width: 48,
+ height: 48,
+ decoration: BoxDecoration(
+ shape: BoxShape.circle,
+ border: Border.all(
+ color: isHome ? BMColors.accent.withValues(alpha: 0.5): BMColors.pitch700,
+ width: 2,
+),
+ color: BMColors.pitch800,
+),
+ child: ClipOval(
+ child: logoUrl != null && logoUrl.isNotEmpty
+ ? Image.network(
+ logoUrl,
+ width: 48,
+ height: 48,
+ fit: BoxFit.cover,
+ errorBuilder: (_, _, _) => _buildDefaultTeamIcon(isHome),
+)
+: _buildDefaultTeamIcon(isHome),
+),
+),
+ const SizedBox(height: 6),
+ Text(
+ name,
+ style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: BMColors.textPrimary),
+ textAlign: TextAlign.center,
+ maxLines: 2,
+ overflow: TextOverflow.ellipsis,
+),
+ ],
+);
+ }
 
-  /// 构建默认球队图标 (Logo加载失败或无链接)
-  Widget _buildDefaultTeamIcon(bool isHome) {
-    return Icon(
-      isHome ? Icons.sports_soccer : Icons.shield,
-      size: 22,
-      color: isHome ? BMColors.bright : BMColors.textSecondary,
-    );
-  }
+ /// builddefaultteamicon (LogoLoad Failedornone)
+ Widget _buildDefaultTeamIcon(bool isHome) {
+ return Icon(
+ isHome ? Icons.sports_soccer: Icons.shield,
+ size: 22,
+ color: isHome ? BMColors.bright: BMColors.textSecondary,
+);
+ }
 
-  /// 构建比分中心 (删除AI胜率推算)
-  Widget _buildScoreCenter() {
-    return Column(
-      children: [
-        RichText(
-          text: TextSpan(
-            children: [
-              TextSpan(
-                text: '${match.homeScore ?? 0}',
+ /// buildscorein (removeAIWratecalc)
+ Widget _buildScoreCenter() {
+ return Column(
+ children: [
+ RichText(
+ text: TextSpan(
+ children: [
+ TextSpan(
+ text: '${match.homeScore ?? 0}',
                 style: const TextStyle(
                   fontSize: 28,
                   fontWeight: FontWeight.w900,
@@ -330,43 +330,43 @@ class BMMatchSpotlightCard extends StatelessWidget {
                   fontWeight: FontWeight.w900,
                   color: BMColors.bright,
                   fontFamily: 'monospace',
-                  letterSpacing: 2,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
+ letterSpacing: 2,
+),
+),
+ ],
+),
+),
+ ],
+);
+ }
 }
 
-/// _StatusDisplay - 状态展示辅助配置 (私用)
+/// _StatusDisplay - stateshowauxiliaryplace (usage)
 class _StatusDisplay {
-  /// 状态中文标签 (String 类型)
-  final String label;
+ /// stateintexttag (String type)
+ final String label;
 
-  /// 时间后缀 (String 类型, 进行中=liveMinute, 其他=matchTime)
-  final String timeSuffix;
+ /// timelater (String type, in progress=liveMinute, others=matchTime)
+ final String timeSuffix;
 
-  /// 是否进行中 (bool 类型, 控制心跳点)
-  final bool isLive;
+ /// whetherin progress (bool type, makejumppoint)
+ final bool isLive;
 
-  /// 胶囊背景色 (Color 类型)
-  final Color bgColor;
+ /// pillbackground color (Color type)
+ final Color bgColor;
 
-  /// 文字颜色 (Color 类型)
-  final Color textColor;
+ /// text color (Color type)
+ final Color textColor;
 
-  /// 边框颜色 (Color 类型)
-  final Color borderColor;
+ /// bordercolor (Color type)
+ final Color borderColor;
 
-  _StatusDisplay({
-    required this.label,
-    required this.timeSuffix,
-    required this.isLive,
-    required this.bgColor,
-    required this.textColor,
-    required this.borderColor,
-  });
+ _StatusDisplay({
+ required this.label,
+ required this.timeSuffix,
+ required this.isLive,
+ required this.bgColor,
+ required this.textColor,
+ required this.borderColor,
+ });
 }

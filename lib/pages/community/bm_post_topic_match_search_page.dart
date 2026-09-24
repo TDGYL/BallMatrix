@@ -5,13 +5,13 @@ import '../../services/bm_community_api_service.dart';
 import '../../theme/bm_colors.dart';
 import '../bm_base_page.dart';
 
-/// BMPostTopicMatchSearchPage - 发布话题的关联比赛搜索页
-/// 功能与接口对齐 hanklive HankPostMatchSearchPage:
-///   - 关键词搜索: GET /api/livespeed/index/search (text=关键词, 取 matches 分组)
-///   - 热门比赛:   GET /api/livespeed/index/search/match/hot
-///   - 点击任意比赛卡片 pop 回发布页并携带 BMSearchMatch
-/// 界面差异化: 深色球场绿主题 (pitch950 底 + 亮绿描边卡片 + 左右队名内侧布局),
-///   参照页为浅紫白底卡片 + 居中 VS 渐变胶囊, 视觉完全区分
+/// BMPostTopicMatchSearchPage - post topic of related matchsearchpage
+/// featurealigned with API hanklive HankPostMatchSearchPage:
+/// - keysearch: GET /api/livespeed/index/search (text=key, take matches group)
+/// - hot matches: GET /api/livespeed/index/search/match/hot
+/// - tapanymatch card pop backpost pageand BMSearchMatch
+/// UI differentiation: darkpitch green theme (pitch950 bottom + bright greenstrokecard + leftrightteam nameinnersidelayout),
+/// referencepageaswhitebottomcard + center VS changepill, visually distinct
 class BMPostTopicMatchSearchPage extends BMBasePage {
   const BMPostTopicMatchSearchPage({super.key});
 
@@ -22,34 +22,34 @@ class BMPostTopicMatchSearchPage extends BMBasePage {
 
 class _BMPostTopicMatchSearchPageState
     extends BMBasePageState<BMPostTopicMatchSearchPage> {
-  /// 社区 API 服务 (BMCommunityApiService 类型, 搜索/热门接口)
+  /// community API service (BMCommunityApiService type, search/API)
   final BMCommunityApiService _apiService = BMCommunityApiService();
 
-  /// 搜索框控制器 (TextEditingController 类型)
+  /// search fieldcontroller (TextEditingController type)
   final TextEditingController _searchController = TextEditingController();
 
-  /// 当前搜索关键词 (String 类型, 非空时展示搜索结果区)
+  /// currentsearch keyword (String type, non-nullwhenshowsearch resultszone)
   String _keyword = '';
 
-  /// 搜索结果 - 足球列表 (List<BMSearchMatch> 类型, category=1)
+  /// search results - football list (List<BMSearchMatch> type, category=1)
   List<BMSearchMatch> _footballSearch = [];
 
-  /// 搜索结果 - 篮球列表 (List<BMSearchMatch> 类型, category=2)
+  /// search results - basketball list (List<BMSearchMatch> type, category=2)
   List<BMSearchMatch> _basketballSearch = [];
 
-  /// 热门比赛 - 足球列表 (List<BMSearchMatch> 类型, category=1)
+  /// hot matches - football list (List<BMSearchMatch> type, category=1)
   List<BMSearchMatch> _footballHot = [];
 
-  /// 热门比赛 - 篮球列表 (List<BMSearchMatch> 类型, category=2)
+  /// hot matches - basketball list (List<BMSearchMatch> type, category=2)
   List<BMSearchMatch> _basketballHot = [];
 
-  /// 当前选中的运动 Tab (int 类型, 1=足球 2=篮球)
+  /// currentselected of sport Tab (int type, 1=football 2=basketball)
   int _currentCategory = 1;
 
-  /// 搜索加载中 (bool 类型)
+  /// searchloadingin (bool type)
   bool _searchLoading = false;
 
-  /// 热门加载中 (bool 类型)
+  /// loadingin (bool type)
   bool _hotLoading = true;
 
   @override
@@ -64,8 +64,8 @@ class _BMPostTopicMatchSearchPageState
     super.dispose();
   }
 
-  /// 请求热门比赛 (GET /api/livespeed/index/search/match/hot)
-  /// 按 category 分流: 足球(1)添加数组一, 篮球(2)添加数组二
+  /// requesthot matches (GET /api/livespeed/index/search/match/hot)
+  /// by category split by: football (1) add to array 1, basketball (2) add to array 2
   Future<void> _fetchHotMatches() async {
     final result = await _apiService.fetchHotMatches();
     if (!mounted) return;
@@ -85,9 +85,9 @@ class _BMPostTopicMatchSearchPageState
     });
   }
 
-  /// 关键词搜索比赛 (GET /api/livespeed/index/search)
-  /// 过滤 data.matches 数组球类型分流: 足球(1)添加数组一, 篮球(2)添加数组二
-  /// [text] - 搜索关键词 (String 类型, 球队名)
+  /// keysearch match (GET /api/livespeed/index/search)
+  /// filter data.matches arraysport typesplit by: football (1) add to array 1, basketball (2) add to array 2
+  /// [text] - search keyword (String type, team name)
   Future<void> _doSearch(String text) async {
     final kw = text.trim();
     if (kw.isEmpty) {
@@ -120,8 +120,8 @@ class _BMPostTopicMatchSearchPageState
     });
   }
 
-  /// 切换运动 Tab
-  /// [category] - 目标类型 (int 类型, 1=足球 2=篮球)
+  /// switchsport Tab
+  /// [category] - goaltype (int type, 1=football 2=basketball)
   void _switchCategory(int category) {
     if (_currentCategory == category) return;
     setState(() {
@@ -129,7 +129,7 @@ class _BMPostTopicMatchSearchPageState
     });
   }
 
-  /// 当前 Tab 对应的数据列表 (有关键词取搜索结果, 否则取热门)
+  /// current Tab corresponding of datalist (haskeytakesearch results, otherwise thentake)
   List<BMSearchMatch> get _currentList {
     final searching = _keyword.isNotEmpty;
     if (_currentCategory == 2) {
@@ -153,7 +153,7 @@ class _BMPostTopicMatchSearchPageState
     );
   }
 
-  /// 顶部导航 (返回 + 标题)
+  /// topnavigation (returns + title)
   Widget _buildNavBar() {
     return Container(
       padding: const EdgeInsets.fromLTRB(4, 8, 4, 8),
@@ -177,7 +177,7 @@ class _BMPostTopicMatchSearchPageState
           ),
           const Expanded(
             child: Text(
-              '选择比赛',
+              'select match',
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 16,
@@ -192,7 +192,7 @@ class _BMPostTopicMatchSearchPageState
     );
   }
 
-  /// 搜索输入框 (深色圆角 + 亮绿搜索图标)
+  /// search input field (darkrounded corner + bright greensearchicon)
   Widget _buildSearchField() {
     return Container(
       margin: const EdgeInsets.fromLTRB(14, 10, 14, 4),
@@ -210,10 +210,7 @@ class _BMPostTopicMatchSearchPageState
           Expanded(
             child: TextField(
               controller: _searchController,
-              style: const TextStyle(
-                fontSize: 13,
-                color: BMColors.textPrimary,
-              ),
+              style: const TextStyle(fontSize: 13, color: BMColors.textPrimary),
               textInputAction: TextInputAction.search,
               onSubmitted: _doSearch,
               onChanged: (v) {
@@ -221,7 +218,7 @@ class _BMPostTopicMatchSearchPageState
               },
               decoration: const InputDecoration(
                 isCollapsed: true,
-                hintText: '搜索球队名称',
+                hintText: 'search team namename',
                 hintStyle: TextStyle(
                   color: BMColors.textTertiary,
                   fontSize: 13,
@@ -235,23 +232,23 @@ class _BMPostTopicMatchSearchPageState
     );
   }
 
-  /// 运动 Tab 菜单 (足球/篮球, Row+Expanded 均分宽度)
+  /// sport Tab menu (football/basketball, Row+Expanded equally dividedwidth)
   Widget _buildCategoryTabs() {
     return Container(
       margin: const EdgeInsets.fromLTRB(14, 10, 14, 0),
       child: Row(
         children: [
-          Expanded(child: _buildCategoryTab('足球', 1)),
+          Expanded(child: _buildCategoryTab('football', 1)),
           const SizedBox(width: 10),
-          Expanded(child: _buildCategoryTab('篮球', 2)),
+          Expanded(child: _buildCategoryTab('basketball', 2)),
         ],
       ),
     );
   }
 
-  /// 单个运动 Tab (选中亮绿描边, 未选中灰描边)
-  /// [label] - Tab 文案 (String 类型)
-  /// [category] - Tab 类型 (int 类型, 1=足球 2=篮球)
+  /// singleitemssport Tab (selectedbright greenstroke, unselectedinstroke)
+  /// [label] - Tab text (String type)
+  /// [category] - Tab type (int type, 1=football 2=basketball)
   Widget _buildCategoryTab(String label, int category) {
     final bool selected = _currentCategory == category;
     return GestureDetector(
@@ -282,7 +279,7 @@ class _BMPostTopicMatchSearchPageState
     );
   }
 
-  /// 主体内容 (按当前 Tab 展示对应分流列表, 有关键词=搜索结果 / 无关键词=热门比赛)
+  /// main content (bycurrent Tab showcorrespondingsplit bylist, haskey=search results / nonekey=hot matches)
   Widget _buildBody() {
     final list = _currentList;
     final searching = _keyword.isNotEmpty;
@@ -290,21 +287,21 @@ class _BMPostTopicMatchSearchPageState
       key: ValueKey('body-$_currentCategory-$searching-$_keyword'),
       padding: const EdgeInsets.fromLTRB(14, 10, 14, 20),
       children: [
-        _buildSectionTitle(searching ? '搜索结果' : '热门比赛'),
+        _buildSectionTitle(searching ? 'search results' : 'hot matches'),
         if (searching && _searchLoading)
           _buildLoading()
         else if (!searching && _hotLoading)
           _buildLoading()
         else if (list.isEmpty)
-          _buildEmpty(searching ? '未找到相关比赛' : '暂无热门比赛')
+          _buildEmpty(searching ? 'not yettorelatedmatch' : 'no hot matches')
         else
           ...list.map(_buildMatchItem),
       ],
     );
   }
 
-  /// 分区标题 (左侧亮绿竖条 + 文案)
-  /// [title] - 分区标题文案 (String 类型)
+  /// zone title (left sidebright greenvertical items + text)
+  /// [title] - zone titletext (String type)
   Widget _buildSectionTitle(String title) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
@@ -332,7 +329,7 @@ class _BMPostTopicMatchSearchPageState
     );
   }
 
-  /// 加载中占位
+  /// loadingplaceholder
   Widget _buildLoading() {
     return const Padding(
       padding: EdgeInsets.symmetric(vertical: 40),
@@ -349,8 +346,8 @@ class _BMPostTopicMatchSearchPageState
     );
   }
 
-  /// 空态占位
-  /// [text] - 空态文案 (String 类型)
+  /// emptystateplaceholder
+  /// [text] - emptystatetext (String type)
   Widget _buildEmpty(String text) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 40),
@@ -363,20 +360,20 @@ class _BMPostTopicMatchSearchPageState
     );
   }
 
-  /// 单场比赛条目 (深色卡片: 联赛名顶部 + 左右队名/队标 + 中间比分)
-  /// 差异化: 参照页为白底居中布局, 本页为深色 + 比分居中替代 VS 胶囊
-  /// [m] - 搜索结果比赛 (BMSearchMatch 类型)
-  /// 格式化比赛时间为 yyyy/MM/dd
-  /// [matchTime] - 秒级时间戳 (int? 类型)
-  /// 返回: 格式化日期串, 无时间返回空串 (不渲染)
+  /// singlecourtmatchitemsitem (darkcard: league nametop + leftrightteam name/team logo + middlescore)
+  /// differentiation: referencepageaswhitebottomcenterlayout, this pageasdark + scorecenter VS pill
+  /// [m] - search resultsmatch (BMSearchMatch type)
+  /// formatmatch timeas yyyy/MM/dd
+  /// [matchTime] - secondlevel timestamp (int? type)
+  /// returns: formatdatestring, nonetimereturnsemptystring (notrender)
   String _formatMatchDate(int? matchTime) {
     if (matchTime == null || matchTime <= 0) return '';
     final dt = DateTime.fromMillisecondsSinceEpoch(matchTime * 1000);
     return '${dt.year}/${dt.month.toString().padLeft(2, '0')}/${dt.day.toString().padLeft(2, '0')}';
   }
 
-  /// 构建单个比赛卡片 (左上角时间 + 右侧联赛 + 主客队比分行)
-  /// [m] - 搜索比赛模型 (BMSearchMatch 类型)
+  /// buildsingleitemsmatch card (top-left cornertime + right league + home/away teamscoreline)
+  /// [m] - search matchmodel (BMSearchMatch type)
   Widget _buildMatchItem(BMSearchMatch m) {
     return GestureDetector(
       onTap: () => Navigator.pop(context, m),
@@ -387,14 +384,12 @@ class _BMPostTopicMatchSearchPageState
         decoration: BoxDecoration(
           color: BMColors.pitch900.withValues(alpha: 0.85),
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(
-            color: BMColors.pitch800.withValues(alpha: 0.8),
-          ),
+          border: Border.all(color: BMColors.pitch800.withValues(alpha: 0.8)),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // 顶部行: 左上角比赛时间 + 右侧联赛名 (垂直居中, 时间与主队头像左对齐)
+            // topline: top-left cornermatch time + right league name (vertically centered, timeandhome teamavatarleft aligned)
             if (_formatMatchDate(m.matchTime).isNotEmpty ||
                 (m.competitionName ?? '').isNotEmpty)
               Padding(
@@ -402,7 +397,7 @@ class _BMPostTopicMatchSearchPageState
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    // 左上角比赛时间 (yyyy/MM/dd)
+                    // top-left cornermatch time (yyyy/MM/dd)
                     Text(
                       _formatMatchDate(m.matchTime),
                       style: const TextStyle(
@@ -411,7 +406,7 @@ class _BMPostTopicMatchSearchPageState
                         color: BMColors.textTertiary,
                       ),
                     ),
-                    // 右侧联赛名
+                    // right league name
                     if ((m.competitionName ?? '').isNotEmpty) ...[
                       const SizedBox(width: 8),
                       Expanded(
@@ -430,7 +425,7 @@ class _BMPostTopicMatchSearchPageState
                   ],
                 ),
               ),
-            // 主队 + 比分 + 客队
+            // home team + score + away team
             Row(
               children: [
                 Expanded(
@@ -495,9 +490,9 @@ class _BMPostTopicMatchSearchPageState
     );
   }
 
-  /// 队标 (圆形深色底 + 网络 Logo + 失败兜底盾牌图标)
-  /// [url] - Logo URL (String? 类型)
-  /// [size] - 尺寸 (double 类型)
+  /// team logo (dark circle background + network Logo + failurefallbackshield icon)
+  /// [url] - Logo URL (String? type)
+  /// [size] - size (double type)
   Widget _buildTeamLogo(String? url, double size) {
     return Container(
       width: size,
@@ -518,13 +513,9 @@ class _BMPostTopicMatchSearchPageState
     );
   }
 
-  /// 队标兜底图标 (盾牌)
-  /// [size] - 尺寸 (double 类型)
+  /// team logofallbackicon (shield)
+  /// [size] - size (double type)
   Widget _fallbackIcon(double size) {
-    return Icon(
-      Icons.shield,
-      size: size * 0.55,
-      color: BMColors.textTertiary,
-    );
+    return Icon(Icons.shield, size: size * 0.55, color: BMColors.textTertiary);
   }
 }

@@ -6,48 +6,48 @@ import '../models/bm_match_model.dart';
 import '../models/bm_search_match_model.dart';
 import '../models/bm_comment_model.dart';
 
-/// BMCommunityTab - 社区列表Tab类型枚举
-/// 映射到API type参数: 推荐=1, 最新=2, 关注=3
+/// BMCommunityTab - communitylistTabtypeenum
+/// mappingtoAPI typeargument: recommended=1, latest=2, follow=3
 enum BMCommunityTab {
-  /// 推荐 type=1
-  recommend(1),
+ /// recommended type=1
+ recommend(1),
 
-  /// 最新 type=2
-  recent(2),
+ /// latest type=2
+ recent(2),
 
-  /// 关注 type=3
-  follow(3);
+ /// follow type=3
+ follow(3);
 
-  /// API映射的type值 (int 类型)
-  final int value;
-  const BMCommunityTab(this.value);
+ /// APImapping of typevalue (int type)
+ final int value;
+ const BMCommunityTab(this.value);
 }
 
-/// BMCommunityApiService - 社区话题列表API服务
-/// 作用范围: 首页热门话题列表
+/// BMCommunityApiService - communitytopiclistAPIservice
+/// purposescope: homehot topic list
 class BMCommunityApiService {
-  /// 单例实例 (BMCommunityApiService 类型)
-  static final BMCommunityApiService _instance = BMCommunityApiService._internal();
+ /// singletoninstance (BMCommunityApiService type)
+ static final BMCommunityApiService _instance = BMCommunityApiService._internal();
 
-  /// 工厂构造函数, 返回单例
-  factory BMCommunityApiService() {
-    return _instance;
-  }
+ /// factory constructor, returnssingleton
+ factory BMCommunityApiService() {
+ return _instance;
+ }
 
-  /// 私有构造函数
-  BMCommunityApiService._internal();
+ /// privateconstructor
+ BMCommunityApiService._internal();
 
-  /// API路径
-  static const String _apiPath = '/api/livespeed/community/list';
+ /// APIpath
+ static const String _apiPath = '/api/livespeed/community/list';
 
-  /// 请求社区话题列表 (GET)
-  /// [type] - 类型 (String 类型: 1推荐 2最新 3关注, 默认'2')
-  /// [page] - 页码 (String 类型, 从'1'开始)
-  /// [size] - 每页数量 (String 类型)
-  /// [matchType] - 比赛类型, 1=足球, 2=篮球, 可空, 为null时不在请求中携带该参数
-  /// 返回: BMPostData?
-  Future<BMPostData?> fetchPostList({
-    String type = '2',
+ /// requestcommunitytopiclist (GET)
+ /// [type] - type (String type: 1recommended 2latest 3follow, default'2')
+ /// [page] - page number (String type, from'1'start)
+ /// [size] - per pagecount (String type)
+ /// [matchType] - matchtype, 1=football, 2=basketball, can be empty, asnullwhennotrequestintheargument
+ /// returns: BMPostData?
+ Future<BMPostData?> fetchPostList({
+ String type = '2',
     String page = '1',
     String size = '10',
     int? matchType,
@@ -72,28 +72,28 @@ class BMCommunityApiService {
         final code = raw['code'];
         if (code == 0 || code == '0' || code == 200 || response.isSuccess) {
           final innerData = raw['data'];
-          if (innerData is Map<String, dynamic>) {
-            return BMPostData.fromJson(innerData);
-          }
-          return BMPostData.fromJson(raw);
-        }
-      }
-    }
+ if (innerData is Map<String, dynamic>) {
+ return BMPostData.fromJson(innerData);
+ }
+ return BMPostData.fromJson(raw);
+ }
+ }
+ }
 
-    return null;
-  }
+ return null;
+ }
 
-  /// 请求话题并转换为UI模型 (首页热门话题用)
-  /// [count] - 请求条数, 默认3
-  /// [matchType] - 比赛类型, 1=足球, 2=篮球, 可空, 为null时不在请求中携带该参数
-  /// 返回: List<BMTopicModel>
-  Future<List<BMTopicModel>> fetchTopicModels({
-    int count = 3,
-    int? matchType,
-  }) async {
-    final data = await fetchPostList(
-      type: BMCommunityTab.recent.value.toString(),
-      page: '1',
+ /// requesttopicandconvertasUImodel (homehot topicusage)
+ /// [count] - requestcount, default3
+ /// [matchType] - matchtype, 1=football, 2=basketball, can be empty, asnullwhennotrequestintheargument
+ /// returns: List<BMTopicModel>
+ Future<List<BMTopicModel>> fetchTopicModels({
+ int count = 3,
+ int? matchType,
+ }) async {
+ final data = await fetchPostList(
+ type: BMCommunityTab.recent.value.toString(),
+ page: '1',
       size: count.toString(),
       matchType: matchType,
     );
@@ -101,7 +101,7 @@ class BMCommunityApiService {
     return data.results.map((item) => _convertToTopicModel(item)).toList();
   }
 
-  /// API模型 -> UI模型 转换
+  /// APImodel -> UImodel convert
   BMTopicModel _convertToTopicModel(BMPostItem item) {
     final hashtags = _parseHashtags(item.image);
     final content = item.content ?? '';
@@ -147,157 +147,157 @@ class BMCommunityApiService {
 
     return BMTopicModel(
       topicId: item.id?.toString() ?? '',
-      categoryTag: hashtags.isNotEmpty ? hashtags.first : '热门话题',
+      categoryTag: hashtags.isNotEmpty ? hashtags.first : 'hot topic',
       categoryBgColor: 0xFFDC2626,
       categoryTextColor: 0xFFFFFFFF,
-      prediction: hashtags.isNotEmpty ? hashtags.first : 'AI预测',
+      prediction: hashtags.isNotEmpty ? hashtags.first : 'AIprediction',
       predictionColor: 0xFFF97316,
-      aiInsight: content.isNotEmpty ? content : '深度数据分析与洞察，提供独家视角。',
-      predictionResult: _buildPredictionResult(item),
-      confidence: 85,
-      embeddedMatch: embeddedMatch,
-      hashtags: hashtags,
-      likeCount: item.likeCount ?? 0,
-      commentCount: item.commentCount ?? 0,
-      isLiked: item.isLike ?? false,
-      authorName: item.author?.name,
-      authorAvatarUrl: item.author?.avatar,
-      publishTimeDesc: _formatPublishTime(item.createTime),
-    );
-  }
+      aiInsight: content.isNotEmpty ? content : 'deepdataanalysisand，exclusiveviewcorner。',
+ predictionResult: _buildPredictionResult(item),
+ confidence: 85,
+ embeddedMatch: embeddedMatch,
+ hashtags: hashtags,
+ likeCount: item.likeCount ?? 0,
+ commentCount: item.commentCount ?? 0,
+ isLiked: item.isLike ?? false,
+ authorName: item.author?.name,
+ authorAvatarUrl: item.author?.avatar,
+ publishTimeDesc: _formatPublishTime(item.createTime),
+);
+ }
 
-  /// 构建预测结果字符串
-  String _buildPredictionResult(BMPostItem item) {
-    if (item.match != null) {
-      final m = item.match!;
-      if (m.homeScore != null && m.awayScore != null) {
-        return '预测比分 ${m.homeScore}:${m.awayScore}';
+ /// buildpredictionresultstring
+ String _buildPredictionResult(BMPostItem item) {
+ if (item.match != null) {
+ final m = item.match!;
+ if (m.homeScore != null && m.awayScore != null) {
+ return 'predicted score ${m.homeScore}:${m.awayScore}';
       }
     }
-    return '主胜概率 58%';
-  }
+    return 'home win probability 58%';
+ }
 
-  /// 格式化发布时间为相对时间描述
-  String _formatPublishTime(int? timestamp) {
-    if (timestamp == null || timestamp == 0) return '';
+ /// formatpublishtimeascorrecttimedescription
+ String _formatPublishTime(int? timestamp) {
+ if (timestamp == null || timestamp == 0) return '';
     final now = DateTime.now();
     final publishDate = DateTime.fromMillisecondsSinceEpoch(timestamp * 1000);
     final diff = now.difference(publishDate);
 
     if (diff.inMinutes < 60) {
-      return '${diff.inMinutes}分钟前';
+      return '${diff.inMinutes}minutefirst';
     } else if (diff.inHours < 24) {
-      return '${diff.inHours}小时前';
+      return '${diff.inHours}hourfirst';
     } else if (diff.inDays < 30) {
-      return '${diff.inDays}天前';
+      return '${diff.inDays}dayfirst';
     } else {
       return '${publishDate.month}-${publishDate.day}';
-    }
-  }
+ }
+ }
 
-  /// 解析话题标签
-  List<String> _parseHashtags(String? rawImage) {
-    if (rawImage == null || rawImage.isEmpty) return [];
-    String raw = rawImage;
-    if (raw.contains('com/')) {
+ /// parsetopictag
+ List<String> _parseHashtags(String? rawImage) {
+ if (rawImage == null || rawImage.isEmpty) return [];
+ String raw = rawImage;
+ if (raw.contains('com/')) {
       raw = raw.substring(raw.indexOf('com/') + 4);
     }
     return raw
         .split(',')
-        .map((t) => t.trim())
-        .where((t) => t.isNotEmpty)
-        .toList();
-  }
+.map((t) => t.trim())
+.where((t) => t.isNotEmpty)
+.toList();
+ }
 
-  /// 格式化比赛时间戳 -> HH:mm
-  String _formatMatchTime(int? timestamp) {
-    if (timestamp == null || timestamp == 0) return '';
+ /// formatmatch timestamp -> HH:mm
+ String _formatMatchTime(int? timestamp) {
+ if (timestamp == null || timestamp == 0) return '';
     final dt = DateTime.fromMillisecondsSinceEpoch(timestamp * 1000);
     final hour = dt.hour.toString().padLeft(2, '0');
     final minute = dt.minute.toString().padLeft(2, '0');
     return '$hour:$minute';
-  }
+ }
 
-  /// 从状态ID映射比赛状态 (按运动类型分规则)
-  /// 足球: 1未开始, 2|3|4|5|7进行中, 8已结束, 0|9|10|11|12|13 TBD
-  /// 篮球: 1|13未开始, 2|3|4|5|6|7|8|9进行中, 10|11已结束, 0|12|14|15 TBD
-  BMMatchStatus _statusFromId(int? statusId, BMMatchSportType sport) {
-    if (sport == BMMatchSportType.football) {
-      switch (statusId) {
-        case 1:
-          return BMMatchStatus.upcoming;
-        case 2:
-        case 3:
-        case 4:
-        case 5:
-        case 7:
-          return BMMatchStatus.live;
-        case 8:
-          return BMMatchStatus.ended;
-        case 0:
-        case 9:
-        case 10:
-        case 11:
-        case 12:
-        case 13:
-          return BMMatchStatus.tbd;
-        default:
-          return BMMatchStatus.tbd;
-      }
-    } else {
-      switch (statusId) {
-        case 1:
-        case 13:
-          return BMMatchStatus.upcoming;
-        case 2:
-        case 3:
-        case 4:
-        case 5:
-        case 6:
-        case 7:
-        case 8:
-        case 9:
-          return BMMatchStatus.live;
-        case 10:
-        case 11:
-          return BMMatchStatus.ended;
-        case 0:
-        case 12:
-        case 14:
-        case 15:
-          return BMMatchStatus.tbd;
-        default:
-          return BMMatchStatus.tbd;
-      }
-    }
-  }
+ /// fromstateIDmappingmatchstate (bysport typeminrule)
+ /// football: 1NS, 2|3|4|5|7in progress, 8FT, 0|9|10|11|12|13 TBD
+ /// basketball: 1|13NS, 2|3|4|5|6|7|8|9in progress, 10|11FT, 0|12|14|15 TBD
+ BMMatchStatus _statusFromId(int? statusId, BMMatchSportType sport) {
+ if (sport == BMMatchSportType.football) {
+ switch (statusId) {
+ case 1:
+ return BMMatchStatus.upcoming;
+ case 2:
+ case 3:
+ case 4:
+ case 5:
+ case 7:
+ return BMMatchStatus.live;
+ case 8:
+ return BMMatchStatus.ended;
+ case 0:
+ case 9:
+ case 10:
+ case 11:
+ case 12:
+ case 13:
+ return BMMatchStatus.tbd;
+ default:
+ return BMMatchStatus.tbd;
+ }
+ } else {
+ switch (statusId) {
+ case 1:
+ case 13:
+ return BMMatchStatus.upcoming;
+ case 2:
+ case 3:
+ case 4:
+ case 5:
+ case 6:
+ case 7:
+ case 8:
+ case 9:
+ return BMMatchStatus.live;
+ case 10:
+ case 11:
+ return BMMatchStatus.ended;
+ case 0:
+ case 12:
+ case 14:
+ case 15:
+ return BMMatchStatus.tbd;
+ default:
+ return BMMatchStatus.tbd;
+ }
+ }
+ }
 
-  /// 提取队名缩写
-  String _extractShort(String? name) {
-    if (name == null || name.isEmpty) return '';
-    if (name.length <= 3) return name.toUpperCase();
-    return name.substring(0, 3).toUpperCase();
-  }
+ /// taketeam nameabbreviation
+ String _extractShort(String? name) {
+ if (name == null || name.isEmpty) return '';
+ if (name.length <= 3) return name.toUpperCase();
+ return name.substring(0, 3).toUpperCase();
+ }
 
-  // ==================== 发布话题相关接口 ====================
+ // ==================== post topicrelatedAPI ====================
 
-  /// 发布话题帖子 (POST /api/livespeed/community/save)
-  /// 功能: 发布话题内容 + 多选话题标签(存 images 字段) + 关联比赛
-  /// [content] - 帖子文本内容 (String 类型, 至少10字)
-  /// [topics] - 选中的话题标签列表 (List<String> 类型, 以逗号拼接存入 images[0])
-  /// [matchId] - 关联比赛ID (int? 类型, null=不关联)
-  /// [matchType] - 关联比赛类型 (int? 类型, 1=足球 2=篮球, null=不携带)
-  /// 返回: (bool 成功, String 提示消息)
-  Future<(bool, String)> saveTopicPost({
-    required String content,
-    List<String> topics = const [],
-    int? matchId,
-    int? matchType,
-  }) async {
-    // 话题标签以逗号拼接存入 images 数组 (对齐 hanklive 字段约定)
-    final List<String> images = [];
-    if (topics.isNotEmpty) {
-      images.add(topics.join(','));
+ /// post topicpost (POST /api/livespeed/community/save)
+ /// feature: post topiccontent + multi-selecttopictag(store images field) + related match
+ /// [content] - posttextcontent (String type, less10text)
+ /// [topics] - selected of topictaglist (List<String> type, withcomma No.concatstoreinput images[0])
+ /// [matchId] - related matchID (int? type, null=notclose)
+ /// [matchType] - related matchtype (int? type, 1=football 2=basketball, null=not)
+ /// returns: (bool success, String toastmessage)
+ Future<(bool, String)> saveTopicPost({
+ required String content,
+ List<String> topics = const [],
+ int? matchId,
+ int? matchType,
+ }) async {
+ // topictagwithcomma No.concatstoreinput images array (alignment hanklive field)
+ final List<String> images = [];
+ if (topics.isNotEmpty) {
+ images.add(topics.join(','));
     }
     final Map<String, dynamic> params = {
       'id': 0,
@@ -313,48 +313,48 @@ class BMCommunityApiService {
       data: params,
     );
     if (response.isSuccess) {
-      return (true, '发布成功');
+      return (true, 'Posted');
     }
-    return (false, response.message ?? '发布失败');
-  }
+    return (false, response.message ?? 'Post Failed');
+ }
 
-  /// 搜索比赛 (GET /api/livespeed/index/search, text=关键词)
-  /// 功能: 发布话题关联比赛时按球队名搜索比赛
-  /// 结构: {code, data:{experts, matches, schemes, users, competitions}, message}
-  ///       网络层已解包 code/message, response.data 即 data 对象
-  /// [text] - 搜索关键词 (String 类型, 球队名)
-  /// 返回: BMSearchResult? 只取 data.matches 分组 (其他分组丢弃, null=请求失败)
-  Future<BMSearchResult?> fetchSearchResults({required String text}) async {
-    final response = await BMNetworkManager().getRequest(
-      '/api/livespeed/index/search',
+ /// search match (GET /api/livespeed/index/search, text=key)
+ /// feature: post topicrelated matchwhenbyteam namesearch match
+ /// structure: {code, data:{experts, matches, schemes, users, competitions}, message}
+ /// networklayeralreadyunwrap code/message, response.data i.e. data object
+ /// [text] - search keyword (String type, team name)
+ /// returns: BMSearchResult? onlytake data.matches group (othersgroupdiscard, null=request failure)
+ Future<BMSearchResult?> fetchSearchResults({required String text}) async {
+ final response = await BMNetworkManager().getRequest(
+ '/api/livespeed/index/search',
       queryParameters: {'text': text},
-    );
-    if (response.isSuccess && response.data != null) {
-      final raw = response.data;
-      Map<String, dynamic>? dataMap;
-      if (raw is Map<String, dynamic>) {
-        // response.data 已经是解包后的 data 对象 (含 matches 分组)
-        // 仅当误传完整外壳 {code, data, matches} 结构时才需要再剥一层
-        dataMap = (raw['data'] is Map<String, dynamic> && raw['matches'] == null)
+);
+ if (response.isSuccess && response.data != null) {
+ final raw = response.data;
+ Map<String, dynamic>? dataMap;
+ if (raw is Map<String, dynamic>) {
+ // response.data alreadyyesunwraplater of data object (includes matches group)
+ // onlywhenpasscompleteouter {code, data, matches} structurewhenneedsagainonelayer
+ dataMap = (raw['data'] is Map<String, dynamic> && raw['matches'] == null)
             ? raw['data'] as Map<String, dynamic>
             : raw;
       }
       if (dataMap != null) {
         final result = BMSearchResult.fromJson(dataMap);
         debugPrint(
-            'BMCommunityApiService 搜索结果 matches=${result.matches.length} 条');
-        return result;
-      }
-    }
-    return null;
-  }
+            'BMCommunityApiService search results matches=${result.matches.length} items');
+ return result;
+ }
+ }
+ return null;
+ }
 
-  /// 获取热门比赛列表 (GET /api/livespeed/index/search/match/hot)
-  /// 功能: 发布话题关联比赛入口的默认候选列表
-  /// 返回: List<BMSearchMatch> (空列表=无数据/失败)
-  Future<List<BMSearchMatch>> fetchHotMatches() async {
-    final response = await BMNetworkManager().getRequest(
-      '/api/livespeed/index/search/match/hot',
+ /// fetch hot matcheslist (GET /api/livespeed/index/search/match/hot)
+ /// feature: post topicrelated match entry of defaultwaitlist
+ /// returns: List<BMSearchMatch> (emptylist=nonedata/failure)
+ Future<List<BMSearchMatch>> fetchHotMatches() async {
+ final response = await BMNetworkManager().getRequest(
+ '/api/livespeed/index/search/match/hot',
     );
     if (response.isSuccess) {
       List<dynamic> rawList = [];
@@ -363,38 +363,38 @@ class BMCommunityApiService {
       } else if (response.data is Map<String, dynamic> &&
           (response.data as Map<String, dynamic>)['data'] is List) {
         rawList = (response.data as Map<String, dynamic>)['data'] as List<dynamic>;
-      }
-      return rawList
-          .whereType<Map<String, dynamic>>()
-          .map(BMSearchMatch.fromJson)
-          .toList();
-    }
-    return [];
-  }
+ }
+ return rawList
+.whereType<Map<String, dynamic>>()
+.map(BMSearchMatch.fromJson)
+.toList();
+ }
+ return [];
+ }
 
-  /// 拉黑帖子 (POST /api/livespeed/community/block_post)
-  /// 功能: 话题卡片更多菜单「拉黑」操作, 成功后调用方本地删除该帖子
-  /// [postId] - 帖子ID (int 类型, 对应话题列表项 id)
-  /// [type] - 拉黑类型 (int 类型, 固定=1)
-  /// 返回: bool 是否拉黑成功
-  Future<bool> blockPost({required int postId, int type = 1}) async {
-    final response = await BMNetworkManager().postRequest(
-      '/api/livespeed/community/block_post',
+ /// blockpost (POST /api/livespeed/community/block_post)
+ /// feature: topic cardmoremenu「block」do, successlatercalldirectiondelete locallythepost
+ /// [postId] - postID (int type, correspondingtopiclistitem id)
+ /// [type] - blocktype (int type, fixed=1)
+ /// returns: bool whetherblocksuccess
+ Future<bool> blockPost({required int postId, int type = 1}) async {
+ final response = await BMNetworkManager().postRequest(
+ '/api/livespeed/community/block_post',
       data: {
         'post_id': postId,
         'type': type,
-      },
-    );
-    return response.isSuccess;
-  }
+ },
+);
+ return response.isSuccess;
+ }
 
-  /// 帖子详情 (GET /api/livespeed/community/detail)
-  /// 功能: 话题详情页顶部数据源 (内容/作者/关联比赛/点赞评论数)
-  /// [postId] - 帖子ID (int 类型)
-  /// 返回: BMPostItem? 详情数据 (null=失败)
-  Future<BMPostItem?> fetchPostDetail({required int postId}) async {
-    final response = await BMNetworkManager().getRequest(
-      '/api/livespeed/community/detail',
+ /// postdetail (GET /api/livespeed/community/detail)
+ /// feature: topic detail pagetopdata source (content/author/related match/likecommentcount)
+ /// [postId] - postID (int type)
+ /// returns: BMPostItem? detaildata (null=failure)
+ Future<BMPostItem?> fetchPostDetail({required int postId}) async {
+ final response = await BMNetworkManager().getRequest(
+ '/api/livespeed/community/detail',
       queryParameters: {'id': postId},
     );
     if (response.isSuccess && response.data is Map<String, dynamic>) {
@@ -403,34 +403,34 @@ class BMCommunityApiService {
     return null;
   }
 
-  /// 评论列表 (GET /api/livespeed/community/comment/list)
-  /// 功能: 话题详情页底部评论列表数据源
-  /// [objectId] - 帖子ID (int 类型)
-  /// 返回: BMCommentData? 评论列表 (null=失败)
+  /// commentlist (GET /api/livespeed/community/comment/list)
+  /// feature: topic detail pagebottomcommentlistdata source
+  /// [objectId] - postID (int type)
+  /// returns: BMCommentData? commentlist (null=failure)
   Future<BMCommentData?> fetchComments({required int objectId}) async {
     final response = await BMNetworkManager().getRequest(
       '/api/livespeed/community/comment/list',
       queryParameters: {'object_id': objectId},
-    );
-    if (response.isSuccess && response.data is Map<String, dynamic>) {
-      return BMCommentData.fromJson(response.data as Map<String, dynamic>);
-    }
-    return null;
-  }
+);
+ if (response.isSuccess && response.data is Map<String, dynamic>) {
+ return BMCommentData.fromJson(response.data as Map<String, dynamic>);
+ }
+ return null;
+ }
 
-  /// 发表评论/回复 (POST /api/livespeed/community/comment/add)
-  /// 功能: 话题详情页底部评论入口提交
-  /// [objectId] - 帖子ID (int 类型)
-  /// [words] - 评论内容 (String 类型)
-  /// [commentId] - 回复时一级评论ID (int? 类型, 直接评论帖子时null)
-  /// 返回: BMCommentItem? 新评论数据 (null=失败)
-  Future<BMCommentItem?> addComment({
-    required int objectId,
-    required String words,
-    int? commentId,
-  }) async {
-    final params = <String, dynamic>{
-      'object_id': objectId,
+ /// sendtablecomment/reply (POST /api/livespeed/community/comment/add)
+ /// feature: topic detail pagebottomcommentinput
+ /// [objectId] - postID (int type)
+ /// [words] - commentcontent (String type)
+ /// [commentId] - replywhenlevel-1 commentID (int? type, commentpostwhennull)
+ /// returns: BMCommentItem? newcommentdata (null=failure)
+ Future<BMCommentItem?> addComment({
+ required int objectId,
+ required String words,
+ int? commentId,
+ }) async {
+ final params = <String, dynamic>{
+ 'object_id': objectId,
       'words': words,
     };
     if (commentId != null) {
@@ -443,69 +443,69 @@ class BMCommunityApiService {
     if (response.isSuccess && response.data is Map<String, dynamic>) {
       final data = response.data as Map<String, dynamic>;
       final commentJson = data['comment'];
-      if (commentJson is Map<String, dynamic>) {
-        return BMCommentItem.fromJson(commentJson);
-      }
-    }
-    return null;
-  }
+ if (commentJson is Map<String, dynamic>) {
+ return BMCommentItem.fromJson(commentJson);
+ }
+ }
+ return null;
+ }
 
-  /// 评论点赞/取消 (POST /api/livespeed/support)
-  /// [objectId] - 评论ID (int 类型)
-  /// [isSupport] - true=点赞 false=取消 (bool 类型)
-  /// 返回: bool 是否成功
-  Future<bool> supportComment({
-    required int objectId,
-    required bool isSupport,
-  }) async {
-    final response = await BMNetworkManager().postRequest(
-      '/api/livespeed/support',
+ /// commentlike/Take effect (POST /api/livespeed/support)
+ /// [objectId] - commentID (int type)
+ /// [isSupport] - true=like false=Take effect (bool type)
+ /// returns: bool whethersuccess
+ Future<bool> supportComment({
+ required int objectId,
+ required bool isSupport,
+ }) async {
+ final response = await BMNetworkManager().postRequest(
+ '/api/livespeed/support',
       data: {
         'object_id': objectId,
         'object_type': 3,
         'is_support': isSupport,
-      },
-    );
-    return response.isSuccess;
-  }
+ },
+);
+ return response.isSuccess;
+ }
 
-  /// 帖子点赞/取消 (POST /api/livespeed/community/like)
-  /// [postId] - 帖子ID (int 类型)
-  /// [type] - 1=点赞 2=取消 (int 类型)
-  /// 返回: bool 是否成功
-  Future<bool> likePost({required int postId, required int type}) async {
-    final response = await BMNetworkManager().postRequest(
-      '/api/livespeed/community/like',
+ /// postlike/Take effect (POST /api/livespeed/community/like)
+ /// [postId] - postID (int type)
+ /// [type] - 1=like 2=Take effect (int type)
+ /// returns: bool whethersuccess
+ Future<bool> likePost({required int postId, required int type}) async {
+ final response = await BMNetworkManager().postRequest(
+ '/api/livespeed/community/like',
       data: {
         'post_id': postId,
         'type': type,
-      },
-    );
-    return response.isSuccess;
-  }
+ },
+);
+ return response.isSuccess;
+ }
 
-  /// 删除帖子 (POST /api/livespeed/community/delete)
-  /// 功能: 自己发布的帖子在详情页导航替换关注按钮的删除操作
-  /// [postId] - 帖子ID (int 类型)
-  /// 返回: bool 是否成功
-  Future<bool> deletePost({required int postId}) async {
-    final response = await BMNetworkManager().postRequest(
-      '/api/livespeed/community/delete',
+ /// removepost (POST /api/livespeed/community/delete)
+ /// feature: ownpublish of postdetailpagenavigationswapfollow button of removedo
+ /// [postId] - postID (int type)
+ /// returns: bool whethersuccess
+ Future<bool> deletePost({required int postId}) async {
+ final response = await BMNetworkManager().postRequest(
+ '/api/livespeed/community/delete',
       data: {'id': postId},
-    );
-    return response.isSuccess;
-  }
+);
+ return response.isSuccess;
+ }
 
-  /// 关注/取消关注作者 (POST /api/livespeed/imchat/subscribe)
-  /// [targetId] - 作者用户ID (int 类型)
-  /// [type] - 1=关注 2=取消 (int 类型)
-  /// 返回: bool 是否成功
-  Future<bool> toggleFollowAuthor({
-    required int targetId,
-    required int type,
-  }) async {
-    final response = await BMNetworkManager().postRequest(
-      '/api/livespeed/imchat/subscribe',
+ /// follow/Take effectfollowauthor (POST /api/livespeed/imchat/subscribe)
+ /// [targetId] - authoruserID (int type)
+ /// [type] - 1=follow 2=Take effect (int type)
+ /// returns: bool whethersuccess
+ Future<bool> toggleFollowAuthor({
+ required int targetId,
+ required int type,
+ }) async {
+ final response = await BMNetworkManager().postRequest(
+ '/api/livespeed/imchat/subscribe',
       data: {
         'target_id': targetId,
         'type': type,

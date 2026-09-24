@@ -5,52 +5,52 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../bm_base_page.dart';
 import '../../theme/bm_colors.dart';
 
-/// 笔记分类枚举 (BM 差异化: 对比 hanklive 单条无分类, 增加4维分类 Tab)
+/// notesplit classesenum (BM differentiation: compare hanklive singlenonesplit classes, addadd4split classes Tab)
 enum _BMNoteCategory {
-  all('全部', Icons.article_outlined),
-  match('比赛', Icons.sports_soccer),
-  training('训练', Icons.fitness_center_outlined),
-  life('生活', Icons.wb_sunny_outlined);
+ all('all', Icons.article_outlined),
+  match('match', Icons.sports_soccer),
+  training('', Icons.fitness_center_outlined),
+  life('', Icons.wb_sunny_outlined);
 
-  /// 显示文字 (String 类型, Tab上显示)
-  final String label;
+ /// displaytext (String type, Tabupperdisplay)
+ final String label;
 
-  /// 图标 (IconData 类型, Tab上图标)
-  final IconData icon;
-  const _BMNoteCategory(this.label, this.icon);
+ /// icon (IconData type, Tabuppericon)
+ final IconData icon;
+ const _BMNoteCategory(this.label, this.icon);
 }
 
-/// 笔记模型 (单类单文件内定义, 内聚使用)
+/// notemodel (one class per fileinner, innermakeusage)
 class _BMNoteModel {
-  /// 笔记唯一标识 (String 类型, 时间戳生成)
-  final String id;
+ /// noteuniqueidentifier (String type, timestampgenerate)
+ final String id;
 
-  /// 笔记标题 (String 类型)
-  String title;
+ /// notetitle (String type)
+ String title;
 
-  /// 笔记内容 (String 类型)
-  String content;
+ /// notecontent (String type)
+ String content;
 
-  /// 笔记分类 (_BMNoteCategory 枚举, 默认 match)
-  final _BMNoteCategory category;
+ /// notesplit classes (_BMNoteCategory enum, default match)
+ final _BMNoteCategory category;
 
-  /// 创建时间 (int 类型, 毫秒时间戳)
-  final int createdAt;
+ /// createtime (int type, millisecondtimestamp)
+ final int createdAt;
 
-  /// 更新时间 (int 类型, 毫秒时间戳)
-  int updatedAt;
+ /// updatetime (int type, millisecondtimestamp)
+ int updatedAt;
 
-  _BMNoteModel({
-    required this.id,
-    required this.title,
-    required this.content,
-    required this.category,
-    required this.createdAt,
-    required this.updatedAt,
-  });
+ _BMNoteModel({
+ required this.id,
+ required this.title,
+ required this.content,
+ required this.category,
+ required this.createdAt,
+ required this.updatedAt,
+ });
 
-  Map<String, dynamic> toJson() => {
-        'id': id,
+ Map<String, dynamic> toJson() => {
+ 'id': id,
         'title': title,
         'content': content,
         'category': category.index,
@@ -69,146 +69,146 @@ class _BMNoteModel {
       content: m['content']?.toString() ?? '',
       category: cat,
       createdAt: m['createdAt'] is int ? m['createdAt'] as int : DateTime.now().millisecondsSinceEpoch,
-      updatedAt: m['updatedAt'] is int ? m['updatedAt'] as int : DateTime.now().millisecondsSinceEpoch,
-    );
-  }
+      updatedAt: m['updatedAt'] is int ? m['updatedAt'] as int: DateTime.now().millisecondsSinceEpoch,
+);
+ }
 }
 
-/// BMNotesPage: 笔记管理页面
-/// 差异化设计 (对比 hanklive Notes):
-/// 1. 深绿 BallMatrix 主题 (pitch900 / pitch850 / pitch700)
-/// 2. 4 维分类 Tab (全部/比赛/训练/生活) - hanklive 没有分类
-/// 3. 右上角胶囊发布按钮 (和 topicList 完全一致: 亮绿12%填充+1.2px描边) - hanklive 是 FAB
-/// 4. 卡片带左上角分类彩色 Tag (比赛=蓝, 训练=绿, 生活=橙)
-/// 架构: 单类单文件, 继承 BMBasePage
+/// BMNotesPage: notepage
+/// differentiated design (compare hanklive Notes):
+/// 1. dark green BallMatrix theme (pitch900 / pitch850 / pitch700)
+/// 2. 4 split classes Tab (all/match//) - hanklive nohassplit classes
+/// 3. top-right cornerpillpost button (and topicList completefullone: bright green12%fill+1.2pxstroke) - hanklive yes FAB
+/// 4. cardtop-left cornersplit classescolor Tag (match=blue, =, =)
+/// architecture: one class per file, extends BMBasePage
 class BMNotesPage extends BMBasePage {
-  const BMNotesPage({super.key});
+ const BMNotesPage({super.key});
 
-  @override
-  State<BMNotesPage> createState() => _BMNotesPageState();
+ @override
+ State<BMNotesPage> createState() => _BMNotesPageState();
 }
 
 class _BMNotesPageState extends BMBasePageState<BMNotesPage> with SingleTickerProviderStateMixin {
-  /// SharedPreferences 本地存储 Key
-  static const String _kKey = 'bm_tool_notes_v1';
+ /// SharedPreferences localstorage Key
+ static const String _kKey = 'bm_tool_notes_v1';
 
-  /// 笔记列表
-  final List<_BMNoteModel> _notes = [];
+ /// notelist
+ final List<_BMNoteModel> _notes = [];
 
-  /// 当前选中 Tab (_BMNoteCategory 类型)
-  _BMNoteCategory _category = _BMNoteCategory.all;
+ /// currentselected Tab (_BMNoteCategory type)
+ _BMNoteCategory _category = _BMNoteCategory.all;
 
-  /// Tab 控制器
-  TabController? _tabCtrl;
+ /// Tab controller
+ TabController? _tabCtrl;
 
-  /// 加载中标记
-  bool _isLoading = true;
+ /// loadinginmarker
+ bool _isLoading = true;
 
-  @override
-  void initState() {
-    super.initState();
-    _tabCtrl = TabController(length: _BMNoteCategory.values.length, vsync: this);
-    _tabCtrl!.addListener(() {
-      if (!_tabCtrl!.indexIsChanging) {
-        setState(() => _category = _BMNoteCategory.values[_tabCtrl!.index]);
-      }
-    });
-    _loadNotes();
-  }
+ @override
+ void initState() {
+ super.initState();
+ _tabCtrl = TabController(length: _BMNoteCategory.values.length, vsync: this);
+ _tabCtrl!.addListener(() {
+ if (!_tabCtrl!.indexIsChanging) {
+ setState(() => _category = _BMNoteCategory.values[_tabCtrl!.index]);
+ }
+ });
+ _loadNotes();
+ }
 
-  @override
-  void dispose() {
-    _tabCtrl?.dispose();
-    super.dispose();
-  }
+ @override
+ void dispose() {
+ _tabCtrl?.dispose();
+ super.dispose();
+ }
 
-  /// 从本地 SharedPreferences 加载笔记
-  Future<void> _loadNotes() async {
-    try {
-      final pref = await SharedPreferences.getInstance();
-      final raw = pref.getString(_kKey);
-      _notes.clear();
-      if (raw != null && raw.isNotEmpty) {
-        final arr = jsonDecode(raw);
-        if (arr is List) {
-          for (final item in arr) {
-            if (item is Map<String, dynamic>) {
-              final n = _BMNoteModel.fromJson(item);
-              if (n != null && n.id.isNotEmpty) _notes.add(n);
-            }
-          }
-        }
-      }
-      _notes.sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
-    } catch (_) {
-      _notes.clear();
-    }
-    setState(() => _isLoading = false);
-  }
+ /// fromlocal SharedPreferences loadingnote
+ Future<void> _loadNotes() async {
+ try {
+ final pref = await SharedPreferences.getInstance();
+ final raw = pref.getString(_kKey);
+ _notes.clear();
+ if (raw != null && raw.isNotEmpty) {
+ final arr = jsonDecode(raw);
+ if (arr is List) {
+ for (final item in arr) {
+ if (item is Map<String, dynamic>) {
+ final n = _BMNoteModel.fromJson(item);
+ if (n != null && n.id.isNotEmpty) _notes.add(n);
+ }
+ }
+ }
+ }
+ _notes.sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+ } catch (_) {
+ _notes.clear();
+ }
+ setState(() => _isLoading = false);
+ }
 
-  /// 保存笔记到本地 SharedPreferences
-  Future<void> _save() async {
-    try {
-      final pref = await SharedPreferences.getInstance();
-      await pref.setString(_kKey, jsonEncode(_notes.map((e) => e.toJson()).toList()));
-    } catch (_) {}
-  }
+ /// savenotetolocal SharedPreferences
+ Future<void> _save() async {
+ try {
+ final pref = await SharedPreferences.getInstance();
+ await pref.setString(_kKey, jsonEncode(_notes.map((e) => e.toJson()).toList()));
+ } catch (_) {}
+ }
 
-  /// 获取过滤后笔记 (按 _category 过滤)
-  List<_BMNoteModel> get _filtered {
-    if (_category == _BMNoteCategory.all) return _notes;
-    return _notes.where((e) => e.category == _category).toList();
-  }
+ /// gettakefilterlaternote (by _category filter)
+ List<_BMNoteModel> get _filtered {
+ if (_category == _BMNoteCategory.all) return _notes;
+ return _notes.where((e) => e.category == _category).toList();
+ }
 
-  /// 打开编辑页 (新建或编辑)
-  /// [existing] - _BMNoteModel? 类型, 已存在则编辑
-  Future<void> _editNote({_BMNoteModel? existing, _BMNoteCategory? initialCategory}) async {
-    late _BMNoteCategory cat;
-    if (initialCategory != null) {
-      cat = initialCategory;
-    } else if (existing?.category != null) {
-      cat = existing!.category;
-    } else {
-      cat = (_category == _BMNoteCategory.all) ? _BMNoteCategory.match : _category;
-    }
-    final res = await Navigator.push<_BMNoteModel>(
-      context,
-      MaterialPageRoute(
-        builder: (_) => _BMNoteEditPage(existing: existing, initialCategory: cat),
-      ),
-    );
-    if (res == null) return;
-    final i = _notes.indexWhere((e) => e.id == res.id);
-    if (i >= 0) {
-      _notes[i] = res;
-    } else {
-      _notes.insert(0, res);
-    }
-    _notes.sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
-    await _save();
-    setState(() {});
-  }
+ /// openeditpage (Neworedit)
+ /// [existing] - _BMNoteModel? type, alreadystorethenedit
+ Future<void> _editNote({_BMNoteModel? existing, _BMNoteCategory? initialCategory}) async {
+ late _BMNoteCategory cat;
+ if (initialCategory != null) {
+ cat = initialCategory;
+ } else if (existing?.category != null) {
+ cat = existing!.category;
+ } else {
+ cat = (_category == _BMNoteCategory.all) ? _BMNoteCategory.match: _category;
+ }
+ final res = await Navigator.push<_BMNoteModel>(
+ context,
+ MaterialPageRoute(
+ builder: (_) => _BMNoteEditPage(existing: existing, initialCategory: cat),
+),
+);
+ if (res == null) return;
+ final i = _notes.indexWhere((e) => e.id == res.id);
+ if (i >= 0) {
+ _notes[i] = res;
+ } else {
+ _notes.insert(0, res);
+ }
+ _notes.sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+ await _save();
+ setState(() {});
+ }
 
-  /// 删除笔记 (二次确认)
-  Future<void> _deleteNote(_BMNoteModel n) async {
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: BMColors.pitch900,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('删除笔记', style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w800)),
+ /// Delete Note (double confirmation)
+ Future<void> _deleteNote(_BMNoteModel n) async {
+ final ok = await showDialog<bool>(
+ context: context,
+ builder: (ctx) => AlertDialog(
+ backgroundColor: BMColors.pitch900,
+ shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+ title: const Text('Delete Note', style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w800)),
         content: Text(
-          '确认删除 "${n.title.isEmpty ? 'Untitled' : n.title}" ?',
+          'confirmremove "${n.title.isEmpty ? 'Untitled' : n.title}" ?',
           style: TextStyle(color: BMColors.textSecondary, fontSize: 12),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('取消', style: TextStyle(color: BMColors.textSecondary)),
+            child: const Text('Take effect', style: TextStyle(color: BMColors.textSecondary)),
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('删除', style: TextStyle(color: Color(0xFFEF4444), fontWeight: FontWeight.w700)),
+            child: const Text('remove', style: TextStyle(color: Color(0xFFEF4444), fontWeight: FontWeight.w700)),
           ),
         ],
       ),
@@ -265,26 +265,26 @@ class _BMNotesPageState extends BMBasePageState<BMNotesPage> with SingleTickerPr
         ),
       ),
       title: const Text('Notes', style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w800)),
-      // ⭐️ 差异化: 和 topicList 完全一致的右上角胶囊发布按钮
-      actions: [
-        Padding(
-          padding: const EdgeInsets.only(right: 12),
-          child: GestureDetector(
-            onTap: () => _editNote(),
-            behavior: HitTestBehavior.opaque,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(
-                color: BMColors.bright.withValues(alpha: 0.12),
-                border: Border.all(color: BMColors.bright.withValues(alpha: 0.5), width: 1.2),
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: const [
-                  Icon(Icons.add, size: 12, color: BMColors.bright),
-                  SizedBox(width: 4),
-                  Text('新建', style: TextStyle(color: BMColors.bright, fontSize: 11, fontWeight: FontWeight.w700)),
+ // ⭐️ differentiation: and topicList completefullone of top-right cornerpillpost button
+ actions: [
+ Padding(
+ padding: const EdgeInsets.only(right: 12),
+ child: GestureDetector(
+ onTap: () => _editNote(),
+ behavior: HitTestBehavior.opaque,
+ child: Container(
+ padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+ decoration: BoxDecoration(
+ color: BMColors.bright.withValues(alpha: 0.12),
+ border: Border.all(color: BMColors.bright.withValues(alpha: 0.5), width: 1.2),
+ borderRadius: BorderRadius.circular(20),
+),
+ child: Row(
+ mainAxisSize: MainAxisSize.min,
+ children: const [
+ Icon(Icons.add, size: 12, color: BMColors.bright),
+ SizedBox(width: 4),
+ Text('New', style: TextStyle(color: BMColors.bright, fontSize: 11, fontWeight: FontWeight.w700)),
                 ],
               ),
             ),
@@ -346,7 +346,7 @@ class _BMNotesPageState extends BMBasePageState<BMNotesPage> with SingleTickerPr
           children: [
             const Icon(Icons.note_alt_outlined, size: 48, color: Color(0xFF4B5563)),
             const SizedBox(height: 10),
-            Text('暂无${_category.label}笔记', style: const TextStyle(color: Color(0xFF9CA3AF), fontSize: 12)),
+            Text('No ${_category.label}note', style: const TextStyle(color: Color(0xFF9CA3AF), fontSize: 12)),
           ],
         ),
       );
@@ -416,60 +416,60 @@ class _BMNotesPageState extends BMBasePageState<BMNotesPage> with SingleTickerPr
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      n.content.isEmpty ? '（空笔记）' : n.content,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(color: BMColors.textSecondary, fontSize: 12, height: 1.4),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(_fmtTime(n.updatedAt), style: TextStyle(color: BMColors.textTertiary, fontSize: 10)),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 8),
-              GestureDetector(
-                onTap: () => _deleteNote(n),
-                behavior: HitTestBehavior.opaque,
-                child: Container(
-                  width: 28,
-                  height: 28,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF7F1D1D).withValues(alpha: 0.6),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: const Icon(Icons.delete_outline, size: 14, color: Color(0xFFF87171)),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
+                      n.content.isEmpty ? '（emptynote）': n.content,
+ maxLines: 2,
+ overflow: TextOverflow.ellipsis,
+ style: TextStyle(color: BMColors.textSecondary, fontSize: 12, height: 1.4),
+),
+ const SizedBox(height: 8),
+ Text(_fmtTime(n.updatedAt), style: TextStyle(color: BMColors.textTertiary, fontSize: 10)),
+ ],
+),
+),
+ const SizedBox(width: 8),
+ GestureDetector(
+ onTap: () => _deleteNote(n),
+ behavior: HitTestBehavior.opaque,
+ child: Container(
+ width: 28,
+ height: 28,
+ decoration: BoxDecoration(
+ color: const Color(0xFF7F1D1D).withValues(alpha: 0.6),
+ borderRadius: BorderRadius.circular(8),
+),
+ child: const Icon(Icons.delete_outline, size: 14, color: Color(0xFFF87171)),
+),
+),
+ ],
+),
+),
+),
+);
+ }
 }
 
 // =====================================================================
-// 笔记编辑页 (push 进入, push 返回 _BMNoteModel 修改后对象)
+// noteeditpage (push enter, push returns _BMNoteModel modifylaterobject)
 // =====================================================================
 class _BMNoteEditPage extends StatefulWidget {
-  final _BMNoteModel? existing;
-  final _BMNoteCategory initialCategory;
-  const _BMNoteEditPage({this.existing, required this.initialCategory});
+ final _BMNoteModel? existing;
+ final _BMNoteCategory initialCategory;
+ const _BMNoteEditPage({this.existing, required this.initialCategory});
 
-  @override
-  State<_BMNoteEditPage> createState() => _BMNoteEditPageState();
+ @override
+ State<_BMNoteEditPage> createState() => _BMNoteEditPageState();
 }
 
 class _BMNoteEditPageState extends State<_BMNoteEditPage> {
-  late TextEditingController _titleCtrl;
-  late TextEditingController _contentCtrl;
-  late _BMNoteCategory _cat;
+ late TextEditingController _titleCtrl;
+ late TextEditingController _contentCtrl;
+ late _BMNoteCategory _cat;
 
-  @override
-  void initState() {
-    super.initState();
-    final e = widget.existing;
-    _titleCtrl = TextEditingController(text: e?.title ?? '');
+ @override
+ void initState() {
+ super.initState();
+ final e = widget.existing;
+ _titleCtrl = TextEditingController(text: e?.title ?? '');
     _contentCtrl = TextEditingController(text: e?.content ?? '');
     _cat = e?.category ?? widget.initialCategory;
   }
@@ -525,7 +525,7 @@ class _BMNoteEditPageState extends State<_BMNoteEditPage> {
             child: const Icon(Icons.chevron_left, color: Colors.white, size: 18),
           ),
         ),
-        title: Text(widget.existing == null ? '新建笔记' : '编辑笔记', style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w800)),
+        title: Text(widget.existing == null ? 'Newnote' : 'editnote', style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w800)),
         actions: [
           Padding(
             padding: const EdgeInsets.only(right: 12),
@@ -534,7 +534,7 @@ class _BMNoteEditPageState extends State<_BMNoteEditPage> {
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
                 decoration: BoxDecoration(color: BMColors.bright, borderRadius: BorderRadius.circular(10)),
-                child: const Text('保存', style: TextStyle(color: BMColors.pitch950, fontSize: 12, fontWeight: FontWeight.w900)),
+                child: const Text('save', style: TextStyle(color: BMColors.pitch950, fontSize: 12, fontWeight: FontWeight.w900)),
               ),
             ),
           ),
@@ -545,7 +545,7 @@ class _BMNoteEditPageState extends State<_BMNoteEditPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('分类', style: TextStyle(color: BMColors.textSecondary, fontSize: 11, fontWeight: FontWeight.w700)),
+            const Text('split classes', style: TextStyle(color: BMColors.textSecondary, fontSize: 11, fontWeight: FontWeight.w700)),
             const SizedBox(height: 8),
             Wrap(
               spacing: 8,
@@ -590,13 +590,13 @@ class _BMNoteEditPageState extends State<_BMNoteEditPage> {
               }).toList(),
             ),
             const SizedBox(height: 16),
-            const Text('标题', style: TextStyle(color: BMColors.textSecondary, fontSize: 11, fontWeight: FontWeight.w700)),
+            const Text('title', style: TextStyle(color: BMColors.textSecondary, fontSize: 11, fontWeight: FontWeight.w700)),
             const SizedBox(height: 6),
             TextField(
               controller: _titleCtrl,
               style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w700),
               decoration: InputDecoration(
-                hintText: '输入笔记标题...',
+                hintText: 'inputnotetitle...',
                 hintStyle: TextStyle(color: BMColors.textTertiary),
                 isDense: true,
                 filled: true,
@@ -607,14 +607,14 @@ class _BMNoteEditPageState extends State<_BMNoteEditPage> {
               ),
             ),
             const SizedBox(height: 12),
-            const Text('内容', style: TextStyle(color: BMColors.textSecondary, fontSize: 11, fontWeight: FontWeight.w700)),
+            const Text('content', style: TextStyle(color: BMColors.textSecondary, fontSize: 11, fontWeight: FontWeight.w700)),
             const SizedBox(height: 6),
             TextField(
               controller: _contentCtrl,
               maxLines: 14,
               style: const TextStyle(color: Colors.white, fontSize: 13, height: 1.5),
               decoration: InputDecoration(
-                hintText: '记录比赛、训练、生活中的点点滴滴...',
+                hintText: 'recordmatch、、in of pointpoint...',
                 hintStyle: TextStyle(color: BMColors.textTertiary),
                 filled: true,
                 fillColor: BMColors.pitch850,

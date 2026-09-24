@@ -1,68 +1,68 @@
-/// 事件类型枚举
+/// eventtypeenum
 enum BMIncidentType {
-  /// 进球
-  goal,
-  /// 点球
-  penalty,
-  /// 乌龙球
-  ownGoal,
-  /// 黄牌
-  yellowCard,
-  /// 红牌
-  redCard,
-  /// 两黄变红
-  secondYellow,
-  /// 换人
-  substitution,
-  /// 伤停补时
-  injuryTime,
-  /// 中场/终场
-  whistle,
-  /// 其他
-  other,
+ /// goal
+ goal,
+ /// penalty
+ penalty,
+ /// ball
+ ownGoal,
+ /// yellow card
+ yellowCard,
+ /// red card
+ redCard,
+ /// two yellows to red
+ secondYellow,
+ /// substitution
+ substitution,
+ /// injury patch when
+ injuryTime,
+ /// incourt/finalcourt
+ whistle,
+ /// others
+ other,
 }
 
-/// 事件发生侧枚举
+/// eventsendsideenum
 enum BMIncidentSide { home, away, neutral }
 
-/// BMIncident - 单条比赛事件（Live Tab 用）
+/// BMIncident - singlematchevent（Live Tab usage)
 class BMIncident {
-  /// 分钟数 (int? 类型, 可能是 null 表示开赛前)
-  final int? minute;
-  /// 伤停补时分钟数 (int? 类型)
-  final int? addedTime;
-  /// 事件类型 (BMIncidentType 枚举)
-  final BMIncidentType type;
-  /// 发生侧 (BMIncidentSide)
-  final BMIncidentSide side;
-  /// 主球员名 (String? 类型)
-  final String? playerName;
-  /// 球员ID (int? 类型)
-  final int? playerId;
-  /// 助攻/替换上 副球员名 (String? 类型)
-  final String? subPlayerName;
-  /// 事件额外描述 (String? 类型, 例: '点球', 'VAR取消')
-  final String? detail;
-  /// 事件发生时主队实时比分 (int? 类型, 得分事件才有, 对齐hanklive homeScore)
-  final int? homeScore;
-  /// 事件发生时客队实时比分 (int? 类型, 得分事件才有)
-  final int? awayScore;
+ /// minutecount (int? type, canabilityyes null meansopenmatchfirst)
+ final int? minute;
+ /// injury patch whenminutecount (int? type)
+ final int? addedTime;
+ /// eventtype (BMIncidentType enum)
+ final BMIncidentType type;
+ /// sendside (BMIncidentSide)
+ final BMIncidentSide side;
+ /// homeplayername (String? type)
+ final String? playerName;
+ /// playerID (int? type)
+ final int? playerId;
+ /// assist/swapupper copyplayername (String? type)
+ final String? subPlayerName;
+ /// eventquotaouterdescription (String? type, e.g.: 'penalty', 'VARTake effect')
+ final String? detail;
+ /// eventsendwhenhome teamlive score (int? type, getmineventhas, alignmenthanklive homeScore)
+ final int? homeScore;
+ /// eventsendwhenaway teamlive score (int? type, getmineventhas)
+ final int? awayScore;
 
-  BMIncident({
-    this.minute,
-    this.addedTime,
-    required this.type,
-    required this.side,
-    this.playerName,
-    this.playerId,
-    this.subPlayerName,
-    this.detail,
-    this.homeScore,
-    this.awayScore,
-  });
+ BMIncident({
+ this.minute,
+ this.addedTime,
+ required this.type,
+ required this.side,
+ this.playerName,
+ this.playerId,
+ this.subPlayerName,
+ this.detail,
+ this.homeScore,
+ this.awayScore,
+ });
 
-  factory BMIncident.fromJson(Map<String, dynamic> json) {
-    final t = json['type'] ?? json['incident_type'] ?? '';
+ factory BMIncident.fromJson(Map<String, dynamic> json) {
+ final t = json['type'] ?? json['incident_type'] ?? '';
     BMIncidentType type;
     switch (t.toString().toLowerCase()) {
       case 'goal':
@@ -139,17 +139,17 @@ class BMIncident {
       detail: json['detail'] ?? json['comment'] ?? json['description'],
       homeScore: hs is num ? hs.toInt() : int.tryParse(hs?.toString() ?? ''),
       awayScore: aws is num ? aws.toInt() : int.tryParse(aws?.toString() ?? ''),
-    );
-  }
+);
+ }
 }
 
-/// BMStatRow - 单条技术统计项（Stats Tab 用）
+/// BMStatRow - singletechnical statsitem（Stats Tab usage)
 class BMStatRow {
-  /// 主队数值 (String 类型, 例: '62%')
-  final String homeValue;
-  /// 统计项名字 (String 类型, 例: '控球率')
-  final String label;
-  /// 客队数值 (String 类型, 例: '38%')
+ /// home teamvalue (String type, e.g.: '62%')
+ final String homeValue;
+ /// statisticsitemnametext (String type, e.g.: 'ballrate')
+ final String label;
+ /// away teamvalue (String type, e.g.: '38%')
   final String awayValue;
 
   BMStatRow({
@@ -163,27 +163,27 @@ class BMStatRow {
       homeValue: json['home']?.toString() ?? json['home_value']?.toString() ?? '',
       label: json['label']?.toString() ?? json['name']?.toString() ?? '',
       awayValue: json['away']?.toString() ?? json['away_value']?.toString() ?? '',
-    );
-  }
+);
+ }
 }
 
-/// BMProcessData - 比赛进程（事件 + 技术统计）
+/// BMProcessData - match（event + technical stats）
 /// API：GET /api/livespeed/football/match/process
 class BMProcessData {
-  /// 事件列表 (List<BMIncident> 类型, 按时间升序)
-  final List<BMIncident> incidents;
-  /// 技术统计 (List<BMStatRow> 类型, 控球率/射门/射正等)
-  final List<BMStatRow> stats;
+ /// eventlist (List<BMIncident> type, bytimeindex)
+ final List<BMIncident> incidents;
+ /// technical stats (List<BMStatRow> type, ballrate//centeretc)
+ final List<BMStatRow> stats;
 
-  BMProcessData({
-    this.incidents = const [],
-    this.stats = const [],
-  });
+ BMProcessData({
+ this.incidents = const [],
+ this.stats = const [],
+ });
 
-  factory BMProcessData.fromJson(Map<String, dynamic> json) {
-    List<BMIncident> inc = [];
-    try {
-      final rawi = json['incidents'] ?? json['events'] ?? json['timeline'] ?? [];
+ factory BMProcessData.fromJson(Map<String, dynamic> json) {
+ List<BMIncident> inc = [];
+ try {
+ final rawi = json['incidents'] ?? json['events'] ?? json['timeline'] ?? [];
       if (rawi is List) {
         inc = rawi
             .whereType<Map<String, dynamic>>()

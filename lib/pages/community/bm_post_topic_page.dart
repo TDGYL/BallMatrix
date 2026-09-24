@@ -8,16 +8,16 @@ import '../bm_base_page.dart';
 import '../login/bm_login_page.dart';
 import 'bm_post_topic_match_search_page.dart';
 
-/// BMPostTopicPage - 发布话题页 (话题列表页右上角「发布」push 进来)
-/// 功能与接口对齐 hanklive HankPostCommunityPage:
-///   1. 顶部: 话题内容多行输入框 (至少10字)
-///   2. 中间: 关联比赛入口 (push 搜索页选择, 可移除)
-///   3. 底部: 多选话题标签菜单 (固定候选池随机展示 + 换一批)
-///   4. 发布: POST /api/livespeed/community/save
-///      参数: {id: 0, content, images: [话题逗号串], match_type, match_id}
-///   5. 未登录先跳登录页
-/// 界面差异化: 深色球场绿主题 (pitch950 底 + 亮绿主色 + 描边输入区 + 底部固定发布条),
-///   参照页为浅紫白底 + 顶栏 Post 按钮布局, 视觉完全区分
+/// BMPostTopicPage - post topicpage (topiclistpagetop-right corner「publish」push enter)
+/// featurealigned with API hanklive HankPostCommunityPage:
+/// 1. top: topiccontentmorelineinput field (less10text)
+/// 2. middle: related match entry (push searchpageselect, canremove)
+/// 3. bottom: multi-selecttopictagmenu (fixedwaitshow + refresh)
+/// 4. publish: POST /api/livespeed/community/save
+/// argument: {id: 0, content, images: [topiccomma No.string], match_type, match_id}
+/// 5. not logged infirstjumploginpage
+/// UI differentiation: darkpitch green theme (pitch950 bottom + bright greenhomecolor + strokeinputzone + bottomfixedpublishitems),
+/// referencepageaswhitebottom + topbar Post buttonlayout, visually distinct
 class BMPostTopicPage extends BMBasePage {
   const BMPostTopicPage({super.key});
 
@@ -26,44 +26,44 @@ class BMPostTopicPage extends BMBasePage {
 }
 
 class _BMPostTopicPageState extends BMBasePageState<BMPostTopicPage> {
-  /// 内容输入控制器 (TextEditingController 类型)
+  /// contentinputcontroller (TextEditingController type)
   final TextEditingController _contentController = TextEditingController();
 
-  /// 社区 API 服务 (BMCommunityApiService 类型, 发布接口)
+  /// community API service (BMCommunityApiService type, publishAPI)
   final BMCommunityApiService _apiService = BMCommunityApiService();
 
-  /// 话题候选池 (List<String> 类型, 对齐 hanklive 12 个话题)
+  /// topicwait (List<String> type, alignment hanklive 12 itemstopic)
   static const List<String> _allTopics = [
-    '比赛讨论',
-    '战术分析',
-    '转会动态',
-    '装备评测',
-    '冠军预测',
-    '青训观察',
-    '球迷故事',
-    '赛果竞猜',
-    '球员点评',
-    '历史回顾',
-    '规则解读',
-    '联赛总结',
+    'match',
+    'Tactical Analysis',
+    'conversion state',
+    'backuptest',
+    'Champion Prediction',
+    'observe',
+    'fans',
+    'matchresult',
+    'playerpoint',
+    'historyback',
+    'ruleread',
+    'leagueend',
   ];
 
-  /// 当前展示的话题 (List<String> 类型, 候选池随机取5个)
+  /// currentshow of topic (List<String> type, waittake5items)
   List<String> _topics = [];
 
-  /// 已选话题 (List<String> 类型, 多选)
+  /// selectedtopic (List<String> type, multi-select)
   final List<String> _selectedTopics = [];
 
-  /// 已选关联比赛 (BMSearchMatch? 类型, null=未关联)
+  /// selectedrelated match (BMSearchMatch? type, null=not yetclose)
   BMSearchMatch? _selectedMatch;
 
-  /// 发布中 (bool 类型, 防重复提交)
+  /// publishin (bool type, duplicate)
   bool _isPublishing = false;
 
   @override
   void initState() {
     super.initState();
-    // 初始随机展示 5 个话题
+    // initialstartshow 5 itemstopic
     _topics = _randomTopics(5);
   }
 
@@ -73,24 +73,24 @@ class _BMPostTopicPageState extends BMBasePageState<BMPostTopicPage> {
     super.dispose();
   }
 
-  /// 从候选池随机取 N 个未展示的话题
-  /// [count] - 取出数量 (int 类型)
-  /// 返回: List<String> 随机话题列表
+  /// fromwaittake N itemsnot yetshow of topic
+  /// [count] - takeoutputcount (int type)
+  /// returns: List<String> topiclist
   List<String> _randomTopics(int count) {
     final pool = List<String>.from(_allTopics);
     pool.shuffle();
     return pool.take(count).toList();
   }
 
-  /// 换一批话题 (排除当前展示的, 重置随机)
+  /// refreshtopic (orderdivcurrentshow of, heavyplace)
   void _shuffleTopics() {
     setState(() {
       _topics = _randomTopics(5);
     });
   }
 
-  /// 切换话题选中态 (多选)
-  /// [topic] - 话题标签 (String 类型)
+  /// switchtopicselectedstate (multi-select)
+  /// [topic] - topictag (String type)
   void _toggleTopic(String topic) {
     setState(() {
       if (_selectedTopics.contains(topic)) {
@@ -101,7 +101,7 @@ class _BMPostTopicPageState extends BMBasePageState<BMPostTopicPage> {
     });
   }
 
-  /// 跳转比赛搜索页选择关联比赛 (pop 返回 BMSearchMatch)
+  /// navigatematchsearchpageselectrelated match (pop returns BMSearchMatch)
   Future<void> _pickMatch() async {
     final match = await Navigator.push<BMSearchMatch>(
       context,
@@ -112,20 +112,20 @@ class _BMPostTopicPageState extends BMBasePageState<BMPostTopicPage> {
     }
   }
 
-  /// 移除已关联比赛
+  /// removealreadyrelated match
   void _removeMatch() {
     setState(() => _selectedMatch = null);
   }
 
-  /// 发布话题 (POST /api/livespeed/community/save)
-  /// 校验: 内容至少10字 → 未登录跳登录 → 提交 → 成功 pop(true)
+  /// post topic (POST /api/livespeed/community/save)
+  /// validate: contentless10text → not logged injumplogin → → success pop(true)
   Future<void> _handlePublish() async {
     final content = _contentController.text.trim();
     if (content.length < 10) {
-      _toast('话题内容至少输入10个字');
+      _toast('topiccontentlessinput10itemstext');
       return;
     }
-    // 未登录先去登录, 登录成功继续发布
+    // not logged infirstlogin, loginsuccesscontinuepublish
     if (!BMAuthManager().isLoggedIn) {
       final ok = await Navigator.push<bool>(
         context,
@@ -142,7 +142,7 @@ class _BMPostTopicPageState extends BMBasePageState<BMPostTopicPage> {
     );
     if (!mounted) return;
     if (ok) {
-      _toast('发布成功');
+      _toast('Posted');
       Navigator.pop(context, true);
       return;
     }
@@ -150,8 +150,8 @@ class _BMPostTopicPageState extends BMBasePageState<BMPostTopicPage> {
     _toast(msg);
   }
 
-  /// SnackBar 提示
-  /// [message] - 提示文案 (String 类型)
+  /// SnackBar toast
+  /// [message] - toasttext (String type)
   void _toast(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -190,7 +190,7 @@ class _BMPostTopicPageState extends BMBasePageState<BMPostTopicPage> {
     );
   }
 
-  /// 顶部导航 (返回 + 标题)
+  /// topnavigation (returns + title)
   Widget _buildNavBar() {
     return Container(
       padding: const EdgeInsets.fromLTRB(4, 8, 16, 8),
@@ -214,7 +214,7 @@ class _BMPostTopicPageState extends BMBasePageState<BMPostTopicPage> {
           ),
           const Expanded(
             child: Text(
-              '发布话题',
+              'post topic',
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 16,
@@ -229,7 +229,7 @@ class _BMPostTopicPageState extends BMBasePageState<BMPostTopicPage> {
     );
   }
 
-  /// 第 1 段: 话题内容输入框 (深色描边 + 角标计数)
+  /// No. 1 section: topiccontentinput field (darkstroke + cornertagcountcount)
   Widget _buildContentInput() {
     return Container(
       padding: const EdgeInsets.fromLTRB(14, 6, 14, 8),
@@ -251,11 +251,8 @@ class _BMPostTopicPageState extends BMBasePageState<BMPostTopicPage> {
               color: BMColors.textPrimary,
             ),
             decoration: const InputDecoration(
-              hintText: '分享你的观点, 至少输入10个字...',
-              hintStyle: TextStyle(
-                color: BMColors.textTertiary,
-                fontSize: 13,
-              ),
+              hintText: 'min of point, less input 10items text...',
+              hintStyle: TextStyle(color: BMColors.textTertiary, fontSize: 13),
               border: InputBorder.none,
               counterText: '',
             ),
@@ -281,24 +278,20 @@ class _BMPostTopicPageState extends BMBasePageState<BMPostTopicPage> {
     );
   }
 
-  /// 第 2 段: 关联比赛入口 (未选=入口卡片 / 已选=比赛卡片可移除)
+  /// No. 2 section: related match entry (unselected=inputcard / selected=match cardcanremove)
   Widget _buildMatchSection() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // 标题行
+        // title row
         Padding(
           padding: const EdgeInsets.only(left: 2, bottom: 8),
           child: Row(
             children: [
-              const Icon(
-                Icons.sports_soccer,
-                size: 14,
-                color: BMColors.bright,
-              ),
+              const Icon(Icons.sports_soccer, size: 14, color: BMColors.bright),
               const SizedBox(width: 5),
               const Text(
-                '关联比赛',
+                'related match',
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w800,
@@ -307,34 +300,28 @@ class _BMPostTopicPageState extends BMBasePageState<BMPostTopicPage> {
               ),
               const SizedBox(width: 6),
               Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 6,
-                  vertical: 1,
-                ),
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
                 decoration: BoxDecoration(
                   color: BMColors.pitch900,
                   borderRadius: BorderRadius.circular(4),
                   border: Border.all(color: BMColors.pitch800),
                 ),
                 child: const Text(
-                  '选填',
-                  style: TextStyle(
-                    fontSize: 10,
-                    color: BMColors.textTertiary,
-                  ),
+                  '',
+                  style: TextStyle(fontSize: 10, color: BMColors.textTertiary),
                 ),
               ),
             ],
           ),
         ),
-        // 内容区
+        // contentzone
         if (_selectedMatch == null) _buildMatchEntry() else _buildMatchCard(),
       ],
     );
   }
 
-  /// 未关联时的入口卡片 (左侧亮绿加号圆形 + 引导文案, 点击进搜索页)
-  /// 差异化: 参照页为虚线边框整卡居中, 本页为左对齐横排入口
+  /// not yetclosewhen of inputcard (left sidebright greenaddNo.circle + text, tapsearchpage)
+  /// differentiation: referencepageasdashed lineborderwholecardcenter, this pageasleft alignedorderinput
   Widget _buildMatchEntry() {
     return GestureDetector(
       onTap: _pickMatch,
@@ -344,9 +331,7 @@ class _BMPostTopicPageState extends BMBasePageState<BMPostTopicPage> {
         decoration: BoxDecoration(
           color: BMColors.pitch900.withValues(alpha: 0.85),
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(
-            color: BMColors.bright.withValues(alpha: 0.3),
-          ),
+          border: Border.all(color: BMColors.bright.withValues(alpha: 0.3)),
         ),
         child: Row(
           children: [
@@ -360,11 +345,7 @@ class _BMPostTopicPageState extends BMBasePageState<BMPostTopicPage> {
                   color: BMColors.bright.withValues(alpha: 0.5),
                 ),
               ),
-              child: const Icon(
-                Icons.add,
-                size: 18,
-                color: BMColors.bright,
-              ),
+              child: const Icon(Icons.add, size: 18, color: BMColors.bright),
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -372,7 +353,7 @@ class _BMPostTopicPageState extends BMBasePageState<BMPostTopicPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: const [
                   Text(
-                    '点击选择比赛',
+                    'Tap to select a match',
                     style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w700,
@@ -381,7 +362,7 @@ class _BMPostTopicPageState extends BMBasePageState<BMPostTopicPage> {
                   ),
                   SizedBox(height: 2),
                   Text(
-                    '关联比赛后话题展示比赛卡片',
+                    'related match later topic show match card',
                     style: TextStyle(
                       fontSize: 11,
                       color: BMColors.textTertiary,
@@ -401,7 +382,7 @@ class _BMPostTopicPageState extends BMBasePageState<BMPostTopicPage> {
     );
   }
 
-  /// 已关联比赛卡片 (联赛名 + 主客队标队名比分 + 右上移除按钮)
+  /// alreadyrelated match card (league name + home/away team logoteam namescore + rightupperremovebutton)
   Widget _buildMatchCard() {
     final m = _selectedMatch!;
     return Container(
@@ -413,7 +394,7 @@ class _BMPostTopicPageState extends BMBasePageState<BMPostTopicPage> {
       ),
       child: Column(
         children: [
-          // 联赛名 + 移除按钮
+          // league name + removebutton
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -449,7 +430,7 @@ class _BMPostTopicPageState extends BMBasePageState<BMPostTopicPage> {
             ],
           ),
           const SizedBox(height: 10),
-          // 主队 + 比分 + 客队
+          // home team + score + away team
           Row(
             children: [
               Expanded(
@@ -513,7 +494,7 @@ class _BMPostTopicPageState extends BMBasePageState<BMPostTopicPage> {
     );
   }
 
-  /// 第 3 段: 多选话题菜单 (候选随机展示 + 换一批 + 多选 chips)
+  /// No. 3 section: multi-selecttopicmenu (waitshow + refresh + multi-select chips)
   Widget _buildTopicsSection() {
     return Container(
       padding: const EdgeInsets.all(14),
@@ -525,12 +506,12 @@ class _BMPostTopicPageState extends BMBasePageState<BMPostTopicPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 标题行 + 换一批
+          // title row + refresh
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               const Text(
-                '选择话题',
+                'selecttopic',
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w800,
@@ -545,11 +526,8 @@ class _BMPostTopicPageState extends BMBasePageState<BMPostTopicPage> {
                     Icon(Icons.refresh, size: 12, color: BMColors.bright),
                     SizedBox(width: 3),
                     Text(
-                      '换一批',
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: BMColors.bright,
-                      ),
+                      'refresh',
+                      style: TextStyle(fontSize: 11, color: BMColors.bright),
                     ),
                   ],
                 ),
@@ -557,7 +535,7 @@ class _BMPostTopicPageState extends BMBasePageState<BMPostTopicPage> {
             ],
           ),
           const SizedBox(height: 10),
-          // 多选 chips (选中=亮绿描边+亮字, 未选=灰字)
+          // multi-select chips (selected=bright greenstroke+text, unselected=text)
           Wrap(
             spacing: 8,
             runSpacing: 8,
@@ -577,9 +555,7 @@ class _BMPostTopicPageState extends BMBasePageState<BMPostTopicPage> {
                         : BMColors.pitch950.withValues(alpha: 0.6),
                     borderRadius: BorderRadius.circular(999),
                     border: Border.all(
-                      color: selected
-                          ? BMColors.bright
-                          : BMColors.pitch800,
+                      color: selected ? BMColors.bright : BMColors.pitch800,
                       width: selected ? 1.2 : 1,
                     ),
                   ),
@@ -617,22 +593,25 @@ class _BMPostTopicPageState extends BMBasePageState<BMPostTopicPage> {
     );
   }
 
-  /// 底部固定发布条 (左侧已选话题计数 + 右侧发布按钮)
-  /// 差异化: 参照页 Post 按钮在顶栏, 本页为底部通栏大按钮
+  /// bottomfixedpublishitems (left sideselectedtopiccountcount + right sidepost button)
+  /// differentiation: referencepage Post buttontopbar, this pageasbottomcommonbarlargebutton
   Widget _buildPublishBar() {
     return Container(
-      padding: EdgeInsets.fromLTRB(14, 10, 14, 10 + MediaQuery.paddingOf(context).bottom),
+      padding: EdgeInsets.fromLTRB(
+        14,
+        10,
+        14,
+        10 + MediaQuery.paddingOf(context).bottom,
+      ),
       decoration: BoxDecoration(
         color: BMColors.pitch950,
-        border: Border(
-          top: BorderSide(color: BMColors.pitch800, width: 0.5),
-        ),
+        border: Border(top: BorderSide(color: BMColors.pitch800, width: 0.5)),
       ),
       child: Row(
         children: [
-          // 已选话题计数
+          // selectedtopiccountcount
           Text(
-            '已选话题 ${_selectedTopics.length}',
+            'selectedtopic ${_selectedTopics.length}',
             style: const TextStyle(
               fontSize: 11,
               color: BMColors.textTertiary,
@@ -663,7 +642,7 @@ class _BMPostTopicPageState extends BMBasePageState<BMPostTopicPage> {
                         ),
                       )
                     : const Text(
-                        '发布',
+                        'publish',
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w800,
@@ -678,9 +657,9 @@ class _BMPostTopicPageState extends BMBasePageState<BMPostTopicPage> {
     );
   }
 
-  /// 队标 (圆形深色底 + 网络 Logo + 失败兜底盾牌图标)
-  /// [url] - Logo URL (String? 类型)
-  /// [size] - 尺寸 (double 类型)
+  /// team logo (dark circle background + network Logo + failurefallbackshield icon)
+  /// [url] - Logo URL (String? type)
+  /// [size] - size (double type)
   Widget _buildTeamLogo(String? url, double size) {
     return Container(
       width: size,
@@ -701,13 +680,9 @@ class _BMPostTopicPageState extends BMBasePageState<BMPostTopicPage> {
     );
   }
 
-  /// 队标兜底图标 (盾牌)
-  /// [size] - 尺寸 (double 类型)
+  /// team logofallbackicon (shield)
+  /// [size] - size (double type)
   Widget _fallbackIcon(double size) {
-    return Icon(
-      Icons.shield,
-      size: size * 0.55,
-      color: BMColors.textTertiary,
-    );
+    return Icon(Icons.shield, size: size * 0.55, color: BMColors.textTertiary);
   }
 }

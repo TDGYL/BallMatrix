@@ -11,25 +11,25 @@ import '../login/bm_login_page.dart';
 import '../match/bm_basketball_detail_page.dart';
 import '../match/bm_football_detail_page.dart';
 
-/// BMTopicDetailPage - 话题详情页
-/// 功能与接口对齐 hanklive HankCommunityDetailPage:
-///   - 帖子详情:  GET /api/livespeed/community/detail (id)
-///   - 评论列表:  GET /api/livespeed/community/comment/list (object_id)
-///   - 发评论/回复: POST /api/livespeed/community/comment/add
-///   - 评论点赞:  POST /api/livespeed/support
-///   - 帖子点赞:  POST /api/livespeed/community/like
-///   - 删除帖子:  POST /api/livespeed/community/delete (自己的帖子, 导航替换关注按钮)
-///   - 关注作者:  POST /api/livespeed/imchat/subscribe
-/// 界面差异化: 深色球场绿主题 (pitch950 底 + 左侧亮绿竖线内容卡片 + 底部通栏深色评论栏),
-///   参照页为浅紫白底 + 圆角白卡片 + 圆形紫色发送按钮, 视觉完全区分
+/// BMTopicDetailPage - topic detail page
+/// featurealigned with API hanklive HankCommunityDetailPage:
+/// - postdetail: GET /api/livespeed/community/detail (id)
+/// - commentlist: GET /api/livespeed/community/comment/list (object_id)
+/// - sendcomment/reply: POST /api/livespeed/community/comment/add
+/// - commentlike: POST /api/livespeed/support
+/// - postlike: POST /api/livespeed/community/like
+/// - removepost: POST /api/livespeed/community/delete (own of post, navigationswapfollow button)
+/// - followauthor: POST /api/livespeed/imchat/subscribe
+/// UI differentiation: darkpitch green theme (pitch950 bottom + left sidebright greenlinecontentcard + bottomcommonbardarkcommentbar),
+/// referencepageaswhitebottom + rounded cornerwhitecard + circlepurplesendsendbutton, visually distinct
 class BMTopicDetailPage extends BMBasePage {
-  /// 帖子ID (int 类型, 必传, 请求详情与评论列表)
+  /// postID (int type, required, requestdetailandcommentlist)
   final int postId;
 
-  /// 列表预传帖子数据 (BMPostItem? 类型, 可选, 减少首屏白屏)
+  /// listpre-passpostdata (BMPostItem? type, optional, sublessfirst screenblank screen)
   final BMPostItem? initialPost;
 
-  /// 构造函数
+  /// constructor
   const BMTopicDetailPage({super.key, required this.postId, this.initialPost});
 
   @override
@@ -37,43 +37,43 @@ class BMTopicDetailPage extends BMBasePage {
 }
 
 class _BMTopicDetailPageState extends BMBasePageState<BMTopicDetailPage> {
-  /// 社区 API 服务 (BMCommunityApiService 类型)
+  /// community API service (BMCommunityApiService type)
   final BMCommunityApiService _apiService = BMCommunityApiService();
 
-  /// 帖子详情数据 (BMPostItem? 类型, 懒加载)
+  /// postdetaildata (BMPostItem? type, lazy load)
   BMPostItem? _post;
 
-  /// 评论列表 (List<BMCommentItem> 类型)
+  /// commentlist (List<BMCommentItem> type)
   List<BMCommentItem> _comments = [];
 
-  /// 评论总数 (int 类型)
+  /// commenttotal (int type)
   int _commentTotal = 0;
 
-  /// 详情加载中 (bool 类型)
+  /// detailloadingin (bool type)
   bool _isLoadingDetail = false;
 
-  /// 评论加载中 (bool 类型)
+  /// commentloadingin (bool type)
   bool _isLoadingComments = false;
 
-  /// 是否已点赞帖子 (bool 类型, 本地缓存状态)
+  /// liked or notpost (bool type, localcachestate)
   bool _isLiked = false;
 
-  /// 是否已关注作者 (bool 类型)
+  /// whetherfollowedauthor (bool type)
   bool _isFollowing = false;
 
-  /// 是否自己的帖子 (bool 类型, true 时导航显示删除按钮)
+  /// whetherown of post (bool type, true whennavigationdisplayremovebutton)
   bool _isOwnPost = false;
 
-  /// 评论输入控制器 (TextEditingController 类型)
+  /// commentinputcontroller (TextEditingController type)
   final TextEditingController _inputController = TextEditingController();
 
-  /// 评论输入焦点 (FocusNode 类型)
+  /// commentinputpoint (FocusNode type)
   final FocusNode _inputFocusNode = FocusNode();
 
-  /// 当前回复的评论 (BMCommentItem? 类型, null=直接评论帖子)
+  /// currentreply of comment (BMCommentItem? type, null=commentpost)
   BMCommentItem? _replyingTo;
 
-  /// 初始化: 优先用预传数据, 再请求详情与评论
+  /// initialize: priorityusepre-passdata, againrequestdetailandcomment
   @override
   void initState() {
     super.initState();
@@ -94,7 +94,7 @@ class _BMTopicDetailPageState extends BMBasePageState<BMTopicDetailPage> {
     super.dispose();
   }
 
-  /// 检查是否自己的帖子 (当前登录用户ID == 作者ID)
+  /// checkwhetherown of post (currentloginuserID == authorID)
   void _checkOwnPost() {
     final currentUserId = BMAuthManager().currentUser?.id;
     final authorId = _post?.author?.id;
@@ -103,7 +103,7 @@ class _BMTopicDetailPageState extends BMBasePageState<BMTopicDetailPage> {
     }
   }
 
-  /// 请求帖子详情 (GET /api/livespeed/community/detail)
+  /// requestpostdetail (GET /api/livespeed/community/detail)
   Future<void> _fetchPostDetail() async {
     setState(() {
       _isLoadingDetail = true;
@@ -121,7 +121,7 @@ class _BMTopicDetailPageState extends BMBasePageState<BMTopicDetailPage> {
     });
   }
 
-  /// 请求评论列表 (GET /api/livespeed/community/comment/list)
+  /// requestcommentlist (GET /api/livespeed/community/comment/list)
   Future<void> _fetchComments() async {
     setState(() {
       _isLoadingComments = true;
@@ -137,7 +137,7 @@ class _BMTopicDetailPageState extends BMBasePageState<BMTopicDetailPage> {
     });
   }
 
-  /// 帖子点赞/取消 (POST /api/livespeed/community/like) 乐观更新
+  /// postlike/Take effect (POST /api/livespeed/community/like) optimistic update
   Future<void> _toggleLike() async {
     if (!BMAuthManager().isLoggedIn) {
       _showLoginPrompt();
@@ -155,12 +155,12 @@ class _BMTopicDetailPageState extends BMBasePageState<BMTopicDetailPage> {
       setState(() {
         _isLiked = !newIsLiked;
       });
-      _showToast('操作失败, 请重试');
+      _showToast('operation failed, please retry');
     }
   }
 
-  /// 评论点赞/取消 (POST /api/livespeed/support) 乐观更新
-  /// [comment] - 目标评论 (BMCommentItem 类型)
+  /// commentlike/Take effect (POST /api/livespeed/support) optimistic update
+  /// [comment] - goalcomment (BMCommentItem type)
   Future<void> _toggleCommentSupport(BMCommentItem comment) async {
     if (!BMAuthManager().isLoggedIn) {
       _showLoginPrompt();
@@ -184,11 +184,11 @@ class _BMTopicDetailPageState extends BMBasePageState<BMTopicDetailPage> {
         comment.isSupport = !newIsSupport;
         comment.support = newIsSupport ? newCount - 1 : newCount + 1;
       });
-      _showToast('操作失败, 请重试');
+      _showToast('operation failed, please retry');
     }
   }
 
-  /// 关注/取消关注作者 (POST /api/livespeed/imchat/subscribe) 乐观更新
+  /// follow/Take effectfollowauthor (POST /api/livespeed/imchat/subscribe) optimistic update
   Future<void> _toggleFollowAuthor() async {
     if (!BMAuthManager().isLoggedIn) {
       _showLoginPrompt();
@@ -208,13 +208,13 @@ class _BMTopicDetailPageState extends BMBasePageState<BMTopicDetailPage> {
       setState(() {
         _isFollowing = !newFollowing;
       });
-      _showToast('操作失败, 请重试');
+      _showToast('operation failed, please retry');
     } else if (mounted) {
-      _showToast(newFollowing ? '已关注' : '已取消关注');
+      _showToast(newFollowing ? 'followed' : 'Unfollowed');
     }
   }
 
-  /// 删除帖子 (POST /api/livespeed/community/delete) 二次弹窗确认
+  /// removepost (POST /api/livespeed/community/delete) confirmation dialogconfirm
   Future<void> _deletePost() async {
     final confirmed = await showDialog<bool>(
       context: context,
@@ -225,7 +225,7 @@ class _BMTopicDetailPageState extends BMBasePageState<BMTopicDetailPage> {
           side: BorderSide(color: BMColors.pitch700.withValues(alpha: 0.5)),
         ),
         title: const Text(
-          '删除帖子',
+          'removepost',
           style: TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.w600,
@@ -233,21 +233,21 @@ class _BMTopicDetailPageState extends BMBasePageState<BMTopicDetailPage> {
           ),
         ),
         content: const Text(
-          '确定要删除这篇帖子吗?',
+          'needremovepost?',
           style: TextStyle(fontSize: 13, color: BMColors.textSecondary),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
             child: const Text(
-              '取消',
+              'Take effect',
               style: TextStyle(fontSize: 14, color: BMColors.textTertiary),
             ),
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
             child: const Text(
-              '删除',
+              'remove',
               style: TextStyle(fontSize: 14, color: Color(0xFFDC2626)),
             ),
           ),
@@ -259,15 +259,15 @@ class _BMTopicDetailPageState extends BMBasePageState<BMTopicDetailPage> {
     final success = await _apiService.deletePost(postId: widget.postId);
     if (!mounted) return;
     if (success) {
-      _showToast('帖子已删除');
+      _showToast('Post deleted');
       Navigator.pop(context, true);
     } else {
-      _showToast('删除失败, 请重试');
+      _showToast('removefailure, please retry');
     }
   }
 
-  /// 开始回复某条评论 (填充回复目标并聚焦输入框)
-  /// [comment] - 目标评论 (BMCommentItem 类型)
+  /// startreplysomeitemscomment (fillreplygoalandinput field)
+  /// [comment] - goalcomment (BMCommentItem type)
   void _startReply(BMCommentItem comment) {
     if (!BMAuthManager().isLoggedIn) {
       _showLoginPrompt();
@@ -279,7 +279,7 @@ class _BMTopicDetailPageState extends BMBasePageState<BMTopicDetailPage> {
     FocusScope.of(context).requestFocus(_inputFocusNode);
   }
 
-  /// 取消回复模式
+  /// Take effectreplymodulestyle
   void _cancelReply() {
     setState(() {
       _replyingTo = null;
@@ -288,7 +288,7 @@ class _BMTopicDetailPageState extends BMBasePageState<BMTopicDetailPage> {
     _inputFocusNode.unfocus();
   }
 
-  /// 提交评论/回复 (POST /api/livespeed/community/comment/add)
+  /// comment/reply (POST /api/livespeed/community/comment/add)
   Future<void> _submitComment() async {
     final words = _inputController.text.trim();
     if (words.isEmpty) return;
@@ -296,7 +296,7 @@ class _BMTopicDetailPageState extends BMBasePageState<BMTopicDetailPage> {
       _showLoginPrompt();
       return;
     }
-    // 回复一级评论时取 parent_id (若回复的是子评论则用其父评论ID)
+    // replylevel-1 commentwhentake parent_id (ifreply of yessubcommentthenuseitscommentID)
     int? commentId;
     if (_replyingTo != null) {
       final parent = _replyingTo!.parentId;
@@ -317,13 +317,13 @@ class _BMTopicDetailPageState extends BMBasePageState<BMTopicDetailPage> {
       });
       _inputFocusNode.unfocus();
     } else {
-      _showToast('评论失败, 请重试');
+      _showToast('commentfailure, please retry');
     }
   }
 
-  /// 新评论插入列表 (直接评论插头部, 回复插入对应一级评论的子列表)
-  /// [newComment] - 新评论数据 (BMCommentItem 类型)
-  /// [commentId] - 非null表示回复, 插入对应一级评论 (int? 类型)
+  /// newcommentinsertlist (commentheader, replyinsertcorrespondinglevel-1 comment of sublist)
+  /// [newComment] - newcommentdata (BMCommentItem type)
+  /// [commentId] - nonnullmeansreply, insertcorrespondinglevel-1 comment (int? type)
   void _insertComment(BMCommentItem newComment, int? commentId) {
     if (commentId == null) {
       _comments.insert(0, newComment);
@@ -340,7 +340,7 @@ class _BMTopicDetailPageState extends BMBasePageState<BMTopicDetailPage> {
     }
   }
 
-  /// 登录引导弹窗 (未登录时操作触发)
+  /// login guidedialog (not logged inwhendosend)
   void _showLoginPrompt() {
     showDialog(
       context: context,
@@ -351,7 +351,7 @@ class _BMTopicDetailPageState extends BMBasePageState<BMTopicDetailPage> {
           side: BorderSide(color: BMColors.pitch700.withValues(alpha: 0.5)),
         ),
         title: const Text(
-          '提示',
+          'toast',
           style: TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.w600,
@@ -359,14 +359,14 @@ class _BMTopicDetailPageState extends BMBasePageState<BMTopicDetailPage> {
           ),
         ),
         content: const Text(
-          '请先登录后再操作',
+          'Login first to comment',
           style: TextStyle(fontSize: 13, color: BMColors.textSecondary),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
             child: const Text(
-              '取消',
+              'Take effect',
               style: TextStyle(fontSize: 14, color: BMColors.textTertiary),
             ),
           ),
@@ -379,7 +379,7 @@ class _BMTopicDetailPageState extends BMBasePageState<BMTopicDetailPage> {
               );
             },
             child: const Text(
-              '去登录',
+              'login',
               style: TextStyle(fontSize: 14, color: BMColors.bright),
             ),
           ),
@@ -388,15 +388,12 @@ class _BMTopicDetailPageState extends BMBasePageState<BMTopicDetailPage> {
     );
   }
 
-  /// 显示 toast
-  /// [message] - 提示文案 (String 类型)
+  /// display toast
+  /// [message] - toasttext (String type)
   void _showToast(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(
-          message,
-          style: const TextStyle(color: Colors.white),
-        ),
+        content: Text(message, style: const TextStyle(color: Colors.white)),
         duration: const Duration(seconds: 1),
         backgroundColor: BMColors.pitch800,
         behavior: SnackBarBehavior.floating,
@@ -404,32 +401,32 @@ class _BMTopicDetailPageState extends BMBasePageState<BMTopicDetailPage> {
     );
   }
 
-  /// 格式化时间戳为可读文案
-  /// [timestamp] - 秒级时间戳 (int? 类型)
-  /// 返回: 如 "2分钟前" / "3小时前" / "5天前" / "03-12"
+  /// formattimestampascanreadtext
+  /// [timestamp] - secondlevel timestamp (int? type)
+  /// returns: like "2minutefirst" / "3hourfirst" / "5dayfirst" / "03-12"
   String _formatTime(int? timestamp) {
     if (timestamp == null || timestamp == 0) return '';
     final now = DateTime.now();
     final date = DateTime.fromMillisecondsSinceEpoch(timestamp * 1000);
     final diff = now.difference(date);
-    if (diff.inMinutes < 60) return '${diff.inMinutes}分钟前';
-    if (diff.inHours < 24) return '${diff.inHours}小时前';
-    if (diff.inDays < 30) return '${diff.inDays}天前';
+    if (diff.inMinutes < 60) return '${diff.inMinutes}minutefirst';
+    if (diff.inHours < 24) return '${diff.inHours}hourfirst';
+    if (diff.inDays < 30) return '${diff.inDays}dayfirst';
     return '${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
   }
 
-  /// 比赛卡跳转对应比赛详情 (按球类型分流: match_type=2 篮球 / 其他 足球)
-  /// [match] - 帖子关联比赛数据 (BMPostMatch 类型)
+  /// matchcardnavigatecorrespondingmatchdetail (by sport typesplit by: match_type=2 basketball / others football)
+  /// [match] - postrelated match data (BMPostMatch type)
   void _pushToMatchDetail(BMPostMatch match) {
     final int? matchId = match.matchId;
     if (matchId == null) return;
     final int matchType = match.matchType ?? 1;
-    // 构建 BMMatchModel (复用详情页展示字段)
+    // build BMMatchModel (reusedetailpageshowfield)
     final model = _buildMatchModel(match);
     Navigator.push(
       context,
       MaterialPageRoute(
-        // 球类型分流: match_type=2 -> 篮球详情, 其他 -> 足球详情
+        // sport typesplit by: match_type=2 -> basketball detail, others -> football detail
         builder: (_) => matchType == 2
             ? BMBasketballDetailPage(match: model)
             : BMFootballDetailPage(match: model),
@@ -437,16 +434,16 @@ class _BMTopicDetailPageState extends BMBasePageState<BMTopicDetailPage> {
     );
   }
 
-  /// BMPostMatch 转 BMMatchModel (跳转比赛详情页用)
-  /// [m] - 帖子关联比赛数据 (BMPostMatch 类型)
-  /// 返回: BMMatchModel
+  /// BMPostMatch convert BMMatchModel (navigatematch detail pageusage)
+  /// [m] - postrelated match data (BMPostMatch type)
+  /// returns: BMMatchModel
   BMMatchModel _buildMatchModel(BMPostMatch m) {
     final int? statusId = m.statusId;
     final int matchType = m.matchType ?? 1;
     final sport = matchType == 2
         ? BMMatchSportType.basketball
         : BMMatchSportType.football;
-    // 状态映射: 篮球 1|13未开始 2-9进行 10|11结束 / 足球 1未开始 2-5|7进行 8结束
+    // statemapping: basketball 1|13NS 2-9in progress 10|11end / football 1NS 2-5|7in progress 8end
     BMMatchStatus status;
     if (sport == BMMatchSportType.basketball) {
       switch (statusId) {
@@ -490,7 +487,7 @@ class _BMTopicDetailPageState extends BMBasePageState<BMTopicDetailPage> {
           status = BMMatchStatus.tbd;
       }
     }
-    // 开赛时间格式化 (秒级时间戳 -> HH:mm)
+    // kickoff timeformat (secondlevel timestamp -> HH:mm)
     String matchTime = '';
     final int? startTs = m.startTime;
     if (startTs != null && startTs > 0) {
@@ -538,7 +535,7 @@ class _BMTopicDetailPageState extends BMBasePageState<BMTopicDetailPage> {
     );
   }
 
-  /// 顶部导航 (返回 + 标题 + 关注按钮/删除按钮)
+  /// topnavigation (returns + title + follow button/removebutton)
   Widget _buildNavBar() {
     return Container(
       padding: const EdgeInsets.fromLTRB(4, 8, 8, 8),
@@ -562,7 +559,7 @@ class _BMTopicDetailPageState extends BMBasePageState<BMTopicDetailPage> {
           ),
           const Expanded(
             child: Text(
-              '话题详情',
+              'topic detail',
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 16,
@@ -571,14 +568,16 @@ class _BMTopicDetailPageState extends BMBasePageState<BMTopicDetailPage> {
               ),
             ),
           ),
-          // 自己的帖子显示删除按钮, 他人帖子显示关注按钮
+          // own of postdisplayremovebutton, peoplepostdisplayfollow button
           if (_isOwnPost)
             GestureDetector(
               onTap: _deletePost,
               behavior: HitTestBehavior.opaque,
               child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
                 decoration: BoxDecoration(
                   color: const Color(0xFFDC2626).withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(999),
@@ -589,11 +588,14 @@ class _BMTopicDetailPageState extends BMBasePageState<BMTopicDetailPage> {
                 child: const Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.delete_outline,
-                        size: 14, color: Color(0xFFDC2626)),
+                    Icon(
+                      Icons.delete_outline,
+                      size: 14,
+                      color: Color(0xFFDC2626),
+                    ),
                     SizedBox(width: 4),
                     Text(
-                      '删除',
+                      'remove',
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
@@ -609,8 +611,10 @@ class _BMTopicDetailPageState extends BMBasePageState<BMTopicDetailPage> {
               onTap: _toggleFollowAuthor,
               behavior: HitTestBehavior.opaque,
               child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
                 decoration: BoxDecoration(
                   color: _isFollowing
                       ? BMColors.pitch800
@@ -632,7 +636,7 @@ class _BMTopicDetailPageState extends BMBasePageState<BMTopicDetailPage> {
                     ),
                     const SizedBox(width: 4),
                     Text(
-                      _isFollowing ? '已关注' : '关注',
+                      _isFollowing ? 'followed' : 'follow',
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
@@ -650,7 +654,7 @@ class _BMTopicDetailPageState extends BMBasePageState<BMTopicDetailPage> {
     );
   }
 
-  /// 主体内容 (作者卡 + 内容 + 话题标签 + 比赛卡 + 互动栏 + 评论列表)
+  /// main content (authorcard + content + topictag + matchcard + bar + commentlist)
   Widget _buildBody() {
     if (_isLoadingDetail && _post == null) {
       return const Center(
@@ -672,7 +676,7 @@ class _BMTopicDetailPageState extends BMBasePageState<BMTopicDetailPage> {
             Icon(Icons.error_outline, size: 44, color: BMColors.pitch600),
             SizedBox(height: 12),
             Text(
-              '加载失败',
+              'Load Failed',
               style: TextStyle(color: BMColors.textTertiary, fontSize: 12),
             ),
           ],
@@ -691,7 +695,7 @@ class _BMTopicDetailPageState extends BMBasePageState<BMTopicDetailPage> {
         ],
         if (_post!.match != null) ...[
           const SizedBox(height: 12),
-          // 比赛卡点击按球类型跳转对应比赛详情 (match_type=2 篮球 / 其他 足球)
+          // matchcardtapby sport typenavigatecorrespondingmatchdetail (match_type=2 basketball / others football)
           GestureDetector(
             onTap: () => _pushToMatchDetail(_post!.match!),
             behavior: HitTestBehavior.opaque,
@@ -707,19 +711,19 @@ class _BMTopicDetailPageState extends BMBasePageState<BMTopicDetailPage> {
     );
   }
 
-  /// 作者信息卡 (头像 + 昵称 + 发布时间)
+  /// authorinfocard (avatar + nickname + publishtime)
   Widget _buildAuthorCard() {
     final author = _post!.author;
     return Row(
       children: [
-        _buildAvatar(author?.avatar, author?.name ?? '球迷', 40),
+        _buildAvatar(author?.avatar, author?.name ?? 'fans', 40),
         const SizedBox(width: 10),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                author?.name ?? '匿名球迷',
+                author?.name ?? 'namefans',
                 style: const TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w700,
@@ -741,7 +745,7 @@ class _BMTopicDetailPageState extends BMBasePageState<BMTopicDetailPage> {
     );
   }
 
-  /// 内容卡片 (深色卡 + 左侧亮绿竖线)
+  /// contentcard (darkcard + left sidebright greenline)
   Widget _buildContentCard() {
     return Container(
       padding: const EdgeInsets.all(14),
@@ -754,7 +758,10 @@ class _BMTopicDetailPageState extends BMBasePageState<BMTopicDetailPage> {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Container(width: 3, decoration: BoxDecoration(color: BMColors.bright)),
+            Container(
+              width: 3,
+              decoration: BoxDecoration(color: BMColors.bright),
+            ),
             const SizedBox(width: 12),
             Expanded(
               child: Text(
@@ -772,7 +779,7 @@ class _BMTopicDetailPageState extends BMBasePageState<BMTopicDetailPage> {
     );
   }
 
-  /// 解析话题标签 (image 逗号切割 + 过滤 com/ 前缀, 逐段过滤)
+  /// parsetopictag (image comma split + filter com/ first, sectionfilter)
   List<String> _parseHashtags() {
     final rawImage = (_post!.images != null && _post!.images!.isNotEmpty)
         ? _post!.images!.first
@@ -789,7 +796,7 @@ class _BMTopicDetailPageState extends BMBasePageState<BMTopicDetailPage> {
         .toList();
   }
 
-  /// 话题标签横排 (多个 # 标签胶囊)
+  /// topictagorder (multiple # tagpill)
   Widget _buildTagsRow() {
     final tags = _parseHashtags();
     return SizedBox(
@@ -805,9 +812,7 @@ class _BMTopicDetailPageState extends BMBasePageState<BMTopicDetailPage> {
             decoration: BoxDecoration(
               color: BMColors.bright.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(8),
-              border: Border.all(
-                color: BMColors.bright.withValues(alpha: 0.4),
-              ),
+              border: Border.all(color: BMColors.bright.withValues(alpha: 0.4)),
             ),
             child: Text(
               '#${tags[index]}',
@@ -823,9 +828,11 @@ class _BMTopicDetailPageState extends BMBasePageState<BMTopicDetailPage> {
     );
   }
 
-  /// 关联比赛卡 (联赛名 + 状态 + 主客队标队名 + 比分, 深色球场风)
+  /// related matchcard (league name + state + home/away team logoteam name + score, darkballcourt)
   Widget _buildMatchCard() {
     final match = _post!.match!;
+    // stateby statusId + sportTyperulecheck (sameaslistcard, reference BMMatchModel.displayStatusLabel)
+    final String statusLabel = _buildMatchModel(match).displayStatusLabel;
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
@@ -835,11 +842,10 @@ class _BMTopicDetailPageState extends BMBasePageState<BMTopicDetailPage> {
       ),
       child: Column(
         children: [
-          // 联赛名 + 状态胶囊
+          // league name + statepill
           Row(
             children: [
-              const Icon(Icons.emoji_events,
-                  size: 13, color: BMColors.bright),
+              const Icon(Icons.emoji_events, size: 13, color: BMColors.bright),
               const SizedBox(width: 5),
               Expanded(
                 child: Text(
@@ -854,14 +860,14 @@ class _BMTopicDetailPageState extends BMBasePageState<BMTopicDetailPage> {
                 ),
               ),
               Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
                   color: BMColors.pitch800,
                   borderRadius: BorderRadius.circular(999),
                 ),
                 child: Text(
-                  match.statusName ?? '',
+                  // stateby statusId + sportTyperulecheck (sameaslistcard)
+                  statusLabel == '-' ? (match.statusName ?? '') : statusLabel,
                   style: const TextStyle(
                     fontSize: 10,
                     color: BMColors.textSecondary,
@@ -871,7 +877,7 @@ class _BMTopicDetailPageState extends BMBasePageState<BMTopicDetailPage> {
             ],
           ),
           const SizedBox(height: 14),
-          // 主队 + 比分 + 客队
+          // home team + score + away team
           Row(
             children: [
               Expanded(
@@ -935,7 +941,7 @@ class _BMTopicDetailPageState extends BMBasePageState<BMTopicDetailPage> {
     );
   }
 
-  /// 互动数据栏 (点赞 + 评论数 + 开赛时间)
+  /// databar (like + commentcount + kickoff time)
   Widget _buildStatsRow() {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
@@ -952,8 +958,7 @@ class _BMTopicDetailPageState extends BMBasePageState<BMTopicDetailPage> {
             child: Icon(
               _isLiked ? Icons.favorite : Icons.favorite_border,
               size: 16,
-              color:
-                  _isLiked ? const Color(0xFFDC2626) : BMColors.textTertiary,
+              color: _isLiked ? const Color(0xFFDC2626) : BMColors.textTertiary,
             ),
           ),
           const SizedBox(width: 22),
@@ -974,7 +979,7 @@ class _BMTopicDetailPageState extends BMBasePageState<BMTopicDetailPage> {
           const Spacer(),
           if (_post!.match?.startTime != null)
             Text(
-              '开赛 ${_formatTime(_post!.match!.startTime)}',
+              'open match ${_formatTime(_post!.match!.startTime)}',
               style: const TextStyle(
                 fontSize: 11,
                 color: BMColors.textTertiary,
@@ -985,7 +990,7 @@ class _BMTopicDetailPageState extends BMBasePageState<BMTopicDetailPage> {
     );
   }
 
-  /// 评论区分区标题
+  /// commentzonezone title
   Widget _buildCommentsHeader() {
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
@@ -1001,7 +1006,7 @@ class _BMTopicDetailPageState extends BMBasePageState<BMTopicDetailPage> {
           ),
           const SizedBox(width: 7),
           Text(
-            '全部评论 $_commentTotal',
+            'allcomment $_commentTotal',
             style: const TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w800,
@@ -1013,7 +1018,7 @@ class _BMTopicDetailPageState extends BMBasePageState<BMTopicDetailPage> {
     );
   }
 
-  /// 评论列表 (加载中/空态/数据态三分支)
+  /// commentlist (loadingin/emptystate/datastatethreebranch)
   Widget _buildCommentsList() {
     if (_isLoadingComments && _comments.isEmpty) {
       return const Padding(
@@ -1035,19 +1040,17 @@ class _BMTopicDetailPageState extends BMBasePageState<BMTopicDetailPage> {
         padding: EdgeInsets.symmetric(vertical: 32),
         child: Center(
           child: Text(
-            '暂无评论, 快来抢沙发~',
+            'No comment, fastsend~',
             style: TextStyle(fontSize: 12, color: BMColors.textTertiary),
           ),
         ),
       );
     }
-    return Column(
-      children: _comments.map(_buildCommentCard).toList(),
-    );
+    return Column(children: _comments.map(_buildCommentCard).toList());
   }
 
-  /// 单条评论卡片 (深色卡 + 头像昵称时间 + 内容 + 子回复 + 点赞回复操作)
-  /// [comment] - 评论数据 (BMCommentItem 类型)
+  /// singlecommentcard (darkcard + avatarnicknametime + content + subreply + likereplydo)
+  /// [comment] - commentdata (BMCommentItem type)
   Widget _buildCommentCard(BMCommentItem comment) {
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
@@ -1060,20 +1063,20 @@ class _BMTopicDetailPageState extends BMBasePageState<BMTopicDetailPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 头像 + 昵称 + 时间 (点击整个头部对该一级评论回复)
+          // avatar + nickname + time (tapwholeitemsheadercorrectthelevel-1 commentreply)
           GestureDetector(
             onTap: () => _startReply(comment),
             behavior: HitTestBehavior.opaque,
             child: Row(
               children: [
-                _buildAvatar(comment.userPic, comment.userName ?? '球迷', 26),
+                _buildAvatar(comment.userPic, comment.userName ?? 'fans', 26),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        comment.userName ?? '匿名球迷',
+                        comment.userName ?? 'namefans',
                         style: const TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
@@ -1094,23 +1097,27 @@ class _BMTopicDetailPageState extends BMBasePageState<BMTopicDetailPage> {
             ),
           ),
           const SizedBox(height: 8),
-          // 评论内容
+          // commentcontent
           Text(
-            comment.deletedAt != null ? '该评论已删除' : (comment.words ?? ''),
+            comment.deletedAt != null
+                ? 'Comment deleted'
+                : (comment.words ?? ''),
             style: TextStyle(
               fontSize: 13,
               height: 1.5,
               color: BMColors.textSecondary,
-              fontStyle:
-                  comment.deletedAt != null ? FontStyle.italic : FontStyle.normal,
+              fontStyle: comment.deletedAt != null
+                  ? FontStyle.italic
+                  : FontStyle.normal,
             ),
           ),
-          // 子回复列表
+          // subreplylist
           if (comment.showChildComments != null &&
               comment.showChildComments!.isNotEmpty)
-            ...comment.showChildComments!
-                .map((child) => _buildChildComment(child)),
-          // 点赞操作 (回复入口已移至一级评论头部点击)
+            ...comment.showChildComments!.map(
+              (child) => _buildChildComment(child),
+            ),
+          // likedo (replyinputalreadylevel-1 commentheadertap)
           Padding(
             padding: const EdgeInsets.only(top: 8),
             child: Row(
@@ -1152,8 +1159,8 @@ class _BMTopicDetailPageState extends BMBasePageState<BMTopicDetailPage> {
     );
   }
 
-  /// 子回复条目 (昵称 回复 @昵称: 内容 + 时间/回复操作)
-  /// [child] - 子回复数据 (BMCommentItem 类型)
+  /// subreplyitemsitem (nickname reply @nickname: content + time/replydo)
+  /// [child] - subreplydata (BMCommentItem type)
   Widget _buildChildComment(BMCommentItem child) {
     return Container(
       margin: const EdgeInsets.only(top: 8, left: 34),
@@ -1170,7 +1177,7 @@ class _BMTopicDetailPageState extends BMBasePageState<BMTopicDetailPage> {
             text: TextSpan(
               children: [
                 TextSpan(
-                  text: child.userName ?? '球迷',
+                  text: child.userName ?? 'fans',
                   style: const TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
@@ -1180,7 +1187,7 @@ class _BMTopicDetailPageState extends BMBasePageState<BMTopicDetailPage> {
                 if (child.replyToUserName != null &&
                     child.replyToUserName!.isNotEmpty) ...[
                   const TextSpan(
-                    text: ' 回复 ',
+                    text: ' reply ',
                     style: TextStyle(
                       fontSize: 12,
                       color: BMColors.textTertiary,
@@ -1206,7 +1213,7 @@ class _BMTopicDetailPageState extends BMBasePageState<BMTopicDetailPage> {
             ),
           ),
           const SizedBox(height: 4),
-          // 时间 (回复入口: 点击子评论内容区对其回复)
+          // time (replyinput: tapsubcommentcontentzonecorrectitsreply)
           GestureDetector(
             onTap: () => _startReply(child),
             behavior: HitTestBehavior.opaque,
@@ -1228,17 +1235,15 @@ class _BMTopicDetailPageState extends BMBasePageState<BMTopicDetailPage> {
     );
   }
 
-  /// 底部栏 (已登录=评论输入框 / 未登录=登录引导入口)
+  /// bottombar (logged in=commentinput field / not logged in=login guideinput)
   Widget _buildBottomBar() {
     if (!BMAuthManager().isLoggedIn) {
-      // 未登录: 引导登录入口
+      // not logged in: logininput
       return Container(
         padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
         decoration: BoxDecoration(
           color: BMColors.pitch900,
-          border: Border(
-            top: BorderSide(color: BMColors.pitch800, width: 0.5),
-          ),
+          border: Border(top: BorderSide(color: BMColors.pitch800, width: 0.5)),
         ),
         child: GestureDetector(
           onTap: () => Navigator.push(
@@ -1260,7 +1265,7 @@ class _BMTopicDetailPageState extends BMBasePageState<BMTopicDetailPage> {
                 Icon(Icons.lock_outline, size: 15, color: BMColors.bright),
                 SizedBox(width: 6),
                 Text(
-                  '登录后参与评论',
+                  'Login to comment',
                   style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
@@ -1273,14 +1278,12 @@ class _BMTopicDetailPageState extends BMBasePageState<BMTopicDetailPage> {
         ),
       );
     }
-    // 已登录: 评论输入框 + 发送按钮 (含回复模式提示)
+    // logged in: commentinput field + sendsendbutton (includesreplymodulestyletoast)
     return Container(
       padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
       decoration: BoxDecoration(
         color: BMColors.pitch900,
-        border: Border(
-          top: BorderSide(color: BMColors.pitch800, width: 0.5),
-        ),
+        border: Border(top: BorderSide(color: BMColors.pitch800, width: 0.5)),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -1300,7 +1303,7 @@ class _BMTopicDetailPageState extends BMBasePageState<BMTopicDetailPage> {
                   const SizedBox(width: 4),
                   Expanded(
                     child: Text(
-                      '回复 ${_replyingTo!.userName ?? ''}',
+                      'reply ${_replyingTo!.userName ?? ''}',
                       style: const TextStyle(
                         fontSize: 11,
                         color: BMColors.bright,
@@ -1344,8 +1347,8 @@ class _BMTopicDetailPageState extends BMBasePageState<BMTopicDetailPage> {
                     decoration: InputDecoration(
                       isCollapsed: true,
                       hintText: _replyingTo != null
-                          ? '回复 ${_replyingTo!.userName ?? ''}'
-                          : '写下你的评论...',
+                          ? 'reply ${_replyingTo!.userName ?? ''}'
+                          : 'writelower of comment...',
                       hintStyle: const TextStyle(
                         fontSize: 13,
                         color: BMColors.textTertiary,
@@ -1368,7 +1371,7 @@ class _BMTopicDetailPageState extends BMBasePageState<BMTopicDetailPage> {
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: const Text(
-                    '发送',
+                    'send',
                     style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w700,
@@ -1384,10 +1387,10 @@ class _BMTopicDetailPageState extends BMBasePageState<BMTopicDetailPage> {
     );
   }
 
-  /// 头像组件 (网络头像 + 失败兜底首字)
-  /// [url] - 头像URL (String? 类型)
-  /// [name] - 昵称 (String 类型, 兜底头像取首字)
-  /// [size] - 尺寸 (double 类型)
+  /// avatarwidget (networkavatar + failurefallbacktext)
+  /// [url] - avatarURL (String? type)
+  /// [name] - nickname (String type, fallbackavatartaketext)
+  /// [size] - size (double type)
   Widget _buildAvatar(String? url, String name, double size) {
     return Container(
       width: size,
@@ -1408,9 +1411,9 @@ class _BMTopicDetailPageState extends BMBasePageState<BMTopicDetailPage> {
     );
   }
 
-  /// 默认头像 (昵称首字)
-  /// [name] - 昵称 (String 类型)
-  /// [size] - 尺寸 (double 类型)
+  /// defaultavatar (nicknametext)
+  /// [name] - nickname (String type)
+  /// [size] - size (double type)
   Widget _defaultAvatar(String name, double size) {
     final initial = name.isNotEmpty ? name.characters.first : '?';
     return Container(
@@ -1432,9 +1435,9 @@ class _BMTopicDetailPageState extends BMBasePageState<BMTopicDetailPage> {
     );
   }
 
-  /// 队标组件 (圆形深色底 + 网络 Logo + 兜底盾牌)
-  /// [url] - Logo URL (String? 类型)
-  /// [size] - 尺寸 (double 类型)
+  /// team logowidget (dark circle background + network Logo + fallbackshield)
+  /// [url] - Logo URL (String? type)
+  /// [size] - size (double type)
   Widget _buildTeamLogo(String? url, double size) {
     return Container(
       width: size,

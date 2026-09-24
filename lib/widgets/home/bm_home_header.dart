@@ -1,17 +1,15 @@
 import 'package:flutter/material.dart';
+
 import '../../theme/bm_colors.dart';
 
-/// BMHomeHeader - 首页顶部头部组件
-/// 功能: 展示App Logo、标题、副标题及搜索按钮
-/// 作用范围: 首页顶部
+/// BMHomeHeader - hometopheaderwidget
+/// feature: showApp Logo、title、copytitleandsearchbutton
+/// purposescope: hometop
 class BMHomeHeader extends StatelessWidget {
-  /// 搜索按钮点击回调 (VoidCallback 类型, 可空)
+  /// searchbuttontap callback (VoidCallback type, can be empty)
   final VoidCallback? onSearchTap;
 
-  const BMHomeHeader({
-    super.key,
-    this.onSearchTap,
-  });
+  const BMHomeHeader({super.key, this.onSearchTap});
 
   @override
   Widget build(BuildContext context) {
@@ -28,7 +26,7 @@ class BMHomeHeader extends StatelessWidget {
     );
   }
 
-  /// 构建Logo图标
+  /// buildLogoicon
   Widget _buildLogo() {
     return Container(
       width: 40,
@@ -56,7 +54,7 @@ class BMHomeHeader extends StatelessWidget {
     );
   }
 
-  /// 构建标题区域
+  /// buildtitlezone
   Widget _buildTitleSection() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -64,7 +62,7 @@ class BMHomeHeader extends StatelessWidget {
         Row(
           children: [
             const Text(
-              '绿场智算',
+              'pitch intelligence',
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
@@ -77,7 +75,9 @@ class BMHomeHeader extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
               decoration: BoxDecoration(
                 color: BMColors.accent.withValues(alpha: 0.2),
-                border: Border.all(color: BMColors.accent.withValues(alpha: 0.3)),
+                border: Border.all(
+                  color: BMColors.accent.withValues(alpha: 0.3),
+                ),
                 borderRadius: BorderRadius.circular(4),
               ),
               child: const Text(
@@ -94,14 +94,14 @@ class BMHomeHeader extends StatelessWidget {
         ),
         const SizedBox(height: 2),
         const Text(
-          '实时 AI 赛况预测与高阶建模',
+          'actual build module',
           style: TextStyle(fontSize: 12, color: BMColors.textSecondary),
         ),
       ],
     );
   }
 
-  /// 构建搜索按钮
+  /// buildsearchbutton
   Widget _buildSearchButton() {
     return GestureDetector(
       onTap: onSearchTap,
