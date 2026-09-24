@@ -58,9 +58,6 @@ class _BMTopicDetailPageState extends BMBasePageState<BMTopicDetailPage> {
   /// 是否已点赞帖子 (bool 类型, 本地缓存状态)
   bool _isLiked = false;
 
-  /// 帖子点赞数 (int 类型, 本地缓存)
-  int _likeCount = 0;
-
   /// 是否已关注作者 (bool 类型)
   bool _isFollowing = false;
 
@@ -83,7 +80,6 @@ class _BMTopicDetailPageState extends BMBasePageState<BMTopicDetailPage> {
     if (widget.initialPost != null) {
       _post = widget.initialPost;
       _isLiked = widget.initialPost!.isLike ?? false;
-      _likeCount = widget.initialPost!.likeCount ?? 0;
       _isFollowing = widget.initialPost!.author?.isSubscribe ?? false;
       _checkOwnPost();
     }
@@ -118,7 +114,6 @@ class _BMTopicDetailPageState extends BMBasePageState<BMTopicDetailPage> {
       if (result != null) {
         _post = result;
         _isLiked = result.isLike ?? false;
-        _likeCount = result.likeCount ?? 0;
         _isFollowing = result.author?.isSubscribe ?? false;
         _checkOwnPost();
       }
@@ -149,11 +144,8 @@ class _BMTopicDetailPageState extends BMBasePageState<BMTopicDetailPage> {
       return;
     }
     final newIsLiked = !_isLiked;
-    final newLikeCount =
-        newIsLiked ? _likeCount + 1 : (_likeCount > 0 ? _likeCount - 1 : 0);
     setState(() {
       _isLiked = newIsLiked;
-      _likeCount = newLikeCount;
     });
     final success = await _apiService.likePost(
       postId: widget.postId,
@@ -162,7 +154,6 @@ class _BMTopicDetailPageState extends BMBasePageState<BMTopicDetailPage> {
     if (!success && mounted) {
       setState(() {
         _isLiked = !newIsLiked;
-        _likeCount = newIsLiked ? newLikeCount - 1 : newLikeCount + 1;
       });
       _showToast('操作失败, 请重试');
     }
@@ -958,28 +949,11 @@ class _BMTopicDetailPageState extends BMBasePageState<BMTopicDetailPage> {
           GestureDetector(
             onTap: _toggleLike,
             behavior: HitTestBehavior.opaque,
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  _isLiked ? Icons.favorite : Icons.favorite_border,
-                  size: 16,
-                  color: _isLiked
-                      ? const Color(0xFFDC2626)
-                      : BMColors.textTertiary,
-                ),
-                const SizedBox(width: 5),
-                Text(
-                  '$_likeCount',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontFamily: 'monospace',
-                    color: _isLiked
-                        ? const Color(0xFFDC2626)
-                        : BMColors.textTertiary,
-                  ),
-                ),
-              ],
+            child: Icon(
+              _isLiked ? Icons.favorite : Icons.favorite_border,
+              size: 16,
+              color:
+                  _isLiked ? const Color(0xFFDC2626) : BMColors.textTertiary,
             ),
           ),
           const SizedBox(width: 22),
