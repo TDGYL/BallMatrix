@@ -48,6 +48,14 @@ class BMHomeViewModel extends ChangeNotifier {
   /// 获取热门话题列表 (复用缓存)
   List<BMTopicModel> get topicList => _cachedTopicList;
 
+  /// 删除指定话题 (本地拉黑)
+  /// 参数: [topicId] 话题ID
+  /// 功能: 拉黑成功后从缓存列表中移除该话题并通知UI刷新
+  void removeTopic(String topicId) {
+    _cachedTopicList.removeWhere((t) => t.topicId == topicId);
+    notifyListeners();
+  }
+
   /// 获取比赛列表
   List<BMMatchModel> get matchList => _matchList;
 

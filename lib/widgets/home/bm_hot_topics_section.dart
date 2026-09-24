@@ -38,7 +38,8 @@ class TopicPostCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _buildUserHeader(context),
-            if (topic.categoryTag.isNotEmpty) ...[
+            // image 为空时不展示话题胶囊
+            if (topic.hashtags.isNotEmpty) ...[
               const SizedBox(height: 10),
               _buildHashtagWrap(),
             ],
@@ -204,19 +205,14 @@ class TopicPostCard extends StatelessWidget {
     ).then((String? value) {
       if (value == null) return;
       onMoreAction?.call(value, topic.topicId);
-      if (value == 'block') {
+      // 举报: toast 提示已成功举报 (拉黑 toast 由调用方处理: 调接口成功后本地删除)
+      if (value == 'report') {
         ScaffoldMessenger.of(btnCtx).showSnackBar(
           SnackBar(
-            content: const Text('已拉黑该用户'),
-            duration: const Duration(seconds: 1),
-            backgroundColor: BMColors.pitch800,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-      } else if (value == 'report') {
-        ScaffoldMessenger.of(btnCtx).showSnackBar(
-          SnackBar(
-            content: const Text('已提交举报, 我们会尽快处理'),
+            content: const Text(
+              '已成功举报',
+              style: TextStyle(color: Colors.white),
+            ),
             duration: const Duration(seconds: 1),
             backgroundColor: BMColors.pitch800,
             behavior: SnackBarBehavior.floating,
@@ -226,31 +222,35 @@ class TopicPostCard extends StatelessWidget {
     });
   }
 
-  /// 构建话题标签 (单 #标签 胶囊)
+  /// 构建话题标签 (多个 #话题 胶囊, 数据源 image 逗号切割)
   Widget _buildHashtagWrap() {
     return Wrap(
       spacing: 8,
       runSpacing: 8,
-      children: [
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-          decoration: BoxDecoration(
-            color: Color(topic.categoryBgColor).withValues(alpha: 0.15),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: Color(topic.categoryBgColor).withValues(alpha: 0.3),
-            ),
-          ),
-          child: Text(
-            '# ${topic.categoryTag}',
-            style: TextStyle(
-              color: Color(topic.categoryBgColor),
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ),
-      ],
+      children: topic.hashtags
+          .where((t) => t.isNotEmpty)
+          .map((tag) => Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
+                decoration: BoxDecoration(
+                  color: Color(topic.categoryBgColor).withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: Color(topic.categoryBgColor).withValues(alpha: 0.3),
+                  ),
+                ),
+                child: Text(
+                  '# $tag',
+                  style: TextStyle(
+                    color: Color(topic.categoryBgColor),
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ))
+          .toList(),
     );
   }
 
@@ -268,9 +268,11 @@ class TopicPostCard extends StatelessWidget {
 
   /// 构建内嵌比赛简化卡片 (联赛名在左上角 + logo左+队名 vs logo右+队名 + 状态胶囊)
   Widget _buildEmbeddedMatch(BMMatchModel match) {
-    final String leagueName = (match.competitionName != null && match.competitionName!.isNotEmpty)
-        ? match.competitionName!
-        : '';
+    // 联赛名优先 competitionName, 兜底 leagueName (话题列表数据源填 leagueName)
+    final String leagueName = ((match.competitionName != null && match.competitionName!.isNotEmpty)
+            ? match.competitionName!
+            : match.leagueName)
+        .trim();
     return Container(
       padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
       decoration: BoxDecoration(
@@ -507,9 +509,63 @@ class TopicPostCard extends StatelessWidget {
     }
   }
 
-  /// 操作栏 (按要求删除信心 85% 胶囊, 保留空占位保持间距)
+  /// 操作栏 (左边评论数 + 右边点赞数/是否点赞, 两侧对称)
   Widget _buildActionBar() {
-    return const SizedBox.shrink();
+    return Container(
+      padding: const EdgeInsets.only(top: 10),
+      decoration: const BoxDecoration(
+        border: Border(
+          top: BorderSide(color: BMColors.pitch700, width: 0.5),
+        ),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          // 左侧: 评论数
+          Row(
+            children: [
+              const Icon(
+                Icons.chat_bubble_outline,
+                size: 14,
+                color: BMColors.textTertiary,
+              ),
+              const SizedBox(width: 5),
+              Text(
+                '${topic.commentCount}',
+                style: const TextStyle(
+                  fontSize: 11,
+                  fontFamily: 'monospace',
+                  color: BMColors.textTertiary,
+                ),
+              ),
+            ],
+          ),
+          // 右侧: 点赞数 + 是否点赞高亮
+          Row(
+            children: [
+              Icon(
+                topic.isLiked ? Icons.favorite : Icons.favorite_border,
+                size: 14,
+                color: topic.isLiked
+                    ? const Color(0xFFDC2626)
+                    : BMColors.textTertiary,
+              ),
+              const SizedBox(width: 5),
+              Text(
+                '${topic.likeCount}',
+                style: TextStyle(
+                  fontSize: 11,
+                  fontFamily: 'monospace',
+                  color: topic.isLiked
+                      ? const Color(0xFFDC2626)
+                      : BMColors.textTertiary,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
   }
 }
 
@@ -522,6 +578,10 @@ class BMHotTopicsSection extends StatelessWidget {
   /// 话题点击回调 (ValueChanged<BMTopicModel> 类型, 可空)
   final ValueChanged<BMTopicModel>? onTopicTap;
 
+  /// 更多菜单拉黑回调 (ValueChanged<BMTopicModel> 类型, 可空)
+  /// 功能: 调用方处理二次确认弹窗 + 拉黑接口 + 本地删除
+  final ValueChanged<BMTopicModel>? onBlockTopic;
+
   /// View All按钮点击回调 (VoidCallback 类型, 可空)
   final VoidCallback? onViewAll;
 
@@ -529,6 +589,7 @@ class BMHotTopicsSection extends StatelessWidget {
     super.key,
     required this.topicList,
     this.onTopicTap,
+    this.onBlockTopic,
     this.onViewAll,
   });
 
@@ -542,7 +603,11 @@ class BMHotTopicsSection extends StatelessWidget {
               child: TopicPostCard(
                 topic: topic,
                 onTap: () => onTopicTap?.call(topic),
-                onMoreAction: (_, __) {},
+                onMoreAction: (action, topicId) {
+                  if (action == 'block') {
+                    onBlockTopic?.call(topic);
+                  }
+                },
               ),
             )),
       ],

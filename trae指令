@@ -2,6 +2,46 @@
 
 
 
+
+topicList界面列表的数据不对，要取如下数据：
+1、content是话题。结果：现在和期望是对的
+2、话题是从image字符串中用逗号切割，然后获取的每个话题过滤com/本身和之前的字符，然后显示多个话题。现在的话题是本地提供的，期望是从image获取的
+3、如果match有比赛数据，则展示比赛卡片在话题卡片中
+
+topicList优化：
+1、点赞数放在右边和评论数对称
+
+topicList右上角
+1、点击举报，则toast提示已成功举报
+2、点击的是拉黑，则调用接口url=/api/livespeed/community/block_post,请求方式为post请求，
+请求参数为
+{
+"post_id":12312,int
+"type":1,int
+}
+参数说明：post_id是帖子id，type固定=1
+如果请求成功，则在本地列表删除该帖子
+
+拉黑帖子二次弹窗提示，拉黑之后将不再看到此帖子
+
+
+
+
+
+
+
+topicList界面中，点击导航右上角发布，push到一个界面，该界面是一个发布话题的界面，界面功能包括：
+
+1、顶部是一个文本输入框
+2、中间是一个关联比赛的入口
+3、底部是一个多选话题菜单
+
+功能和接口完全参照/Users/guyilin/Desktop/FlutterProject/hanklive/lib/pages/community/post_community_page.dart
+但是界面要做差异化，界面不能和参照的界面绘制的太相似，但是功能上要保持一致，因为接口都是一样的
+
+
+
+
 当push到足球详情，请求完数据之后，bm_match_model的categoryId手动赋值=1
 当push到篮球详情，请求完数据之后，bm_match_model的categoryId手动赋值=2
 

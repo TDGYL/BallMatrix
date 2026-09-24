@@ -43,6 +43,18 @@ class BMTopicModel {
   /// 关联比赛数据 (BMMatchModel? 类型, 可选)
   final BMMatchModel? embeddedMatch;
 
+  /// 话题标签列表 (List<String> 类型, image 逗号切割 + 过滤 com/ 前缀后的多个话题)
+  final List<String> hashtags;
+
+  /// 点赞数 (int 类型, 对应 BMPostItem.likeCount)
+  final int likeCount;
+
+  /// 评论数 (int 类型, 对应 BMPostItem.commentCount)
+  final int commentCount;
+
+  /// 是否已点赞 (bool 类型, 对应 BMPostItem.isLike)
+  final bool isLiked;
+
   /// 作者名称 (String? 类型, 话题发布者昵称, 对应BMPostAuthor.name)
   final String? authorName;
 
@@ -82,6 +94,10 @@ class BMTopicModel {
     this.predictionResult = '主胜概率 58%',
     this.confidence = 85,
     this.embeddedMatch,
+    this.hashtags = const [],
+    this.likeCount = 0,
+    this.commentCount = 0,
+    this.isLiked = false,
     this.authorName,
     this.authorAvatarUrl,
     this.publishTimeDesc,

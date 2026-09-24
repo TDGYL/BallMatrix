@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../bm_base_page.dart';
 import '../../theme/bm_colors.dart';
 import '../../viewmodels/home/bm_home_view_model.dart' show BMHomeViewModel, BMSportType;
+import '../../services/bm_community_api_service.dart';
 import '../../models/bm_match_model.dart';
 import '../../models/bm_news_model.dart';
 import '../../models/bm_topic_model.dart';
@@ -461,6 +462,7 @@ class _BMHomePageState extends BMBasePageState<BMHomePage> {
           BMHotTopicsSection(
             topicList: topics,
             onTopicTap: (BMTopicModel topic) {},
+            onBlockTopic: _onBlockTopic,
             onViewAll: _navigateToTopicList,
           ),
       ],
@@ -559,5 +561,74 @@ class _BMHomePageState extends BMBasePageState<BMHomePage> {
         builder: (context) => const BMTopicListPage(),
       ),
     );
+  }
+
+  /// 首页热门话题拉黑处理 (与话题列表页逻辑一致)
+  /// [topic] - 当前话题模型 (BMTopicModel 类型)
+  /// 链路: 二次确认弹窗 -> POST block_post -> 成功后 ViewModel 本地删除
+  Future<void> _onBlockTopic(BMTopicModel topic) async {
+    final int postId = int.tryParse(topic.topicId) ?? 0;
+    if (postId == 0) return;
+
+    // 拉黑前二次弹窗确认
+    final bool? confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: BMColors.pitch850,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(14),
+          side: BorderSide(color: BMColors.pitch700.withValues(alpha: 0.5)),
+        ),
+        title: const Text(
+          '拉黑确认',
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+            color: BMColors.textPrimary,
+          ),
+        ),
+        content: const Text(
+          '拉黑之后将不再看到此帖子',
+          style: TextStyle(fontSize: 13, color: BMColors.textSecondary),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text(
+              '取消',
+              style: TextStyle(fontSize: 14, color: BMColors.textTertiary),
+            ),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text(
+              '拉黑',
+              style: TextStyle(fontSize: 14, color: Color(0xFFDC2626)),
+            ),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
+    // 拉黑: 调接口成功后 ViewModel 本地删除该话题
+    final bool ok =
+        await BMCommunityApiService().blockPost(postId: postId, type: 1);
+    if (!mounted) return;
+    if (ok) {
+      widget.viewModel.removeTopic(topic.topicId);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text(
+            '拉黑失败, 请稍后重试',
+            style: TextStyle(color: Colors.white),
+          ),
+          duration: const Duration(seconds: 1),
+          backgroundColor: BMColors.pitch800,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
   }
 }

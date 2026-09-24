@@ -2,6 +2,7 @@ import '../network/bm_network_manager.dart';
 import '../models/bm_post_api_model.dart';
 import '../models/bm_topic_model.dart';
 import '../models/bm_match_model.dart';
+import '../models/bm_search_match_model.dart';
 
 /// BMCommunityTab - 社区列表Tab类型枚举
 /// 映射到API type参数: 推荐=1, 最新=2, 关注=3
@@ -270,5 +271,108 @@ class BMCommunityApiService {
     if (name == null || name.isEmpty) return '';
     if (name.length <= 3) return name.toUpperCase();
     return name.substring(0, 3).toUpperCase();
+  }
+
+  // ==================== 发布话题相关接口 ====================
+
+  /// 发布话题帖子 (POST /api/livespeed/community/save)
+  /// 功能: 发布话题内容 + 多选话题标签(存 images 字段) + 关联比赛
+  /// [content] - 帖子文本内容 (String 类型, 至少10字)
+  /// [topics] - 选中的话题标签列表 (List<String> 类型, 以逗号拼接存入 images[0])
+  /// [matchId] - 关联比赛ID (int? 类型, null=不关联)
+  /// [matchType] - 关联比赛类型 (int? 类型, 1=足球 2=篮球, null=不携带)
+  /// 返回: (bool 成功, String 提示消息)
+  Future<(bool, String)> saveTopicPost({
+    required String content,
+    List<String> topics = const [],
+    int? matchId,
+    int? matchType,
+  }) async {
+    // 话题标签以逗号拼接存入 images 数组 (对齐 hanklive 字段约定)
+    final List<String> images = [];
+    if (topics.isNotEmpty) {
+      images.add(topics.join(','));
+    }
+    final Map<String, dynamic> params = {
+      'id': 0,
+      'content': content,
+      'images': images,
+    };
+    if (matchId != null) {
+      params['match_type'] = matchType ?? 1;
+      params['match_id'] = matchId;
+    }
+    final response = await BMNetworkManager().postRequest(
+      '/api/livespeed/community/save',
+      data: params,
+    );
+    if (response.isSuccess) {
+      return (true, '发布成功');
+    }
+    return (false, response.message ?? '发布失败');
+  }
+
+  /// 搜索比赛 (GET /api/livespeed/index/search, text=关键词)
+  /// 功能: 发布话题关联比赛时按球队名搜索比赛
+  /// [text] - 搜索关键词 (String 类型, 球队名)
+  /// 返回: BMSearchResult? (含 matches 分组, null=请求失败)
+  Future<BMSearchResult?> fetchSearchResults({required String text}) async {
+    final response = await BMNetworkManager().getRequest(
+      '/api/livespeed/index/search',
+      queryParameters: {'text': text},
+    );
+    if (response.isSuccess && response.data != null) {
+      final raw = response.data;
+      Map<String, dynamic>? dataMap;
+      if (raw is Map<String, dynamic>) {
+        // 兼容 {code, data} 外壳与直接返回 data 两种结构
+        dataMap = (raw['data'] is Map<String, dynamic>)
+            ? raw['data'] as Map<String, dynamic>
+            : raw;
+      }
+      if (dataMap != null) {
+        return BMSearchResult.fromJson(dataMap);
+      }
+    }
+    return null;
+  }
+
+  /// 获取热门比赛列表 (GET /api/livespeed/index/search/match/hot)
+  /// 功能: 发布话题关联比赛入口的默认候选列表
+  /// 返回: List<BMSearchMatch> (空列表=无数据/失败)
+  Future<List<BMSearchMatch>> fetchHotMatches() async {
+    final response = await BMNetworkManager().getRequest(
+      '/api/livespeed/index/search/match/hot',
+    );
+    if (response.isSuccess) {
+      List<dynamic> rawList = [];
+      if (response.data is List) {
+        rawList = response.data as List<dynamic>;
+      } else if (response.data is Map<String, dynamic> &&
+          (response.data as Map<String, dynamic>)['data'] is List) {
+        rawList = (response.data as Map<String, dynamic>)['data'] as List<dynamic>;
+      }
+      return rawList
+          .whereType<Map<String, dynamic>>()
+          .map(BMSearchMatch.fromJson)
+          .toList();
+    }
+    return [];
+  }
+
+  /// 拉黑帖子 (POST /api/livespeed/community/block_post)
+  /// 功能: 话题卡片更多菜单「拉黑」操作, 成功后调用方本地删除该帖子
+  /// [postId] - 帖子ID (int 类型, 对应话题列表项 id)
+  /// [type] - 拉黑类型 (int 类型, 固定=1)
+  /// 返回: bool 是否拉黑成功
+  Future<bool> blockPost({required int postId, int type = 1}) async {
+    final response = await BMNetworkManager().postRequest(
+      '/api/livespeed/community/block_post',
+      data: {
+        'post_id': postId,
+        'type': type,
+      },
+    );
+    return response.isSuccess;
   }
 }

@@ -7,6 +7,7 @@ import '../../models/bm_match_model.dart';
 import '../../models/bm_post_api_model.dart';
 import '../../services/bm_community_api_service.dart';
 import '../../widgets/home/bm_hot_topics_section.dart' show TopicPostCard;
+import 'bm_post_topic_page.dart';
 
 /// BMTopicListPage - 话题列表页 (首页第三段「查看全部」push 进来)
 /// 功能: 真实GET接口(/api/livespeed/community/list, type='2') + 复用首页话题卡片 + 下拉刷新 + 上拉加载
@@ -161,6 +162,10 @@ class _BMTopicListPageState extends BMBasePageState<BMTopicListPage> {
   }
 
   /// 话题转换逻辑（复刻 BMCommunityApiService._convertToTopicModel）
+  /// 数据源对齐:
+  ///   1. content -> 话题内容 (aiInsight)
+  ///   2. image 逗号切割 + 过滤 com/ 前缀 -> 多个话题 (hashtags)
+  ///   3. match 有数据 -> 内嵌比赛卡片 (embeddedMatch)
   BMTopicModel _convertToTopic(BMPostItem item) {
     final hashtags = _parseHashtags(_safeString(item.image));
     final content = _safeS(item.content, '深度数据分析与洞察，提供独家视角。');
@@ -191,6 +196,10 @@ class _BMTopicListPageState extends BMBasePageState<BMTopicListPage> {
       predictionResult: predResult,
       confidence: 85,
       embeddedMatch: match,
+      hashtags: hashtags,
+      likeCount: item.likeCount ?? 0,
+      commentCount: item.commentCount ?? 0,
+      isLiked: item.isLike ?? false,
       authorName: authorName,
       authorAvatarUrl: authorAvatarUrl,
       publishTimeDesc: publishTimeDesc,
@@ -339,15 +348,19 @@ class _BMTopicListPageState extends BMBasePageState<BMTopicListPage> {
     return name.substring(0, 3).toUpperCase();
   }
 
+  /// 解析话题标签 (image 逗号切割, 每个话题过滤 com/ 本身及之前的字符)
+  /// [raw] - image 原始字符串 (String? 类型, 例 "xxx.com/话题A,话题B")
+  /// 返回: List<String> 话题列表
   List<String> _parseHashtags(String? raw) {
     if (raw == null || raw.isEmpty) return [];
-    String r = raw;
-    if (r.contains('com/')) {
-      r = r.substring(r.indexOf('com/') + 4);
-    }
-    return r
+    return raw
         .split(',')
-        .map((t) => t.trim())
+        .map((seg) {
+          // 逐段过滤: 截掉 com/ 及其之前的字符
+          final s = seg.trim();
+          final idx = s.indexOf('com/');
+          return idx >= 0 ? s.substring(idx + 4).trim() : s;
+        })
         .where((t) => t.isNotEmpty)
         .toList();
   }
@@ -355,6 +368,18 @@ class _BMTopicListPageState extends BMBasePageState<BMTopicListPage> {
   /// 下拉刷新回调
   Future<void> _onRefresh() {
     return _fetchTopicList(isRefresh: true);
+  }
+
+  /// 跳转发布话题页 (右上角发布按钮)
+  /// 发布成功 (pop true) 后刷新列表展示新话题
+  Future<void> _gotoPostTopic() async {
+    final ok = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(builder: (_) => const BMPostTopicPage()),
+    );
+    if (ok == true) {
+      _fetchTopicList(isRefresh: true);
+    }
   }
 
   @override
@@ -401,9 +426,7 @@ class _BMTopicListPageState extends BMBasePageState<BMTopicListPage> {
             ),
           ),
           GestureDetector(
-            onTap: () {
-              debugPrint('BMTopicListPage 点击导航右侧发布按钮');
-            },
+            onTap: _gotoPostTopic,
             behavior: HitTestBehavior.opaque,
             child: Container(
               width: 60,
@@ -490,12 +513,87 @@ class _BMTopicListPageState extends BMBasePageState<BMTopicListPage> {
             child: TopicPostCard(
               topic: t,
               onTap: () {},
-              onMoreAction: (_, __) {},
+              onMoreAction: (action, topicId) =>
+                  _onMoreAction(action, t),
             ),
           );
         },
       ),
     );
+  }
+
+  /// 更多菜单点击处理 (举报/拉黑)
+  /// [action] - 菜单动作 (String 类型, 'report'=举报 'block'=拉黑)
+  /// [topic] - 当前话题模型 (BMTopicModel 类型, 用于取 postId 与本地删除)
+  Future<void> _onMoreAction(String action, BMTopicModel topic) async {
+    if (action != 'block') return; // 举报 toast 由卡片内部处理
+    final int postId = int.tryParse(topic.topicId) ?? 0;
+    if (postId == 0) return;
+
+    // 拉黑前二次弹窗确认
+    final bool? confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: BMColors.pitch850,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(14),
+          side: BorderSide(color: BMColors.pitch700.withValues(alpha: 0.5)),
+        ),
+        title: const Text(
+          '拉黑确认',
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+            color: BMColors.textPrimary,
+          ),
+        ),
+        content: const Text(
+          '拉黑之后将不再看到此帖子',
+          style: TextStyle(
+            fontSize: 13,
+            color: BMColors.textSecondary,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text(
+              '取消',
+              style: TextStyle(fontSize: 14, color: BMColors.textTertiary),
+            ),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text(
+              '拉黑',
+              style: TextStyle(fontSize: 14, color: Color(0xFFDC2626)),
+            ),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
+    // 拉黑: 调接口成功后本地删除该帖子
+    final bool ok = await _apiService.blockPost(postId: postId, type: 1);
+    if (!mounted) return;
+    if (ok) {
+      setState(() {
+        _topicList.removeWhere((t) => t.topicId == topic.topicId);
+      });
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text(
+            '拉黑失败, 请稍后重试',
+            style: TextStyle(color: Colors.white),
+          ),
+          duration: const Duration(seconds: 1),
+          backgroundColor: BMColors.pitch800,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
   }
 
   /// 底部加载指示器
