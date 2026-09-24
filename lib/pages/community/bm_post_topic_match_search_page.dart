@@ -31,11 +31,20 @@ class _BMPostTopicMatchSearchPageState
   /// 当前搜索关键词 (String 类型, 非空时展示搜索结果区)
   String _keyword = '';
 
-  /// 搜索结果列表 (List<BMSearchMatch> 类型)
-  List<BMSearchMatch> _searchMatches = [];
+  /// 搜索结果 - 足球列表 (List<BMSearchMatch> 类型, category=1)
+  List<BMSearchMatch> _footballSearch = [];
 
-  /// 热门比赛列表 (List<BMSearchMatch> 类型)
-  List<BMSearchMatch> _hotMatches = [];
+  /// 搜索结果 - 篮球列表 (List<BMSearchMatch> 类型, category=2)
+  List<BMSearchMatch> _basketballSearch = [];
+
+  /// 热门比赛 - 足球列表 (List<BMSearchMatch> 类型, category=1)
+  List<BMSearchMatch> _footballHot = [];
+
+  /// 热门比赛 - 篮球列表 (List<BMSearchMatch> 类型, category=2)
+  List<BMSearchMatch> _basketballHot = [];
+
+  /// 当前选中的运动 Tab (int 类型, 1=足球 2=篮球)
+  int _currentCategory = 1;
 
   /// 搜索加载中 (bool 类型)
   bool _searchLoading = false;
@@ -56,22 +65,35 @@ class _BMPostTopicMatchSearchPageState
   }
 
   /// 请求热门比赛 (GET /api/livespeed/index/search/match/hot)
+  /// 按 category 分流: 足球(1)添加数组一, 篮球(2)添加数组二
   Future<void> _fetchHotMatches() async {
     final result = await _apiService.fetchHotMatches();
     if (!mounted) return;
     setState(() {
-      _hotMatches = result;
+      final football = <BMSearchMatch>[];
+      final basketball = <BMSearchMatch>[];
+      for (final m in result) {
+        if (m.categoryId == 2) {
+          basketball.add(m);
+        } else {
+          football.add(m);
+        }
+      }
+      _footballHot = football;
+      _basketballHot = basketball;
       _hotLoading = false;
     });
   }
 
   /// 关键词搜索比赛 (GET /api/livespeed/index/search)
+  /// 过滤 data.matches 数组球类型分流: 足球(1)添加数组一, 篮球(2)添加数组二
   /// [text] - 搜索关键词 (String 类型, 球队名)
   Future<void> _doSearch(String text) async {
     final kw = text.trim();
     if (kw.isEmpty) {
       setState(() {
-        _searchMatches = [];
+        _footballSearch = [];
+        _basketballSearch = [];
         _keyword = '';
       });
       return;
@@ -83,9 +105,37 @@ class _BMPostTopicMatchSearchPageState
     final result = await _apiService.fetchSearchResults(text: kw);
     if (!mounted) return;
     setState(() {
-      _searchMatches = result?.matches ?? [];
+      final football = <BMSearchMatch>[];
+      final basketball = <BMSearchMatch>[];
+      for (final m in (result?.matches ?? [])) {
+        if (m.categoryId == 2) {
+          basketball.add(m);
+        } else {
+          football.add(m);
+        }
+      }
+      _footballSearch = football;
+      _basketballSearch = basketball;
       _searchLoading = false;
     });
+  }
+
+  /// 切换运动 Tab
+  /// [category] - 目标类型 (int 类型, 1=足球 2=篮球)
+  void _switchCategory(int category) {
+    if (_currentCategory == category) return;
+    setState(() {
+      _currentCategory = category;
+    });
+  }
+
+  /// 当前 Tab 对应的数据列表 (有关键词取搜索结果, 否则取热门)
+  List<BMSearchMatch> get _currentList {
+    final searching = _keyword.isNotEmpty;
+    if (_currentCategory == 2) {
+      return searching ? _basketballSearch : _basketballHot;
+    }
+    return searching ? _footballSearch : _footballHot;
   }
 
   @override
@@ -96,6 +146,7 @@ class _BMPostTopicMatchSearchPageState
         children: [
           _buildNavBar(),
           _buildSearchField(),
+          _buildCategoryTabs(),
           Expanded(child: _buildBody()),
         ],
       ),
@@ -184,32 +235,70 @@ class _BMPostTopicMatchSearchPageState
     );
   }
 
-  /// 主体内容 (有关键词=搜索结果 / 无关键词=热门比赛)
-  Widget _buildBody() {
-    if (_keyword.isNotEmpty) {
-      return ListView(
-        padding: const EdgeInsets.fromLTRB(14, 10, 14, 20),
+  /// 运动 Tab 菜单 (足球/篮球, Row+Expanded 均分宽度)
+  Widget _buildCategoryTabs() {
+    return Container(
+      margin: const EdgeInsets.fromLTRB(14, 10, 14, 0),
+      child: Row(
         children: [
-          _buildSectionTitle('搜索结果'),
-          if (_searchLoading)
-            _buildLoading()
-          else if (_searchMatches.isEmpty)
-            _buildEmpty('未找到相关比赛')
-          else
-            ..._searchMatches.map(_buildMatchItem),
+          Expanded(child: _buildCategoryTab('足球', 1)),
+          const SizedBox(width: 10),
+          Expanded(child: _buildCategoryTab('篮球', 2)),
         ],
-      );
-    }
+      ),
+    );
+  }
+
+  /// 单个运动 Tab (选中亮绿描边, 未选中灰描边)
+  /// [label] - Tab 文案 (String 类型)
+  /// [category] - Tab 类型 (int 类型, 1=足球 2=篮球)
+  Widget _buildCategoryTab(String label, int category) {
+    final bool selected = _currentCategory == category;
+    return GestureDetector(
+      onTap: () => _switchCategory(category),
+      behavior: HitTestBehavior.opaque,
+      child: Container(
+        height: 34,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: selected
+              ? BMColors.bright.withValues(alpha: 0.12)
+              : BMColors.pitch900,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+            color: selected ? BMColors.bright : BMColors.pitch800,
+            width: selected ? 1.2 : 1,
+          ),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+            color: selected ? BMColors.bright : BMColors.textSecondary,
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// 主体内容 (按当前 Tab 展示对应分流列表, 有关键词=搜索结果 / 无关键词=热门比赛)
+  Widget _buildBody() {
+    final list = _currentList;
+    final searching = _keyword.isNotEmpty;
     return ListView(
+      key: ValueKey('body-$_currentCategory-$searching-$_keyword'),
       padding: const EdgeInsets.fromLTRB(14, 10, 14, 20),
       children: [
-        _buildSectionTitle('热门比赛'),
-        if (_hotLoading)
+        _buildSectionTitle(searching ? '搜索结果' : '热门比赛'),
+        if (searching && _searchLoading)
           _buildLoading()
-        else if (_hotMatches.isEmpty)
-          _buildEmpty('暂无热门比赛')
+        else if (!searching && _hotLoading)
+          _buildLoading()
+        else if (list.isEmpty)
+          _buildEmpty(searching ? '未找到相关比赛' : '暂无热门比赛')
         else
-          ..._hotMatches.map(_buildMatchItem),
+          ...list.map(_buildMatchItem),
       ],
     );
   }

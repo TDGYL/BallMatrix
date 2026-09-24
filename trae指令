@@ -25,8 +25,42 @@ topicList右上角
 拉黑帖子二次弹窗提示，拉黑之后将不再看到此帖子
 
 
+1、在bm_post_topic_match_search_page界面的索框框下边加一个菜单：足球 和篮球 均分菜单宽度
+2、/api/livespeed/index/search/match/hot当接口返回的数据中，判断是足球则添加到数组一，是篮球则添加到数组二，然后刷新两个菜单下的列表
+3、/api/livespeed/index/search搜索返回的数据过滤data下的matches数组中的球类型，判断是足球则添加到数组一，是篮球则添加到数组二，然后刷新两个菜单下的列表
+
+bm_post_topic_page中，如果发布关联的是足球，或者篮球，入参要做修改
 
 
+
+接口'/api/livespeed/index/search'返回的数据结构是
+{
+    "code": 0,
+    "data": {
+        "experts": [
+            {
+            
+            }
+        ],
+        "matches": [
+            {
+         
+            }
+        ],
+        "schemes": [
+           
+        ],
+        "users": [
+         
+        ],
+        "competitions": [
+         
+        ]
+    },
+    "message": "string"
+}
+
+搜索的结果我要的是data下的matches部分数据
 
 
 

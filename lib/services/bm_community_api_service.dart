@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import '../network/bm_network_manager.dart';
 import '../models/bm_post_api_model.dart';
 import '../models/bm_topic_model.dart';
@@ -314,8 +315,10 @@ class BMCommunityApiService {
 
   /// 搜索比赛 (GET /api/livespeed/index/search, text=关键词)
   /// 功能: 发布话题关联比赛时按球队名搜索比赛
+  /// 结构: {code, data:{experts, matches, schemes, users, competitions}, message}
+  ///       网络层已解包 code/message, response.data 即 data 对象
   /// [text] - 搜索关键词 (String 类型, 球队名)
-  /// 返回: BMSearchResult? (含 matches 分组, null=请求失败)
+  /// 返回: BMSearchResult? 只取 data.matches 分组 (其他分组丢弃, null=请求失败)
   Future<BMSearchResult?> fetchSearchResults({required String text}) async {
     final response = await BMNetworkManager().getRequest(
       '/api/livespeed/index/search',
@@ -325,13 +328,17 @@ class BMCommunityApiService {
       final raw = response.data;
       Map<String, dynamic>? dataMap;
       if (raw is Map<String, dynamic>) {
-        // 兼容 {code, data} 外壳与直接返回 data 两种结构
-        dataMap = (raw['data'] is Map<String, dynamic>)
+        // response.data 已经是解包后的 data 对象 (含 matches 分组)
+        // 仅当误传完整外壳 {code, data, matches} 结构时才需要再剥一层
+        dataMap = (raw['data'] is Map<String, dynamic> && raw['matches'] == null)
             ? raw['data'] as Map<String, dynamic>
             : raw;
       }
       if (dataMap != null) {
-        return BMSearchResult.fromJson(dataMap);
+        final result = BMSearchResult.fromJson(dataMap);
+        debugPrint(
+            'BMCommunityApiService 搜索结果 matches=${result.matches.length} 条');
+        return result;
       }
     }
     return null;
