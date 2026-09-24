@@ -6,6 +6,9 @@ import '../../models/bm_match_api_model.dart';
 import '../../models/bm_basketball_match_model.dart';
 import '../../viewmodels/home/bm_home_view_model.dart' show BMSportType;
 import '../../services/bm_match_api_service.dart';
+import '../../services/bm_match_detail_api_service.dart';
+import '../../utils/bm_auth_manager.dart';
+import '../login/bm_login_page.dart';
 import 'bm_football_detail_page.dart';
 import 'bm_basketball_detail_page.dart';
 
@@ -59,9 +62,9 @@ class _BMMatchTabPageState extends BMBasePageState<BMMatchTabPage> {
     BMSportType.basketball: 1,
   };
 
-  /// 状态过滤器显示文字 (与 tab值0/1/2/3对应)
+  /// 状态过滤器显示文字 (与 tab值0/1/2/3对应, 0=关注(接口入参改传4))
   final List<(int, String)> _filterLabels = const [
-    (0, '全部'),
+    (0, '关注'),
     (1, '进行中'),
     (2, '即将开赛'),
     (3, '完场复盘'),
@@ -69,6 +72,12 @@ class _BMMatchTabPageState extends BMBasePageState<BMMatchTabPage> {
 
   /// API 服务实例 (BMMatchApiService 类型)
   final BMMatchApiService _apiService = BMMatchApiService();
+
+  /// 详情 API 服务 (BMMatchDetailApiService 类型, 关注/取消关注接口)
+  final BMMatchDetailApiService _detailApiService = BMMatchDetailApiService();
+
+  /// 本地关注状态缓存 (Map<String, bool> 类型, key=matchId, 接口列表返回后同步/按钮点击后更新)
+  final Map<String, bool> _followStates = {};
 
   /// 列表滚动控制器 (ScrollController 类型, 上拉加载监听)
   late final ScrollController _scrollController;
@@ -304,12 +313,14 @@ class _BMMatchTabPageState extends BMBasePageState<BMMatchTabPage> {
     debugPrint(
       '🌐 BMMatchTabPage 真实请求发起: sport=$sport, tab=$tab, page=$requestPageInt, size=$_size, ts=$timestamp',
     );
+    // tab=0(关注) 时接口入参固定传 4, 其余原样传
+    final int requestTab = tab == 0 ? 4 : tab;
     List<BMMatchModel> result = [];
     int? serverTotal;
     try {
       if (sport == BMSportType.football) {
         final data = await _apiService.fetchFootballMatches(
-          tab: tab,
+          tab: requestTab,
           page: requestPageInt,
           size: _size,
           timestamp: timestamp,
@@ -327,7 +338,7 @@ class _BMMatchTabPageState extends BMBasePageState<BMMatchTabPage> {
         }
       } else {
         final data = await _apiService.fetchBasketballMatches(
-          tab: tab,
+          tab: requestTab,
           page: requestPageInt,
           size: _size,
           timestamp: timestamp,
@@ -380,7 +391,60 @@ class _BMMatchTabPageState extends BMBasePageState<BMMatchTabPage> {
       } else {
         targetS.hasNoMore = result.length < _size;
       }
+      // 同步关注状态缓存 (列表每条 matchId -> isFollowed)
+      for (final m in targetS.list) {
+        if (!_followStates.containsKey(m.matchId)) {
+          _followStates[m.matchId] = m.isFollowed;
+        }
+      }
     });
+  }
+
+  /// 卡片右上角关注按钮点击 (未登录先跳登录页, 与详情页一致)
+  /// 足球: POST /api/livespeed/football/match/subscribe|unsubscribe
+  /// 篮球: POST /api/livespeed/basketball/match/subscribe|unsubscribe
+  /// [match] - 目标比赛 (BMMatchModel 类型)
+  Future<void> _toggleFollow(BMMatchModel match) async {
+    if (!BMAuthManager().isLoggedIn) {
+      final ok = await Navigator.push<bool>(
+        context,
+        MaterialPageRoute(builder: (_) => const BMLoginPage()),
+      );
+      if (ok != true) return;
+    }
+    final matchId = int.tryParse(match.matchId) ?? 0;
+    if (matchId == 0) return;
+    final willFollow = !(_followStates[match.matchId] ?? match.isFollowed);
+    final bool success;
+    if (match.sportType == BMMatchSportType.basketball) {
+      success = willFollow
+          ? await _detailApiService.subscribeBasketballMatch(matchId: matchId)
+          : await _detailApiService.unsubscribeBasketballMatch(matchId: matchId);
+    } else {
+      success = willFollow
+          ? await _detailApiService.subscribeFootballMatch(matchId: matchId)
+          : await _detailApiService.unsubscribeFootballMatch(matchId: matchId);
+    }
+    if (!mounted) return;
+    if (success) {
+      setState(() {
+        _followStates[match.matchId] = willFollow;
+      });
+    }
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            success ? (willFollow ? '已关注' : '已取消关注') : '操作失败, 请重试',
+            style: const TextStyle(
+                color: Colors.white, fontWeight: FontWeight.w700),
+          ),
+          backgroundColor: BMColors.pitch800,
+          duration: const Duration(milliseconds: 1200),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
   }
 
   /// 取指定 sport 当前选中日期的时间戳 (用于异步回调前后一致性判断)
@@ -931,7 +995,7 @@ class _BMMatchTabPageState extends BMBasePageState<BMMatchTabPage> {
     );
   }
 
-  /// 构建单行比赛卡片 (背景色与 TopicPostCard 完全一致)
+  /// 构建单行比赛卡片 (背景色与 TopicPostCard 完全一致, 右上角带关注按钮)
   Widget _buildMatchRow(BMMatchModel match) {
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
@@ -945,28 +1009,69 @@ class _BMMatchTabPageState extends BMBasePageState<BMMatchTabPage> {
           ),
         );
       },
-      child: Container(
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: BMColors.pitch850,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: BMColors.pitch700.withValues(alpha: 0.5)),
-        ),
-        child: Row(
-          children: [
-            _buildMatchTime(match),
-            const SizedBox(width: 12),
-            Expanded(child: _buildMatchTeams(match)),
-            Container(
-              padding: const EdgeInsets.only(left: 12),
-              decoration: const BoxDecoration(
-                border: Border(
-                  left: BorderSide(color: Color(0x601C4537)),
-                ),
+      child: Stack(
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(top: 18),
+            child: Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: BMColors.pitch850,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: BMColors.pitch700.withValues(alpha: 0.5)),
               ),
-              child: _buildMatchExtra(match),
+              child: Row(
+                children: [
+                  _buildMatchTime(match),
+                  const SizedBox(width: 12),
+                  Expanded(child: _buildMatchTeams(match)),
+                  Container(
+                    padding: const EdgeInsets.only(left: 12),
+                    decoration: const BoxDecoration(
+                      border: Border(
+                        left: BorderSide(color: Color(0x601C4537)),
+                      ),
+                    ),
+                    child: _buildMatchExtra(match),
+                  ),
+                ],
+              ),
             ),
-          ],
+          ),
+          Positioned(
+            top: 16,
+            right: 4,
+            child: _buildFollowButton(match),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 构建卡片右上角关注状态按钮 (与详情页导航同款铃铛样式, 点击调关注/取消关注接口)
+  /// [match] - 目标比赛 (BMMatchModel 类型)
+  Widget _buildFollowButton(BMMatchModel match) {
+    final bool followed = _followStates[match.matchId] ?? match.isFollowed;
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () => _toggleFollow(match),
+      child: Container(
+        width: 18,
+        height: 18,
+        decoration: BoxDecoration(
+          color: followed
+              ? BMColors.bright.withValues(alpha: 0.15)
+              : BMColors.pitch850,
+          shape: BoxShape.circle,
+          border: Border.all(
+            color: followed ? BMColors.bright : BMColors.pitch700,
+            width: 1,
+          ),
+        ),
+        child: Icon(
+          followed ? Icons.notifications : Icons.notifications_none,
+          size: 10,
+          color: followed ? BMColors.bright : BMColors.textTertiary,
         ),
       ),
     );
