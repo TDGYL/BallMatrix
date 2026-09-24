@@ -109,21 +109,31 @@ class _BMFootballDetailPageState extends BMBasePageState<BMFootballDetailPage> {
   /// 是否已订阅 (bool, GET match.detail -> subscribed 字段)
   bool _isSubscribed = false;
 
+  /// 比赛模型可变副本 (BMMatchModel 类型, detail 返回后 refreshedWith 刷新顶部卡片)
+  late BMMatchModel _match;
+
   @override
   void initState() {
     super.initState();
+    _match = widget.match;
     final matchId = int.tryParse(widget.match.matchId) ?? 0;
     _fetchMatchDetail(matchId);
     _fetchProcess(matchId);
   }
 
-  /// 获取订阅状态
+  /// 获取订阅状态 + 刷新顶部卡片
   Future<void> _fetchMatchDetail(int matchId) async {
     if (matchId == 0) return;
     final Map<String, dynamic>? data = await _apiService.fetchMatchDetail(matchId: matchId);
     if (!mounted || data == null) return;
     setState(() {
       _isSubscribed = data['subscribed'] == true;
+      // detail 返回后合并刷新顶部卡片 (队名/Logo/比分/状态/联赛, 新值优先)
+      // 手动指定 categoryId=1 (足球), 保证状态显示走足球分支规则
+      _match = _match.refreshedWith(
+        BMMatchModel.fromMap(data),
+        categoryId: 1,
+      );
     });
   }
 
@@ -311,17 +321,18 @@ class _BMFootballDetailPageState extends BMBasePageState<BMFootballDetailPage> {
   // ==================== Scoreboard 比分板 ====================
 
   Widget _buildScoreboard() {
-    final homeLogo = widget.match.homeTeamLogo ?? widget.match.homeTeam?.logoUrl;
-    final awayLogo = widget.match.awayTeamLogo ?? widget.match.awayTeam?.logoUrl;
-    final homeName = widget.match.homeTeamName.isNotEmpty
-        ? widget.match.homeTeamName
-        : widget.match.homeTeam?.teamName ?? '主队';
-    final awayName = widget.match.awayTeamName.isNotEmpty
-        ? widget.match.awayTeamName
-        : widget.match.awayTeam?.teamName ?? '客队';
-    final statusLabel = widget.match.displayStatusLabel;
-    final bool live = widget.match.status == BMMatchStatus.live;
-    final leagueName = widget.match.leagueName;
+    final m = _match; // detail 刷新后的可变模型副本
+    final homeLogo = m.homeTeamLogo ?? m.homeTeam?.logoUrl;
+    final awayLogo = m.awayTeamLogo ?? m.awayTeam?.logoUrl;
+    final homeName = m.homeTeamName.isNotEmpty
+        ? m.homeTeamName
+        : m.homeTeam?.teamName ?? '主队';
+    final awayName = m.awayTeamName.isNotEmpty
+        ? m.awayTeamName
+        : m.awayTeam?.teamName ?? '客队';
+    final statusLabel = m.displayStatusLabel;
+    final bool live = m.status == BMMatchStatus.live;
+    final leagueName = m.leagueName;
     return Container(
       margin: const EdgeInsets.fromLTRB(14, 14, 14, 10),
       padding: const EdgeInsets.fromLTRB(14, 10, 12, 16), // 右 padding 改为 12 (用户要求联赛名距右边12px)
@@ -338,24 +349,22 @@ class _BMFootballDetailPageState extends BMBasePageState<BMFootballDetailPage> {
       child: Column(
         children: [
           // ========================================
-          // 第 1 行: 【右】 联赛胶囊 (距右边 12px, 背景全透明)
-          // 用户要求: 左上角时间移除, 只保留联赛 (用户要求: 修改联赛名约束距右边12像素, 将左上角时间去掉)
+          // 第 1 行: 【中】 联赛胶囊 (水平居中显示)
+          // 用户要求: 顶部联赛水平居中 (原为右对齐, 距右 12px)
           // ========================================
           Row(
-            mainAxisAlignment: MainAxisAlignment.end,  // 右对齐
+            mainAxisAlignment: MainAxisAlignment.center,  // 水平居中
             children: [
-              // 用户要求: 联赛距右边 12px (容器外 padding-right 已经是 12, 所以这里 Flex fit:tight 即可)
-              Flexible(
-                fit: FlexFit.tight,
+              Expanded(
                 child: Container(
-                  alignment: Alignment.centerRight,
+                  alignment: Alignment.center,
                   decoration: const BoxDecoration(
-                    color: Colors.transparent,  // 用户要求: 联赛胶囊背景透明
+                    color: Colors.transparent,  // 胶囊背景透明
                   ),
                   child: Text(
                     leagueName,
                     maxLines: 2,
-                    textAlign: TextAlign.right,
+                    textAlign: TextAlign.center,
                     softWrap: true,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
@@ -380,8 +389,8 @@ class _BMFootballDetailPageState extends BMBasePageState<BMFootballDetailPage> {
                 flex: 5,
                 child: () {
                   // 兼容 2 种 teamId 取法: ① 顶层 homeTeamId (对齐 hanklive BMMatchModel 新字段) ② homeTeam.teamId String (老结构)
-                  final idFromTop = widget.match.homeTeamId;
-                  final idFromTeam = widget.match.homeTeam?.teamId;
+                  final idFromTop = m.homeTeamId;
+                  final idFromTeam = m.homeTeam?.teamId;
                   int? teamId;
                   if (idFromTop != null && idFromTop != 0) {
                     teamId = idFromTop;
@@ -447,7 +456,7 @@ class _BMFootballDetailPageState extends BMBasePageState<BMFootballDetailPage> {
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
                         Text(
-                          widget.match.homeScore?.toString() ?? '-',
+                          m.homeScore?.toString() ?? '-',
                           style: const TextStyle(
                             fontSize: 34,
                             fontWeight: FontWeight.w900,
@@ -461,7 +470,7 @@ class _BMFootballDetailPageState extends BMBasePageState<BMFootballDetailPage> {
                           child: Text(':', style: TextStyle(fontSize: 22, color: Color(0xFF6B7280), fontWeight: FontWeight.w900)),
                         ),
                         Text(
-                          widget.match.awayScore?.toString() ?? '-',
+                          m.awayScore?.toString() ?? '-',
                           style: const TextStyle(
                             fontSize: 34,
                             fontWeight: FontWeight.w900,
@@ -479,8 +488,8 @@ class _BMFootballDetailPageState extends BMBasePageState<BMFootballDetailPage> {
               Expanded(
                 flex: 5,
                 child: () {
-                  final idFromTop = widget.match.awayTeamId;
-                  final idFromTeam = widget.match.awayTeam?.teamId;
+                  final idFromTop = m.awayTeamId;
+                  final idFromTeam = m.awayTeam?.teamId;
                   int? teamId;
                   if (idFromTop != null && idFromTop != 0) {
                     teamId = idFromTop;

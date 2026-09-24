@@ -1,5 +1,306 @@
 
 
+
+
+当push到足球详情，请求完数据之后，bm_match_model的categoryId手动赋值=1
+当push到篮球详情，请求完数据之后，bm_match_model的categoryId手动赋值=2
+
+
+篮球比赛详情的状态判断修改，当status_id=1 ｜ 13 时候表示未开始
+当status_id =2 ｜ 3 ｜ 4 ｜ 5 ｜ 6 ｜ 7 ｜ 8 ｜ 9 时候，表示进行时
+当status_id =10 ｜ 11 时候表示已结束
+当status_id =0 ｜ 12 ｜ 14 ｜ 15 时候，时候表示TBD
+
+
+当进入比赛详情请求了/api/livespeed/basketball/match/detail和/api/livespeed/football/match/detail时候重新刷新顶部卡片的数据和状态
+
+
+篮球详情点击投票时候，先判断比赛状态，只有未开始的比赛才可以投票，否则toast提示
+
+
+在篮球详情实况的第二段投票中比列图下的球队名，当vote_status=0时候，用户可以点击投票，然后刷新数据，如果未登录则跳转登录界面，投票接口为url=api/livespeed/basketball/match/vote，请求方式为post请求，请求参数为
+{
+"match_id":12312,int
+"team":1,int
+}
+参数说明：当支持主队时候team=1，当支持客队team=2；match_id为比赛id，成功投票则刷新数据比例图
+
+
+
+vote_status
+在篮球详情实况增加第二段，第二段展示了主队和客队的投票比例图，获取投票的url=api/livespeed/basketball/match/vote-info，请求方式为ge请求，请求参数：
+{
+"match_id":12312,int
+}
+参数说明：match_id是比赛id
+
+返回的数据结构为：
+{
+    "code": 0,
+    "msg": "success",
+    "data": {
+        "home_votes": 0,
+        "away_votes": 0,
+        "vote_status": 0
+    }
+}
+
+home_votes是主队投票数，away_votes是客队投票数，vote_status（当前用户投票状态：0-未投，1-已投主队，2-已投客队）
+
+
+
+
+篮球详情左上角的比赛状态判断：
+如果是篮球：
+当statusId=1 ｜ 13 时候表示未开始
+当statusId=2 ｜ 3 ｜ 4 ｜ 5 ｜ 6 ｜ 7 ｜ 8 ｜ 9 时候，表示进行时
+当statusId=10 ｜ 11 时候表示已结束
+当statusId=0 ｜ 12 ｜ 14 ｜ 15 时候，时候表示TBD
+
+
+
+篮球比赛详情的实况数据取的是/api/livespeed/basketball/match/process接口下的tlive下的tlives数组部分，字段说明：
+position：主客队（0-中立，1-主队，2-客队）
+event： 事件描述
+time:时间
+score:比分
+
+界面参考basketball_match_detail.html的实况UI
+
+
+
+
+
+篮球比赛详情纵览菜单的关键技术统计对比数据请求url=/api/livespeed/basketball/match/process，请求方式为get请求，请求参数：
+{
+"match_id":12312,int
+}
+参数说明：match_id是比赛id
+
+
+返回的数据结构为：{
+    "code": 0,
+    "data": {
+        "trend": {
+            "count": 0,
+            "per": 0,
+            "data": [
+                [
+                    0
+                ]
+            ],
+            "match_id": 0
+        },
+        "stats": [
+            {
+                "type": 0,
+                "home": 0,
+                "away": 0,
+                "name": "string"
+            }
+        ],
+        "tlive": [
+            {
+                "period_name": "string",
+                "tlives": [
+                    {
+                        "time": "string",
+                        "score": "string",
+                        "event": "string",
+                        "position": 0
+                    }
+                ]
+            }
+        ]
+    },
+    "message": "string"
+}
+
+数据说明：stats下的数据就是我要的的数据比例
+
+
+
+
+
+篮球比赛详情的接口请求url=/api/livespeed/basketball/match/detail，请求方式为get请求，
+请求参数：
+{
+"match_id":12312,int
+}
+参数说明：match_id是比赛id
+
+返回的数据结构为：
+{
+    "code": 0,
+    "data": {
+        "id": 0,
+        "season_id": 0,
+        "competition_id": 0,
+        "competition_logo": "string",
+        "competition_name": "string",
+        "home_team_id": 0,
+        "home_team_name": "string",
+        "home_team_logo": "string",
+        "away_team_id": 0,
+        "away_team_name": "string",
+        "away_team_logo": "string",
+        "home_scores": "string",
+        "away_scores": "string",
+        "series_home_score": "string",
+        "series_away_score": "string",
+        "kind": 0,
+        "period_count": 0,
+        "status_id": 0,
+        "status_name": "string",
+        "match_time": 0,
+        "neutral": 0,
+        "mlive": 0,
+        "mlive_url": "string",
+        "live_video": 0,
+        "has_article": 0,
+        "stage_id": 0,
+        "odds": {
+            "bs": {
+                "updated_at": 0,
+                "match_offset": "string",
+                "home": "string",
+                "draw": "string",
+                "away": "string",
+                "state": 0,
+                "closed": 0,
+                "score": "string"
+            },
+            "asia": {
+                "updated_at": 0,
+                "match_offset": "string",
+                "home": "string",
+                "draw": "string",
+                "away": "string",
+                "state": 0,
+                "closed": 0,
+                "score": "string"
+            }
+        },
+        "init_odds": {
+            "bs": {
+                "updated_at": 0,
+                "match_offset": "string",
+                "home": "string",
+                "draw": "string",
+                "away": "string",
+                "state": 0,
+                "closed": 0,
+                "score": "string"
+            },
+            "asia": {
+                "updated_at": 0,
+                "match_offset": "string",
+                "home": "string",
+                "draw": "string",
+                "away": "string",
+                "state": 0,
+                "closed": 0,
+                "score": "string"
+            }
+        },
+        "subscribed": true,
+        "home_position": "string",
+        "away_position": "string",
+        "remain_time": 0,
+        "stage_name": "string",
+        "scheme_count": 0,
+        "user_note": {
+            "content": "string",
+            "focus_team_id": 0
+        },
+        "lives": [
+            {
+                "id": 0,
+                "match_id": 0,
+                "live_status": 0,
+                "video_type": 0,
+                "live_type": 0,
+                "video_title": "string",
+                "cover_url": "string",
+                "video_pay": 0,
+                "user_pay": true,
+                "free_time": 0,
+                "live_start_time": 0,
+                "video_sell_status": 0,
+                "goods_id": 0,
+                "price": "string",
+                "programme_id": 0,
+                "commentators": [
+                    {
+                        "id": 0,
+                        "avatar": "string",
+                        "nickname": "string",
+                        "is_subscribe": true
+                    }
+                ],
+                "addresses": [
+                    {
+                        "addr_url": "string",
+                        "addr_type": 0,
+                        "addr_multi": {
+                            "flv": "string",
+                            "rtmp": "string",
+                            "m3u8": "string"
+                        }
+                    }
+                ],
+                "patch": "string",
+                "group_id": "string",
+                "weight": 0,
+                "lucky_bag": {
+                    "id": 0,
+                    "status": 0,
+                    "draw_time": 0
+                },
+                "tabs": [
+                    {
+                        "name": "string",
+                        "type": 0,
+                        "default": true
+                    }
+                ],
+                "vertical_cover_url": "string"
+            }
+        ],
+        "tabs": [
+            {
+                "name": "string",
+                "type": 0,
+                "default": true
+            }
+        ],
+        "share_url": "string"
+    },
+    "message": "string"
+}
+
+
+参数说明：home_scores返回的字符串如"23,21,16,18,0"表示第一节23分，第二节21分，第三节16分，第四节18分，加时赛0分，客队away_scores一样的结构；计算总分的话就切割字符串相加
+
+
+
+给我做2件事
+第一，篮球详情导航的标题删掉
+第二，联赛的颜色设置成主题色
+
+总揽菜单的比赛走势和分差矩阵部分数据取详情接口的的home_scores和away_scores；home_scores返回的字符串如"23,21,16,18,0"表示第一节23分，第二节21分，第三节16分，第四节18分，加时赛0分，客队away_scores一样的结构；根据数据按照basketball_match_detail.html的部分绘制走势图
+
+
+
+bm_football_detail_page修改顶部的联赛水平居中显示
+
+
+bm_tool_page点击生成战力报告逻辑修改如下几点：
+
+1、删除请求球员的接口数据，改成获取随机数，即ATT、 TEC、 STA、 DEF、 POW、SPD的六项数据均取（1-100）之间的随机数，随机数有一定规则，球员A的积分是27分，球员B的积分是19分，那么球员A的6项数据综合要强于球员B，随机数取号之后，在雷达图内部绘制战力雷达图，然后把球员的数据保存在本地，下次如果再获取随机数之前，先从本地获取，如果本地没有存储，在获取随机数
+
+
+
 点击足球详情顶部的球队头像，下边弹出一个球队信息表，展示球队的主要信息，请求Url=/api/livespeed/football/team/data，请求方式get请求，
 请求参数：
 {
@@ -561,10 +862,10 @@ Push进去的话题里表的卡片和首页展示一样，数据取真实的
 当statusId=0 ｜ 9 ｜ 10 ｜ 11 ｜ 12 ｜ 13 时候，时候表示TBD
 
 如果是篮球：
-当statusId=1 ｜ 13 时候表示未开始
-当statusId=2 ｜ 3 ｜ 4 ｜ 5 ｜ 6 ｜ 7 ｜ 8 ｜ 9 时候，表示进行时
-当statusId=10 ｜ 11 时候表示已结束
-当statusId=0 ｜ 12 ｜ 14 ｜ 15 时候，时候表示TBD
+当status_id=1 ｜ 13 时候表示未开始
+当status_id =2 ｜ 3 ｜ 4 ｜ 5 ｜ 6 ｜ 7 ｜ 8 ｜ 9 时候，表示进行时
+当status_id =10 ｜ 11 时候表示已结束
+当status_id =0 ｜ 12 ｜ 14 ｜ 15 时候，时候表示TBD
 
 
 

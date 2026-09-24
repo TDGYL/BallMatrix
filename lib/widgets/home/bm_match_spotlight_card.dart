@@ -22,35 +22,41 @@ class BMMatchSpotlightCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Color(0x0D10B981), Color(0xF00E261E)],
+    // ⭐️ 点击范围优化: GestureDetector 包裹整个卡片(含四周padding+头部+比分区)
+    // behavior=opaque 让空白区域也响应点击, 原来只包 _buildTeamsAndScore 一行导致四周无响应
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [Color(0x0D10B981), Color(0xF00E261E)],
+          ),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: BMColors.pitch600.withValues(alpha: 0.4)),
+          boxShadow: [
+            BoxShadow(
+              color: BMColors.accent.withValues(alpha: 0.15),
+              blurRadius: 15,
+            ),
+          ],
         ),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: BMColors.pitch600.withValues(alpha: 0.4)),
-        boxShadow: [
-          BoxShadow(
-            color: BMColors.accent.withValues(alpha: 0.15),
-            blurRadius: 15,
-          ),
-        ],
-      ),
-      child: Stack(
-        children: [
-          _buildGlowEffect(),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildHeader(),
-              const SizedBox(height: 12),
-              _buildTeamsAndScore(),
-            ],
-          ),
-        ],
+        child: Stack(
+          children: [
+            _buildGlowEffect(),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildHeader(),
+                const SizedBox(height: 12),
+                _buildTeamsAndScore(),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -237,17 +243,14 @@ class BMMatchSpotlightCard extends StatelessWidget {
     );
   }
 
-  /// 构建队伍与比分区域
+  /// 构建队伍与比分区域 (点击手势已上移到整卡 build 层, 这里只负责布局)
   Widget _buildTeamsAndScore() {
-    return GestureDetector(
-      onTap: onTap,
-      child: Row(
-        children: [
-          Expanded(child: _buildTeamInfo(match.homeTeamName, match.homeTeam?.logoUrl ?? match.homeTeamLogo, true)),
-          _buildScoreCenter(),
-          Expanded(child: _buildTeamInfo(match.awayTeamName, match.awayTeam?.logoUrl ?? match.awayTeamLogo, false)),
-        ],
-      ),
+    return Row(
+      children: [
+        Expanded(child: _buildTeamInfo(match.homeTeamName, match.homeTeam?.logoUrl ?? match.homeTeamLogo, true)),
+        _buildScoreCenter(),
+        Expanded(child: _buildTeamInfo(match.awayTeamName, match.awayTeam?.logoUrl ?? match.awayTeamLogo, false)),
+      ],
     );
   }
 
@@ -273,7 +276,7 @@ class BMMatchSpotlightCard extends StatelessWidget {
                     width: 48,
                     height: 48,
                     fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => _buildDefaultTeamIcon(isHome),
+                    errorBuilder: (_, _, _) => _buildDefaultTeamIcon(isHome),
                   )
                 : _buildDefaultTeamIcon(isHome),
           ),

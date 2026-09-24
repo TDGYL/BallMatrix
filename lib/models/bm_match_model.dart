@@ -400,54 +400,61 @@ class BMMatchModel {
     this.aiInsight,
     this.isFeatured = false,
     bool? isFollowed,
-  })  :
-        // ---- 推导补全: Hank 缺失的 BM 必需字段从 homeTeam/awayTeam/... 取 ----
-        matchId = matchId ?? '',
-        homeTeamName = homeTeamName ?? homeTeam?.teamName ?? '',
-        awayTeamName = awayTeamName ?? awayTeam?.teamName ?? '',
-        // 总比分 homeScore/awayScore:
-        //   - 优先用直接传入的 homeScore/awayScore (BM 原格式)
-        //   - 其次: 只要 homeNormalScore/awayNormalScore 不为 null (哪怕是0, 代表 0-0 真实比分) → 直接当总比分(含加时点球)
-        //   - 最后: 只有 normal==null 且加时/点球有分才赋值, 否则 null (代表赛前没比分, 显示 '-')
-        homeScore = homeScore ??
-            (homeNormalScore != null
-                ? homeNormalScore + (homeAddScore ?? 0) + (homePointScore ?? 0)
-                : ((homeAddScore ?? 0) + (homePointScore ?? 0) > 0
-                    ? (homeAddScore ?? 0) + (homePointScore ?? 0)
-                    : null)),
-        awayScore = awayScore ??
-            (awayNormalScore != null
-                ? awayNormalScore + (awayAddScore ?? 0) + (awayPointScore ?? 0)
-                : ((awayAddScore ?? 0) + (awayPointScore ?? 0) > 0
-                    ? (awayAddScore ?? 0) + (awayPointScore ?? 0)
-                    : null)),
-        leagueName = leagueName,
-        round = round ?? matchTag ?? stageName ?? (roundNum != null ? '第 $roundNum 轮' : ''),
-        status = status,
-        sportType = sportType ??
-            ((categoryId != null && categoryId != 1)
-                ? BMMatchSportType.basketball
-                : BMMatchSportType.football),
-        // matchTime String: 缺值时从 matchTimestamp int 秒格式化 (Hank -> BM 兼容)
-        matchTime = matchTime ??
-            ((matchTimestamp != null)
-                ? _formatMatchTimestamp(matchTimestamp)
-                : ''),
-        // liveMinute 与 Hank minutes 等价: 缺 liveMinute 用 minutes, 反之亦然
-        liveMinute = liveMinute ?? minutes,
-        // isFollowed 与 subscribed: 双向补全
-        isFollowed = isFollowed ?? (subscribed == true),
-        aiWinRate = aiWinRate ?? (homeWinRate ?? 0),
-        homeWinRate = homeWinRate ?? 0,
-        drawRate = drawRate ?? 0,
-        awayWinRate = awayWinRate ?? 0;
+  }) : // ---- 推导补全: Hank 缺失的 BM 必需字段从 homeTeam/awayTeam/... 取 ----
+       matchId = matchId ?? '',
+       homeTeamName = homeTeamName ?? homeTeam?.teamName ?? '',
+       awayTeamName = awayTeamName ?? awayTeam?.teamName ?? '',
+       // 总比分 homeScore/awayScore:
+       //   - 优先用直接传入的 homeScore/awayScore (BM 原格式)
+       //   - 其次: 只要 homeNormalScore/awayNormalScore 不为 null (哪怕是0, 代表 0-0 真实比分) → 直接当总比分(含加时点球)
+       //   - 最后: 只有 normal==null 且加时/点球有分才赋值, 否则 null (代表赛前没比分, 显示 '-')
+       homeScore =
+           homeScore ??
+           (homeNormalScore != null
+               ? homeNormalScore + (homeAddScore ?? 0) + (homePointScore ?? 0)
+               : ((homeAddScore ?? 0) + (homePointScore ?? 0) > 0
+                     ? (homeAddScore ?? 0) + (homePointScore ?? 0)
+                     : null)),
+       awayScore =
+           awayScore ??
+           (awayNormalScore != null
+               ? awayNormalScore + (awayAddScore ?? 0) + (awayPointScore ?? 0)
+               : ((awayAddScore ?? 0) + (awayPointScore ?? 0) > 0
+                     ? (awayAddScore ?? 0) + (awayPointScore ?? 0)
+                     : null)),
+       leagueName = leagueName,
+       round =
+           round ??
+           matchTag ??
+           stageName ??
+           (roundNum != null ? '第 $roundNum 轮' : ''),
+       status = status,
+       sportType =
+           sportType ??
+           ((categoryId != null && categoryId != 1)
+               ? BMMatchSportType.basketball
+               : BMMatchSportType.football),
+       // matchTime String: 缺值时从 matchTimestamp int 秒格式化 (Hank -> BM 兼容)
+       matchTime =
+           matchTime ??
+           ((matchTimestamp != null)
+               ? _formatMatchTimestamp(matchTimestamp)
+               : ''),
+       // liveMinute 与 Hank minutes 等价: 缺 liveMinute 用 minutes, 反之亦然
+       liveMinute = liveMinute ?? minutes,
+       // isFollowed 与 subscribed: 双向补全
+       isFollowed = isFollowed ?? (subscribed == true),
+       aiWinRate = aiWinRate ?? (homeWinRate ?? 0),
+       homeWinRate = homeWinRate ?? 0,
+       drawRate = drawRate ?? 0,
+       awayWinRate = awayWinRate ?? 0;
 
   /// matchTimestamp 秒 → 月/日 时:分 字符串 (Hank int秒时间戳 → BM matchTime 显示)
   static String _formatMatchTimestamp(int ts) {
     try {
       final d = DateTime.fromMillisecondsSinceEpoch(ts * 1000);
-      return '${d.month.toString().padLeft(2,'0')}/${d.day.toString().padLeft(2,'0')} '
-          '${d.hour.toString().padLeft(2,'0')}:${d.minute.toString().padLeft(2,'0')}';
+      return '${d.month.toString().padLeft(2, '0')}/${d.day.toString().padLeft(2, '0')} '
+          '${d.hour.toString().padLeft(2, '0')}:${d.minute.toString().padLeft(2, '0')}';
     } catch (_) {
       return '';
     }
@@ -504,7 +511,10 @@ class BMMatchModel {
 
     // --- 便捷取值: 同时支持驼峰/下划线两种 key (Hank + BM 双兼容) ---
     int? matchIdInt = toInt(map['matchId']) ?? toInt(map['match_id']);
-    String matchIdStr = safeString(map['matchId']) ?? safeString(map['match_id']) ?? (matchIdInt != null ? matchIdInt.toString() : '');
+    String matchIdStr =
+        safeString(map['matchId']) ??
+        safeString(map['match_id']) ??
+        (matchIdInt != null ? matchIdInt.toString() : '');
 
     // 联赛名: leagueName(BM) + competition_name(Hank) + league_name(通用下划线)
     String leagueNameVal =
@@ -520,7 +530,8 @@ class BMMatchModel {
 
     // matchTime int秒时间戳(Hank match_time) + BM String matchTime 双支持
     int? matchTs = toInt(map['matchTime']) ?? toInt(map['match_time']);
-    String? matchTimeStr = safeString(map['matchTime']) ?? safeString(map['match_time']);
+    String? matchTimeStr =
+        safeString(map['matchTime']) ?? safeString(map['match_time']);
     if (matchTimeStr != null && matchTimeStr.isNotEmpty) {
       // 尝试解析: 如果 matchTime 其实是 int 的字符串,转成 int 存 matchTimestamp
       final parsedTs = int.tryParse(matchTimeStr);
@@ -533,12 +544,16 @@ class BMMatchModel {
     }
 
     // minutes(Hank) ↔ liveMinute(BM)
-    String? liveMinVal = safeString(map['liveMinute']) ?? safeString(map['live_minute']) ?? safeString(map['minutes']);
+    String? liveMinVal =
+        safeString(map['liveMinute']) ??
+        safeString(map['live_minute']) ??
+        safeString(map['minutes']);
 
     // 半场比分 String (homeHalfScore awayHalfScore int → 拼接成 "1-0" 的 halfTimeScore)
     final hh = toInt(map['homeHalfScore']) ?? toInt(map['home_half_score']);
     final ah = toInt(map['awayHalfScore']) ?? toInt(map['away_half_score']);
-    String? halfTimeStr = safeString(map['halfTimeScore']) ?? safeString(map['half_time_score']);
+    String? halfTimeStr =
+        safeString(map['halfTimeScore']) ?? safeString(map['half_time_score']);
     if (halfTimeStr == null && hh != null && ah != null) {
       halfTimeStr = '$hh-$ah';
     }
@@ -555,8 +570,9 @@ class BMMatchModel {
     // categoryId(Hank category int) ↔ sportType BM enum
     final cat = toInt(map['categoryId']) ?? toInt(map['category']);
     final sp = safeString(map['sportType']);
-    final BMMatchSportType sport =
-        (sp == 'basketball' || cat == 2) ? BMMatchSportType.basketball : BMMatchSportType.football;
+    final BMMatchSportType sport = (sp == 'basketball' || cat == 2)
+        ? BMMatchSportType.basketball
+        : BMMatchSportType.football;
 
     // 主客队总比分: 若缺 homeScore/awayScore 但有 normal 字段, 用 normal 填充
     int? hs = (map['homeScore'] is num)
@@ -571,8 +587,10 @@ class BMMatchModel {
     if (as == null && an != null) as = an;
 
     // round / matchTag / stageName 双向映射
-    final matchTagVal = safeString(map['matchTag']) ?? safeString(map['match_tag']);
-    final stageNameVal = safeString(map['stageName']) ?? safeString(map['stage_name']);
+    final matchTagVal =
+        safeString(map['matchTag']) ?? safeString(map['match_tag']);
+    final stageNameVal =
+        safeString(map['stageName']) ?? safeString(map['stage_name']);
     final roundNumVal = toInt(map['roundNum']) ?? toInt(map['round_num']);
     final roundVal =
         safeString(map['round']) ??
@@ -585,10 +603,17 @@ class BMMatchModel {
       // ---- Hank 42+ 字段 ----
       matchId: matchIdStr,
       seasonId: toInt(map['seasonId']) ?? toInt(map['season_id']),
-      competitionId: toInt(map['competitionId']) ?? toInt(map['competition_id']),
-      competitionLogo: safeString(map['competitionLogo']) ?? safeString(map['competition_logo']),
-      competitionPrimaryColor: safeString(map['competitionPrimaryColor']) ?? safeString(map['competition_primary_color']),
-      competitionSecondaryColor: safeString(map['competitionSecondaryColor']) ?? safeString(map['competition_secondary_color']),
+      competitionId:
+          toInt(map['competitionId']) ?? toInt(map['competition_id']),
+      competitionLogo:
+          safeString(map['competitionLogo']) ??
+          safeString(map['competition_logo']),
+      competitionPrimaryColor:
+          safeString(map['competitionPrimaryColor']) ??
+          safeString(map['competition_primary_color']),
+      competitionSecondaryColor:
+          safeString(map['competitionSecondaryColor']) ??
+          safeString(map['competition_secondary_color']),
       homeTeamId: topHomeTeamId,
       homeTeamName:
           safeString(map['homeTeamName']) ?? safeString(map['home_team_name']),
@@ -610,19 +635,23 @@ class BMMatchModel {
       homeYellow: toInt(map['homeYellow']) ?? toInt(map['home_yellow']),
       homeCorn: toInt(map['homeCorn']) ?? toInt(map['home_corn']),
       homeAddScore: toInt(map['homeAddScore']) ?? toInt(map['home_add_score']),
-      homePointScore: toInt(map['homePointScore']) ?? toInt(map['home_point_score']),
+      homePointScore:
+          toInt(map['homePointScore']) ?? toInt(map['home_point_score']),
       awayNormalScore: an,
       awayHalfScore: ah,
       awayRed: toInt(map['awayRed']) ?? toInt(map['away_red']),
       awayYellow: toInt(map['awayYellow']) ?? toInt(map['away_yellow']),
       awayCorn: toInt(map['awayCorn']) ?? toInt(map['away_corn']),
       awayAddScore: toInt(map['awayAddScore']) ?? toInt(map['away_add_score']),
-      awayPointScore: toInt(map['awayPointScore']) ?? toInt(map['away_point_score']),
+      awayPointScore:
+          toInt(map['awayPointScore']) ?? toInt(map['away_point_score']),
       lineup: toInt(map['lineup']),
       stageId: toInt(map['stageId']) ?? toInt(map['stage_id']),
       subscribed: finalSub,
-      homePosition: safeString(map['homePosition']) ?? safeString(map['home_position']),
-      awayPosition: safeString(map['awayPosition']) ?? safeString(map['away_position']),
+      homePosition:
+          safeString(map['homePosition']) ?? safeString(map['home_position']),
+      awayPosition:
+          safeString(map['awayPosition']) ?? safeString(map['away_position']),
       hasOt: toBool(map['hasOt']) ?? toBool(map['has_ot']),
       hasPenalty: toBool(map['hasPenalty']) ?? toBool(map['has_penalty']),
       win: toInt(map['win']),
@@ -675,11 +704,59 @@ class BMMatchModel {
   }
 }
 
-/// BMMatchModel 扩展：显示相关 getter
+/// BMMatchModel 扩展：显示相关 getter + 详情刷新合并
 ///   - displayStatusLabel: 显示状态字符串 (LIVE/FT/未开始/待定)
 ///   - kickoffText: 开赛时间字符串 (matchTime/liveMinute 任一个有值就展示, 用于判空非空串)
 ///   - displayMatchTime: 格式化开赛/轮次或时间 合并显示
+///   - refreshedWith: 详情接口返回后合并刷新顶部卡片字段
 extension BMMatchModelDisplayX on BMMatchModel {
+  /// 用详情接口返回的模型合并刷新当前模型 (新值优先, 新值为空保留旧值)
+  /// 用于详情页请求 detail 后刷新顶部卡片 (队名/Logo/比分/状态/联赛)
+  /// [fresh] - detail 接口新构建的模型 (BMMatchModel 类型)
+  /// [categoryId] - 手动指定运动类型ID (int? 类型, 足球详情传1, 篮球详情传2; 优先级最高)
+  /// 返回: BMMatchModel 合并后的新实例
+  BMMatchModel refreshedWith(BMMatchModel fresh, {int? categoryId}) {
+    String? pickStr(String? freshV, String? oldV) =>
+        (freshV != null && freshV.isNotEmpty) ? freshV : oldV;
+    // 手动 categoryId 优先, 其次 fresh, 最后旧值
+    final int? mergedCategory =
+        categoryId ?? fresh.categoryId ?? this.categoryId;
+    // categoryId 决定 sportType (2=篮球, 其他=足球)
+    final BMMatchSportType mergedSport = (mergedCategory == 2)
+        ? BMMatchSportType.basketball
+        : BMMatchSportType.football;
+    return BMMatchModel(
+      matchId: fresh.matchId.isNotEmpty ? fresh.matchId : matchId,
+      homeTeamId: fresh.homeTeamId ?? homeTeamId,
+      awayTeamId: fresh.awayTeamId ?? awayTeamId,
+      homeTeamName: pickStr(fresh.homeTeamName, homeTeamName),
+      homeTeamLogo: pickStr(fresh.homeTeamLogo, homeTeamLogo),
+      awayTeamName: pickStr(fresh.awayTeamName, awayTeamName),
+      awayTeamLogo: pickStr(fresh.awayTeamLogo, awayTeamLogo),
+      statusId: fresh.statusId ?? statusId,
+      statusName: pickStr(fresh.statusName, statusName),
+      homeScore: fresh.homeScore ?? homeScore,
+      awayScore: fresh.awayScore ?? awayScore,
+      leagueName: fresh.leagueName.isNotEmpty ? fresh.leagueName : leagueName,
+      round: fresh.round.isNotEmpty ? fresh.round : round,
+      matchTime: fresh.matchTime.isNotEmpty ? fresh.matchTime : matchTime,
+      liveMinute: (fresh.liveMinute ?? liveMinute),
+      minutes: (fresh.minutes ?? minutes),
+      categoryId: mergedCategory,
+      sportType: mergedSport,
+      status: fresh.status,
+      homeTeam: fresh.homeTeam ?? homeTeam,
+      awayTeam: fresh.awayTeam ?? awayTeam,
+      isFollowed: fresh.isFollowed,
+      homeNormalScore: fresh.homeNormalScore ?? homeNormalScore,
+      awayNormalScore: fresh.awayNormalScore ?? awayNormalScore,
+      homeAddScore: fresh.homeAddScore ?? homeAddScore,
+      awayAddScore: fresh.awayAddScore ?? awayAddScore,
+      homePointScore: fresh.homePointScore ?? homePointScore,
+      awayPointScore: fresh.awayPointScore ?? awayPointScore,
+    );
+  }
+
   /// 显示状态字符串 (String 类型, 用于 scoreboard LIVE 胶囊)
   ///   live: "LIVE 75'"
   ///   ended: "完场"
@@ -687,40 +764,49 @@ extension BMMatchModelDisplayX on BMMatchModel {
   ///   tbd: "待定"
   /// 状态优先级: statusId 数字强类型 > status 枚举
   /// 足球数字规则(用户要求): statusId=1未开始 / 2|3|4|5|7进行中 / 8已结束 / 0|9|10|11|12|13 TBD待定
+  /// 篮球数字规则(用户要求): statusId=1|13未开始 / 2|3|4|5|6|7|8|9进行中 / 10|11已结束 / 0|12|14|15 TBD待定
   String get displayStatusLabel {
     final id = statusId;
+    print('打印-----${id}--${sportType}');
     if (id != null) {
-      // 进行中(2|3|4|5|7) 优先拼 liveMinute 显示 LIVE 75'
-      if (id == 2 || id == 3 || id == 4 || id == 5 || id == 7) {
-        final minRaw = (liveMinute != null && liveMinute!.isNotEmpty)
-            ? liveMinute
-            : (minutes != null && minutes!.isNotEmpty ? minutes : null);
-        final min = minRaw?.replaceAll("'", '');
-        if (min != null && min.isNotEmpty) return 'LIVE $min\'';
-        return 'LIVE';
-      }
-      if (id == 1) return '未开始';
-      if (id == 8) return '完场';
-      if (id == 0 || id == 9 || id == 10 || id == 11 || id == 12 || id == 13) {
-        return '待定';
+      // 篮球规则分支
+      if (sportType == BMMatchSportType.basketball) {
+        if (id == 1 || id == 13) return '未开始';
+        if (id >= 2 && id <= 9) {
+          final minRaw = (liveMinute != null && liveMinute!.isNotEmpty)
+              ? liveMinute
+              : (minutes != null && minutes!.isNotEmpty ? minutes : null);
+          final min = minRaw?.replaceAll("'", '');
+          if (min != null && min.isNotEmpty) return 'LIVE $min\'';
+          return 'LIVE';
+        }
+        if (id == 10 || id == 11) return '完场';
+        if (id == 0 || id == 12 || id == 14 || id == 15) return '待定';
+      } else {
+        // 足球规则分支
+        // 进行中(2|3|4|5|7) 优先拼 liveMinute 显示 LIVE 75'
+        if (id == 2 || id == 3 || id == 4 || id == 5 || id == 7) {
+          final minRaw = (liveMinute != null && liveMinute!.isNotEmpty)
+              ? liveMinute
+              : (minutes != null && minutes!.isNotEmpty ? minutes : null);
+          final min = minRaw?.replaceAll("'", '');
+          if (min != null && min.isNotEmpty) return 'LIVE $min\'';
+          return 'LIVE';
+        }
+        if (id == 1) return '未开始';
+        if (id == 8) return '完场';
+        if (id == 0 ||
+            id == 9 ||
+            id == 10 ||
+            id == 11 ||
+            id == 12 ||
+            id == 13) {
+          return '待定';
+        }
       }
     }
-    // statusId 为空时 fallback 到 BMMatchStatus enum
-    switch (status) {
-      case BMMatchStatus.live:
-        final minRaw = (liveMinute != null && liveMinute!.isNotEmpty)
-            ? liveMinute
-            : minutes;
-        final min = minRaw?.replaceAll("'", '');
-        if (min != null && min.isNotEmpty) return 'LIVE $min\'';
-        return 'LIVE';
-      case BMMatchStatus.ended:
-        return '完场';
-      case BMMatchStatus.upcoming:
-        return '未开始';
-      case BMMatchStatus.tbd:
-        return '待定';
-    }
+
+    return '--${id}--${sportType}';
   }
 
   /// 开赛时间非空串 (String 类型, 用于判断 "开赛时间/轮次至少一个有值吗")
@@ -728,8 +814,8 @@ extension BMMatchModelDisplayX on BMMatchModel {
   String get kickoffText => (liveMinute != null && liveMinute!.isNotEmpty)
       ? liveMinute!
       : (minutes != null && minutes!.isNotEmpty
-          ? minutes!
-          : (matchTime.isNotEmpty ? matchTime : round));
+            ? minutes!
+            : (matchTime.isNotEmpty ? matchTime : round));
 
   /// 显示合并信息: matchTime + round 组合
   ///   例: '2026/10/01 03:00 · 第 5 轮'

@@ -8,6 +8,7 @@ import '../../models/bm_competition_season_model.dart';
 import '../../models/bm_player_ability_model.dart';
 import '../../models/bm_player_rank_model.dart';
 import '../../services/bm_match_api_service.dart';
+import '../../services/bm_player_ability_store.dart';
 import 'bm_tactical_board_page.dart';
 import 'bm_notes_page.dart';
 import 'bm_dictionary_page.dart';
@@ -1123,8 +1124,13 @@ class _BMToolPageState extends BMBasePageState<BMToolPage> {
     );
   }
 
-  /// 启动战力报告生成 = 串行请求（先 Player A，成功后再 Player B）→ 绘制双球员雷达图
-  /// 链路: 校验选中 -> fetchPlayerAbility(playerA) 成功 -> fetchPlayerAbility(playerB) -> setState 双能力模型
+  /// 启动战力报告生成 = 双球员获取六维数据（先本地缓存 → 未命中生成随机数并写回本地）→ 绘制双球员雷达图
+  /// 链路 (需求 2026-09-23 改造, 不再请求球员详情接口):
+  ///   1. 校验选中球员合法
+  ///   2. 逐球员: BMPlayerAbilityStore.load 查本地 → 命中直接用
+  ///      → 未命中 BMPlayerAbilityGenerator.generate 按积分生成随机六项(1~100) → BMPlayerAbilityStore.save 写回本地
+  ///   3. 双球员六维模型就绪 → setState 触发雷达双绘制
+  /// 注: 积分取球员排行榜 total 字段 (例: A=27分, B=19分 → A 六项综合必然强于 B)
   Future<void> _startCalculation() async {
     // 1. 校验: 球员列表完整 + 双选择下标合法
     if (_playerRanks.isEmpty ||
@@ -1145,47 +1151,64 @@ class _BMToolPageState extends BMBasePageState<BMToolPage> {
       _abilitiesLoadFailed = false;
       _playerLeftAbility = null;
       _playerRightAbility = null;
-      _resultText = '拉取球员A战力数据中(1/2)...';
+      _resultText = '生成球员A战力数据中(1/2)...';
     });
     try {
       debugPrint(
-        '🚀 BMToolPage 串行请求双球员: 先A=${playerA.playerId}(${playerA.playerName}) -> 后B=${playerB.playerId}(${playerB.playerName})',
+        '🚀 BMToolPage 本地/随机双球员战力: A=${playerA.playerId}(${playerA.playerName}, 积分${playerA.total}) '
+        'vs B=${playerB.playerId}(${playerB.playerName}, 积分${playerB.total})',
       );
-      // === 2. 第1步: 请求 Player A (左侧蓝色) ===
-      final abA = await _apiService.fetchPlayerAbility(
-        playerId: playerA.playerId,
-        playerNameHint: playerA.playerName,
-      );
+
+      /// 获取单球员六维战力: 先本地缓存, 无则按积分生成随机数并写回本地
+      /// [p] - 球员排行模型 (BMPlayerRankModel 类型)
+      /// 返回: BMPlayerAbilityModel? (异常返回 null)
+      Future<BMPlayerAbilityModel?> resolveAbility(BMPlayerRankModel p) async {
+        // === 2a. 先查本地缓存 ===
+        final cached = await BMPlayerAbilityStore.load(
+          playerId: p.playerId,
+          playerName: p.playerName,
+        );
+        if (cached != null) return cached;
+        // === 2b. 本地未命中: 按积分生成随机六项(1~100, 积分高综合强) ===
+        final generated = BMPlayerAbilityGenerator.generate(
+          playerId: p.playerId,
+          playerName: p.playerName,
+          score: p.total,
+        );
+        // === 2c. 写回本地, 下次直接读缓存 ===
+        await BMPlayerAbilityStore.save(generated);
+        return generated;
+      }
+
+      // === 3. 第1步: 球员 A (左侧蓝色) ===
+      final abA = await resolveAbility(playerA);
       if (!mounted) return;
       if (abA == null) {
         setState(() {
           _abilitiesLoadFailed = true;
           _playerLeftAbility = null;
           _playerRightAbility = null;
-          _resultText = '球员A战力数据拉取失败';
+          _resultText = '球员A战力数据生成失败';
         });
         return;
       }
       setState(() {
         _playerLeftAbility = abA;
-        _resultText = '拉取球员B战力数据中(2/2)...';
+        _resultText = '生成球员B战力数据中(2/2)...';
       });
-      // === 3. 第2步: 请求 Player B (右侧粉色，A成功后才执行) ===
-      final abB = await _apiService.fetchPlayerAbility(
-        playerId: playerB.playerId,
-        playerNameHint: playerB.playerName,
-      );
+      // === 4. 第2步: 球员 B (右侧粉色) ===
+      final abB = await resolveAbility(playerB);
       if (!mounted) return;
       if (abB == null) {
         setState(() {
           _abilitiesLoadFailed = true;
           // A 成功但 B 失败，保留 A 但提示失败
           _playerRightAbility = null;
-          _resultText = '球员B战力数据拉取失败';
+          _resultText = '球员B战力数据生成失败';
         });
         return;
       }
-      // === 4. 双球员都成功，赋值触发雷达双绘制
+      // === 5. 双球员都成功，赋值触发雷达双绘制 ===
       setState(() {
         _playerLeftAbility = abA;
         _playerRightAbility = abB;
@@ -1199,10 +1222,11 @@ class _BMToolPageState extends BMBasePageState<BMToolPage> {
         _resultText = '战力对比: ${abA.playerName} $avgA vs ${abB.playerName} $avgB';
       });
       debugPrint(
-        '✅ BMToolPage 串行双球员能力请求完成: A=${abA.playerName} avgA}, B=${abB.playerName}',
+        '✅ BMToolPage 双球员战力就绪: A=${abA.playerName} [${abA.att},${abA.tec},${abA.sta},${abA.def},${abA.pow},${abA.spd}], '
+        'B=${abB.playerName} [${abB.att},${abB.tec},${abB.sta},${abB.def},${abB.pow},${abB.spd}]',
       );
     } catch (e) {
-      debugPrint('❌ BMToolPage 球员能力串行请求异常: $e');
+      debugPrint('❌ BMToolPage 球员战力生成异常: $e');
       if (mounted) {
         setState(() {
           _abilitiesLoadFailed = true;

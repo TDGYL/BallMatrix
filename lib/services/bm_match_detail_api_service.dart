@@ -5,6 +5,7 @@ import '../models/bm_lineup_model.dart';
 import '../models/bm_h2h_model.dart';
 import '../models/bm_player_info_model.dart';
 import '../models/bm_team_info_model.dart';
+import '../models/bm_basketball_vote_model.dart';
 
 /// BMMatchDetailApiService - 足球比赛详情API服务
 /// 接口路径配置 1:1 同 hanklive HankMatchDetailApiService (替身, 无需修改后端)
@@ -20,7 +21,8 @@ import '../models/bm_team_info_model.dart';
 ///   - POST /api/livespeed/football/match/unsubscribe : 取消订阅
 class BMMatchDetailApiService {
   /// 单例实例
-  static final BMMatchDetailApiService _instance = BMMatchDetailApiService._internal();
+  static final BMMatchDetailApiService _instance =
+      BMMatchDetailApiService._internal();
   factory BMMatchDetailApiService() => _instance;
   BMMatchDetailApiService._internal();
 
@@ -31,7 +33,9 @@ class BMMatchDetailApiService {
       '/api/livespeed/football/match/detail',
       queryParameters: {'match_id': matchId},
     );
-    if (resp.isSuccess && resp.data != null) return resp.data as Map<String, dynamic>;
+    if (resp.isSuccess && resp.data != null) {
+      return resp.data as Map<String, dynamic>;
+    }
     return null;
   }
 
@@ -93,7 +97,9 @@ class BMMatchDetailApiService {
   /// 请求足球比赛 H2H 历史交锋 (拆分：两队直接交锋 vs / 主队历史 / 客队历史)
   ///   GET /api/livespeed/football/match/analysis?match_id=
   ///   返回 Map: { 'vs': 两队对战列表, 'home': 主队近期比赛, 'away': 客队近期比赛 }
-  Future<Map<String, List<BMH2HMatch>>> fetchH2HSplitedData({required int matchId}) async {
+  Future<Map<String, List<BMH2HMatch>>> fetchH2HSplitedData({
+    required int matchId,
+  }) async {
     final result = <String, List<BMH2HMatch>>{
       'vs': <BMH2HMatch>[],
       'home': <BMH2HMatch>[],
@@ -121,8 +127,12 @@ class BMMatchDetailApiService {
           }
 
           result['vs'] = parseList(history['vs'] ?? history['h2h']);
-          result['home'] = parseList(history['home'] ?? history['home_team'] ?? history['homeRecent']);
-          result['away'] = parseList(history['away'] ?? history['away_team'] ?? history['awayRecent']);
+          result['home'] = parseList(
+            history['home'] ?? history['home_team'] ?? history['homeRecent'],
+          );
+          result['away'] = parseList(
+            history['away'] ?? history['away_team'] ?? history['awayRecent'],
+          );
         }
       }
     } catch (_) {}
@@ -174,7 +184,9 @@ class BMMatchDetailApiService {
           // 包装型返回 {code/data/message} (用户给的标准格式)
           return BMTeamInfo.fromJson(inner);
         }
-        if (obj['name'] != null || obj['team_id'] != null || obj['teamId'] != null) {
+        if (obj['name'] != null ||
+            obj['team_id'] != null ||
+            obj['teamId'] != null) {
           // 平铺直接返回
           return BMTeamInfo.fromJson(obj);
         }
@@ -185,15 +197,87 @@ class BMMatchDetailApiService {
 
   // ================ 篮球详情接口 ================
 
-  /// 请求篮球比赛详情原始 Map
-  ///   GET /api/v1/livespeed/match/detail?match_id=
+  /// 请求篮球比赛投票信息 (实况 Tab 投票比例数据源)
+  ///   GET api/livespeed/basketball/match/vote-info?match_id=
   ///   matchId: 篮球比赛ID (int, 必传)
-  Future<Map<String, dynamic>?> fetchBasketballDetail({required int matchId}) async {
+  ///   返回: data {home_votes, away_votes, vote_status}, 失败返回 null
+  Future<BMBasketballVoteInfo?> fetchBasketballVoteInfo({
+    required int matchId,
+  }) async {
+    if (matchId == 0) return null;
+    try {
+      final resp = await BMNetworkManager().getRequest(
+        '/api/livespeed/basketball/match/vote-info',
+        queryParameters: {'match_id': matchId},
+      );
+      if (resp.isSuccess && resp.data != null && resp.data is Map) {
+        return BMBasketballVoteInfo.fromJson(resp.data as Map<String, dynamic>);
+      }
+    } catch (_) {}
+    return null;
+  }
+
+  /// 提交篮球比赛投票 (实况 Tab 投票动作)
+  ///   POST api/livespeed/basketball/match/vote  data: {match_id, team}
+  ///   matchId: 篮球比赛ID (int, 必传)
+  ///   team: 投票侧 (int, 1=主队 2=客队)
+  ///   返回: bool 是否投票成功
+  Future<bool> submitBasketballVote({
+    required int matchId,
+    required int team,
+  }) async {
+    if (matchId == 0 || (team != 1 && team != 2)) return false;
+    try {
+      final resp = await BMNetworkManager().postRequest(
+        '/api/livespeed/basketball/match/vote',
+        data: {'match_id': matchId, 'team': team},
+      );
+      return resp.isSuccess;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// 请求篮球比赛进程数据 (一次请求返回 stats + tlive, 两 Tab 共用)
+  ///   GET /api/livespeed/basketball/match/process?match_id=
+  ///   matchId: 篮球比赛ID (int, 必传)
+  ///   返回: data Map (含 stats 技术统计数组 + tlive 按节实况数组), 失败返回 null
+  Future<Map<String, dynamic>?> fetchBasketballProcess({
+    required int matchId,
+  }) async {
+    try {
+      final resp = await BMNetworkManager().getRequest(
+        '/api/livespeed/basketball/match/process',
+        queryParameters: {'match_id': matchId},
+      );
+      if (resp.isSuccess && resp.data != null) {
+        final obj = resp.data as Map<String, dynamic>;
+        // 兼容 {code,data,message} 包装: 取内层 data
+        final inner = obj['data'] is Map ? obj['data'] as Map<String, dynamic> : obj;
+        return inner;
+      }
+    } catch (_) {}
+    return null;
+  }
+
+  /// 请求篮球比赛详情原始 Map
+  ///   GET /api/livespeed/football/match/detail?match_id= (篮球详情同 football 路径, 后端共用)
+  ///   matchId: 篮球比赛ID (int, 必传)
+  ///   返回: data Map (含 home_scores/away_scores 分节比分逗号串 / subscribed / odds 等)
+  Future<Map<String, dynamic>?> fetchBasketballDetail({
+    required int matchId,
+  }) async {
     final resp = await BMNetworkManager().getRequest(
-      '/api/v1/livespeed/match/detail',
+      '/api/livespeed/basketball/match/detail',
       queryParameters: {'match_id': matchId},
     );
-    if (resp.isSuccess && resp.data != null) return resp.data as Map<String, dynamic>;
+    if (resp.isSuccess && resp.data != null) {
+      final obj = resp.data as Map<String, dynamic>;
+      // 兼容 {code,data,message} 包装: 取内层 data
+      final inner = obj['data'];
+      if (inner is Map<String, dynamic>) return inner;
+      return obj;
+    }
     return null;
   }
 }
