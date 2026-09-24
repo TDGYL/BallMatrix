@@ -1,7 +1,12 @@
 
 
-在首页工具箱的底部菜单的金刚页增加第四个菜单名字叫做L：球迷好物，点击push到一个球迷周边界面，数据来源是
-把/Users/guyilin/Desktop/goodsList.xlsx复制到项目，然后解析这个表格附件的数据，根据数据结构给我做一个球迷周边界面
+
+
+在bm_fan_goods_page点击球星鞋库时候，表格卡片出现bottom overflowed by pixels,给我修复
+
+
+在首页工具箱菜单的底部金刚页部分增加第四个菜单名字叫做：球迷好物，点击push到一个球迷周边界面，数据来源是
+把/Users/guyilin/Desktop/goodsList.xlsx复制到项目，然后解析这个表格附件的数据，根据数据结构给我做一个球迷周边
 
 
 

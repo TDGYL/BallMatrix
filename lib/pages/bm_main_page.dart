@@ -153,7 +153,7 @@ class _BMMainPageState extends State<BMMainPage> {
             ),
           ),
           Text(
-            '工具箱',
+            '藏宝盒',
             style: TextStyle(
               fontSize: 10,
               fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,

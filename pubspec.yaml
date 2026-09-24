@@ -59,6 +59,9 @@ dependencies:
   # 保存图片到系统相册 (战术板导出, iOS 原生 PHPhotoLibrary)
   gal: ^2.3.0
 
+  # 解析本地 xlsx 表格 (球迷周边商品数据, zip+xml 手动解析)
+  archive: ^3.6.1
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -81,9 +84,10 @@ flutter:
   # the material Icons class.
   uses-material-design: true
 
-  # 本地资源声明 (用户协议/隐私政策HTML + logo)
+  # 本地资源声明 (用户协议/隐私政策HTML + logo + 球迷周边商品数据)
   assets:
     - assets/html/
+    - assets/data/
 
   # To add assets to your application, add an assets section, like this:
   # assets:

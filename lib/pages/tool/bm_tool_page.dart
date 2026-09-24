@@ -10,6 +10,7 @@ import '../../models/bm_player_rank_model.dart';
 import '../../services/bm_match_api_service.dart';
 import '../../services/bm_player_ability_store.dart';
 import 'bm_tactical_board_page.dart';
+import 'bm_fan_goods_page.dart';
 import 'bm_notes_page.dart';
 import 'bm_dictionary_page.dart';
 
@@ -1244,7 +1245,7 @@ class _BMToolPageState extends BMBasePageState<BMToolPage> {
   }
 
   /// 构建工具卡片网格
-  /// 构建金刚区工具网格卡片列表 (3个: Tactical Board / Notes / Verbal Trick Dictionary)
+  /// 构建金刚区工具网格卡片列表 (4个: Tactical Board / Notes / Verbal Trick Dictionary / Fan Goods)
   Widget _buildToolGrid() {
     final tools = <(String, String, IconData, Color, VoidCallback)>[
       (
@@ -1285,6 +1286,20 @@ class _BMToolPageState extends BMBasePageState<BMToolPage> {
             context,
             MaterialPageRoute(
               builder: (_) => const BMDictionaryPage(),
+            ),
+          );
+        },
+      ),
+      (
+        'Fan Goods',
+        '球迷好物周边收藏: 球衣/球鞋/文创一键管理',
+        Icons.shopping_bag_outlined,
+        const Color(0xFFF97316),
+        () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => const BMFanGoodsPage(),
             ),
           );
         },
