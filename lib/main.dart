@@ -4,6 +4,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'theme/bm_colors.dart';
 import 'pages/bm_main_page.dart';
 import 'utils/bm_auth_manager.dart';
+import 'utils/bm_app_navigator.dart';
 
 /// App fullgameinput:
 /// 1. WidgetsFlutterBinding.ensureInitialized() - bindnativecommon (SharedPreferences/Dio waitasyncfileenabled)
@@ -40,6 +41,8 @@ class BallMatrixApp extends StatelessWidget {
  return MaterialApp(
  title: 'green pitch intelligence Pro',
  debugShowCheckedModeBanner: false,
+ // global NavigatorState key (network layer 401 redirect to login page usage)
+ navigatorKey: BMAppNavigator.navigatorKey,
  // intextlocalsupport（showDatePickerwaitsystemsystemwidgetmustplace，otherwise theniOSwillcardnotpop）
  localizationsDelegates: const [
  GlobalMaterialLocalizations.delegate,

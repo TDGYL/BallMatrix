@@ -1,6 +1,8 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'bm_api_response.dart';
+import '../utils/bm_auth_manager.dart';
+import '../utils/bm_app_navigator.dart';
 
 /// BMNetworkManager - networkrequestdevice
 /// feature: Dio of singletonnetworkrequesttool, interceptdevicelog、Token 、GET/POST request
@@ -154,6 +156,10 @@ class BMNetworkManager {
           codeInt = int.tryParse(codeRaw);
         }
         if (codeInt != null) {
+          // ⭐️ code=401: Token invalid/expired, clearloginstate and redirect to login page (duplicateprevent)
+          if (codeInt == 401) {
+            _handleUnauthorized();
+          }
           return BMApiResponse(
             code: codeInt,
             data: raw['data'],
@@ -182,6 +188,19 @@ class BMNetworkManager {
  message: 'Response Parse Error: $e',
 );
  }
+ }
+
+ /// handle401 unauthorized (code=401 whencall)
+ /// feature: clearloginstate (same as logout logic: localuser info + requestheader Token) and redirect to login page
+ /// duplicateprevent: login page lifecyclemaintains [BMAppNavigator.isOnLoginPage], alreadyon login page whennotpushagain
+ void _handleUnauthorized() {
+ debugPrint('⚠️ BMNetwork 401 Unauthorized -> clear auth & go to login page');
+ // immediately remove requestheader of user Token (synchronous, preventwindow periodconcurrent requeststillcarryingold Token)
+ clearAuthToken();
+ // clearmemory + localof Token anduserinfo (and logout logicfullyconsistent: SharedPreferences remove + memoryempty)
+ BMAuthManager().logout();
+ // redirect to login page (innerpartalreadyhasduplicateprevent)
+ BMAppNavigator.goToLogin();
  }
 
  /// parseerrorinfo

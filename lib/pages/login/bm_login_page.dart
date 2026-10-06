@@ -7,6 +7,7 @@ import '../common/bm_webview_page.dart';
 import '../../theme/bm_colors.dart';
 import '../../network/bm_network_manager.dart';
 import '../../utils/bm_auth_manager.dart';
+import '../../utils/bm_app_navigator.dart';
 import '../../models/bm_user_model.dart';
 
 /// BMLoginPage - login/registerpage
@@ -67,7 +68,16 @@ class _BMLoginPageState extends BMBasePageState<BMLoginPage> {
  RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,}$').hasMatch(s);
 
  @override
+ void initState() {
+ super.initState();
+ // markcurrenton login page (network layer 401 redirectduplicateprevent)
+ BMAppNavigator.isOnLoginPage = true;
+ }
+
+ @override
  void dispose() {
+ // unmark (leave login page later401 canredirectagain)
+ BMAppNavigator.isOnLoginPage = false;
  _emailCtrl.dispose();
  _codeCtrl.dispose();
  _countdownTimer?.cancel();
