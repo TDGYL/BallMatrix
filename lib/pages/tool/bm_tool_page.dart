@@ -1253,7 +1253,7 @@ class _BMToolPageState extends BMBasePageState<BMToolPage> {
       _abilitiesLoadFailed = false;
       _playerLeftAbility = null;
       _playerRightAbility = null;
-      _resultText = 'generateplayerApowerdatain (1/2)...';
+      _resultText = 'generate data (1/2)...';
     });
     try {
       debugPrint(
@@ -1290,13 +1290,13 @@ class _BMToolPageState extends BMBasePageState<BMToolPage> {
           _abilitiesLoadFailed = true;
           _playerLeftAbility = null;
           _playerRightAbility = null;
-          _resultText = 'playerApowerdatageneratefailure';
+          _resultText = 'data generate failure';
         });
         return;
       }
       setState(() {
         _playerLeftAbility = abA;
-        _resultText = 'generateplayerBpowerdatain (2/2)...';
+        _resultText = 'generate datain (2/2)...';
       });
       // === 4. No. 2: player B (right sidecolor) ===
       final abB = await resolveAbility(playerB);
@@ -1306,7 +1306,7 @@ class _BMToolPageState extends BMBasePageState<BMToolPage> {
           _abilitiesLoadFailed = true;
           // A success B failure，keep A toastfailure
           _playerRightAbility = null;
-          _resultText = 'playerBpowerdatageneratefailure';
+          _resultText = 'data generate failure';
         });
         return;
       }
@@ -1321,8 +1321,7 @@ class _BMToolPageState extends BMBasePageState<BMToolPage> {
         final avgB =
             ((abB.att + abB.tec + abB.sta + abB.def + abB.pow + abB.spd) / 6)
                 .toStringAsFixed(1);
-        _resultText =
-            'powercompare: ${abA.playerName} $avgA vs ${abB.playerName} $avgB';
+        _resultText = ' ${abA.playerName} $avgA vs ${abB.playerName} $avgB';
       });
       debugPrint(
         '✅ BMToolPage doubleplayerpower: A=${abA.playerName} [${abA.att},${abA.tec},${abA.sta},${abA.def},${abA.pow},${abA.spd}], '
