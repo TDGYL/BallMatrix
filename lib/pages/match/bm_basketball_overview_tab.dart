@@ -266,17 +266,15 @@ class BMBasketballOverviewTab extends StatelessWidget {
 
  /// readtechnical statsline (priority level: process API stats > detail data.stats)
  /// process API: GET /api/livespeed/basketball/match/process -> data.stats [{type,home,away,name}]
- /// returns: List<_StatPair> (homevalue/tag/awayvalue)
+ /// returns: List<_StatPair> (type id/homevalue/awayvalue, label via typeName mapping)
  List<_StatPair> _readStatRows() {
  final rows = <_StatPair>[];
  // 1. priority: process API stats
  for (final s in processStats) {
- final name = s['name'];
-      if (name == null || name.toString().isEmpty) continue;
-      rows.add(_StatPair(
-        home: _statValueText(s['home']),
-        label: name.toString(),
-        away: _statValueText(s['away']),
+ rows.add(_StatPair(
+ type: _parseStatType(s['type']),
+ home: _statValueText(s['home']),
+ away: _statValueText(s['away']),
 ));
  }
  // 2. fallback: detail data of stats
@@ -285,11 +283,9 @@ class BMBasketballOverviewTab extends StatelessWidget {
       if (rawStats is List) {
         for (final s in rawStats) {
           if (s is Map) {
-            final label = s['label'] ?? s['name'];
-            if (label == null) continue;
             rows.add(_StatPair(
+              type: _parseStatType(s['type']),
               home: _statValueText(s['home']),
-              label: label.toString(),
               away: _statValueText(s['away']),
 ));
  }
@@ -297,6 +293,14 @@ class BMBasketballOverviewTab extends StatelessWidget {
  }
  }
  return rows;
+ }
+
+ /// parse stats type id from raw value
+ /// [v] - rawvalue (dynamic type, num/String/null)
+ /// returns: int type id (invalid/missing -> -1, shows 'unknownstats')
+ int _parseStatType(dynamic v) {
+ if (v is num) return v.toInt();
+ return int.tryParse(v?.toString() ?? '') ?? -1;
  }
 
  /// statisticsvalueconvertshowtext (null→'-', num→smallcountpointzero)
@@ -339,7 +343,7 @@ class BMBasketballOverviewTab extends StatelessWidget {
                 ),
               ),
               Text(
-                row.label,
+                row.typeName,
                 style: const TextStyle(
                   fontSize: 11,
                   color: BMColors.textSecondary,
@@ -390,14 +394,36 @@ class BMBasketballOverviewTab extends StatelessWidget {
 
 /// _StatPair - singlestatisticscompareitem (privateauxiliaryclass)
 class _StatPair {
+ /// stats type id (int type, e.g.: 1=three-pointers made, 2=two-pointers made)
+ final int type;
+
  /// home teamvalue (String type)
  final String home;
-
- /// statisticstag (String type, e.g.: 'baskethit inrate')
- final String label;
 
  /// away teamvalue (String type)
  final String away;
 
- _StatPair({required this.home, required this.label, required this.away});
+ _StatPair({required this.type, required this.home, required this.away});
+
+ /// stats display name mapped from type id (basketball detail overview statssection)
+ String get typeName {
+    switch (type) {
+      case 1:
+        return 'three-pointers made';
+      case 2:
+        return 'two-pointers made';
+      case 3:
+        return 'free throws made';
+      case 4:
+        return 'remaining timeouts';
+      case 5:
+        return 'number of fouls';
+      case 6:
+        return 'free throw percentage';
+      case 7:
+        return 'total timeouts';
+      default:
+        return 'unknownstats';
+    }
+  }
 }

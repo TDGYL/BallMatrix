@@ -145,21 +145,54 @@ class BMIncident {
 
 /// BMStatRow - singletechnical statsitem（Stats Tab usage)
 class BMStatRow {
+ /// stats type id (int type, e.g.: 25=Possession, 21=On Target, 1=Goals)
+ final int type;
  /// home teamvalue (String type, e.g.: '62%')
  final String homeValue;
- /// statisticsitemnametext (String type, e.g.: 'ballrate')
+ /// statisticsitemnametext (String type, raw name from API, fallbackusage)
  final String label;
  /// away teamvalue (String type, e.g.: '38%')
   final String awayValue;
 
   BMStatRow({
+    required this.type,
     required this.homeValue,
     required this.label,
     required this.awayValue,
   });
 
+  /// stats display name mapped from type id (football detail event topsection)
+  String get typeName {
+    switch (type) {
+      case 25:
+        return 'Possession';
+      case 21:
+        return 'On Target';
+      case 22:
+        return 'shot off target';
+      case 23:
+        return 'Attacks';
+      case 24:
+        return 'DangerousAttacks';
+      case 2:
+        return 'Corners';
+      case 4:
+        return 'Red Cards';
+      case 3:
+        return 'Yellow Cards';
+      case 1:
+        return 'Goals';
+      default:
+        return 'unknownstats';
+    }
+  }
+
   factory BMStatRow.fromJson(Map<String, dynamic> json) {
+    final rawType = json['type'];
     return BMStatRow(
+      type: rawType is num
+          ? rawType.toInt()
+          : int.tryParse(rawType?.toString() ?? '') ?? -1,
       homeValue: json['home']?.toString() ?? json['home_value']?.toString() ?? '',
       label: json['label']?.toString() ?? json['name']?.toString() ?? '',
       awayValue: json['away']?.toString() ?? json['away_value']?.toString() ?? '',

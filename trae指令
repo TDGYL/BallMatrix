@@ -3,6 +3,7 @@
 
 
 
+
 给我把项目中出现的中文全部修改成英文，修改规则：
 
 1、中文改英文单词要自动隔开，单词首字母大写
@@ -10,10 +11,60 @@
 
 
 
+////================手动修改事件类型
+
+将足球比赛详情菜单event第一段事件文案取的name替换成如下：
+  String get typeName {
+    switch (type) {
+      case 25:
+        return 'Possession';
+      case 21:
+        return 'On Target';
+      case 22:
+        return 'shot off target';
+      case 23:
+        return 'Attacks';
+      case 24:
+        return 'DangerousAttacks';
+      case 2:
+        return 'Corners';
+      case 4:
+        return 'Red Cards';
+      case 3:
+        return 'Yellow Cards';
+      case 1:
+        return 'Goals';
+      default:
+        return 'unknownstats';
+    }
+  }
+
+将篮球比赛详情菜单overview第二段事件文案取的name替换成如下：
+  String get typeName {
+    switch (type) {
+      case 1:
+        return 'three-pointers made';
+      case 2:
+        return 'two-pointers made';
+      case 3:
+        return 'free throws made';
+      case 4:
+        return 'remaining timeouts';
+      case 5:
+        return 'number of fouls';
+      case 6:
+        return 'free throw percentage';
+      case 7:
+        return 'total timeouts';
+      default:
+        return 'unknownstats';
+    }
+  }
+
+
+
 
 话题卡片的比赛状态不要直接取status_name，要用status_id判断，判断状态直接参考bm_match_model模型的status_id
-
-
 
 
 
